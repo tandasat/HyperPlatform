@@ -37,6 +37,7 @@ especially those who are familiar with Windows. For instance:
   a relaxed license.
 
 For more details, see the HyperPlatform User's Documents.
+- https://github.com/tandasat/HyperPlatform/tree/master/Documents
 
 
 Build
