@@ -19,9 +19,8 @@ potential applications are:
 Two of those ideas are already implemented: MemoryMon detecting execution of
 kernel memory, and GuardMon monitoring some of PatchGuard activities. See their
 project pages for more details:
-
-    https://github.com/tandasat/MemoryMon
-    https://github.com/tandasat/GuardMon
+- https://github.com/tandasat/MemoryMon
+- https://github.com/tandasat/GuardMon
 
 
 Advantages
@@ -44,11 +43,11 @@ Build
 ------
 To build HyperPlatform, the following are required.
 - Visual Studio Community 2015 Update 1
-  https://www.visualstudio.com/en-us/news/vs2015-update1-vs.aspx
+ - https://www.visualstudio.com/en-us/news/vs2015-update1-vs.aspx
 - Windows Software Development Kit (SDK) for Windows 10
-  https://dev.windows.com/en-us/downloads/windows-10-sdk
+ - https://dev.windows.com/en-us/downloads/windows-10-sdk
 - Windows Driver Kit (WDK) 10
-  https://msdn.microsoft.com/en-us/windows/hardware/hh852365.aspx
+ - https://msdn.microsoft.com/en-us/windows/hardware/hh852365.aspx
 
 
 Installation and Uninstallation
