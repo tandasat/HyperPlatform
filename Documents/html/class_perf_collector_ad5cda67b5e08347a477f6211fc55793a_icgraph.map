@@ -1,4 +1,0 @@
-<map id="PerfCollector::GetPerfDataIndex" name="PerfCollector::GetPerfDataIndex">
-<area shape="rect" id="node2" href="$class_perf_collector.html#ad2732346c4eef1a3c291dabb3588c280" title="Saves performance data taken by PerfCounter. " alt="" coords="228,13,383,39"/>
-<area shape="rect" id="node3" href="$class_perf_counter.html#a244b80e84a093daf74364210852227e0" title="Measures an elapsed time and stores it to PerfCounter::collector_. " alt="" coords="431,13,605,39"/>
-</map>

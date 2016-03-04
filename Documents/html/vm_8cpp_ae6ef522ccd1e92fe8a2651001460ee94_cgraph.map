@@ -1,6 +1,0 @@
-<map id="VmpFreeProcessorData" name="VmpFreeProcessorData">
-<area shape="rect" id="node2" href="$util_8cpp.html#a607272c895b54263d2f0e6c253ad3622" title="UtilFreeContiguousMemory" alt="" coords="215,5,393,32"/>
-<area shape="rect" id="node3" href="$ept_8cpp.html#a6157e432b60f71f2e0cc47c0940a382b" title="EptTermination" alt="" coords="249,56,359,83"/>
-<area shape="rect" id="node4" href="$ept_8cpp.html#a72bffcb47d0e3921ad0d5c05cd074a57" title="EptpFreeUnusedPreAllocated\lEntries" alt="" coords="441,19,635,61"/>
-<area shape="rect" id="node5" href="$ept_8cpp.html#af5f7a561bf9f2c4ccb7b76a5b7221b9e" title="EptpDestructTables" alt="" coords="470,85,606,112"/>
-</map>

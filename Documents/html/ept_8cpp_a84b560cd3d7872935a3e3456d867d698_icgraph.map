@@ -1,9 +1,0 @@
-<map id="EptpConstructTables" name="EptpConstructTables">
-<area shape="rect" id="node2" href="$ept_8h.html#a21bd47144c33a9bec105e47f7d14d696" title="Builds EPT, allocates pre&#45;allocated enties, initializes and returns EptData. " alt="" coords="217,5,327,32"/>
-<area shape="rect" id="node6" href="$ept_8cpp.html#ac62f6a97efbc13ab5d5ecbb41b5ad92c" title="EptpConstructTables" alt="" coords="201,56,343,83"/>
-<area shape="rect" id="node7" href="$ept_8cpp.html#a6adf0f9672ecc2605b2e73a3dea55468" title="EptHandleEptViolation" alt="" coords="196,107,348,133"/>
-<area shape="rect" id="node3" href="$vm_8cpp.html#a59a15f91f00f1b51f12580d106d8fd03" title="VmpInitializeSharedData" alt="" coords="399,5,563,32"/>
-<area shape="rect" id="node4" href="$vm_8h.html#a147812b07dd4d8cf330b225c912280c7" title="Virtualizes all processors. " alt="" coords="615,5,725,32"/>
-<area shape="rect" id="node5" href="$driver_8cpp.html#a7475895c182f826798d611e99cb56494" title="DriverEntry" alt="" coords="773,5,859,32"/>
-<area shape="rect" id="node8" href="$vmm_8cpp.html#a572fdc29d1553bb115a734013c9d8df3" title="VmmpHandleEptViolation" alt="" coords="396,107,567,133"/>
-</map>

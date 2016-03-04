@@ -1,4 +1,0 @@
-<map id="AsmWriteGDT" name="AsmWriteGDT">
-<area shape="rect" id="node2" href="$asm_8h.html#a0e87423ee42eebf6a70fc1d75d71d0f5" title="Reads SGDT. " alt="" coords="160,5,217,32"/>
-<area shape="rect" id="node3" href="$vmm_8cpp.html#aa8b54d75cffd4fdeccdd215427e42e9c" title="VmmpHandleVmCall" alt="" coords="265,5,408,32"/>
-</map>

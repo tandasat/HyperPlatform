@@ -1,5 +1,0 @@
-<map id="VmmpHandleInvalidateTLBEntry" name="VmmpHandleInvalidateTLBEntry">
-<area shape="rect" id="node2" href="$util_8cpp.html#a1e0beb2532d7c8ffe16e6733aa96ee66" title="UtilVmRead" alt="" coords="311,5,401,32"/>
-<area shape="rect" id="node3" href="$asm_8h.html#a79db6c3a490dc84acfe8ba14268131b8" title="Invalidates TLB entries. " alt="" coords="315,56,397,83"/>
-<area shape="rect" id="node4" href="$vmm_8cpp.html#a74d575262c9085bf28b9de246129c17e" title="VmmpAdjustGuestInstruction\lPointer" alt="" coords="260,107,452,149"/>
-</map>

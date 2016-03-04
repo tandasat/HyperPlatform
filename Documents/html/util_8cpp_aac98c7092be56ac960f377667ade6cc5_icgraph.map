@@ -1,6 +1,0 @@
-<map id="UtilForEachProcessor" name="UtilForEachProcessor">
-<area shape="rect" id="node2" href="$vm_8h.html#a147812b07dd4d8cf330b225c912280c7" title="Virtualizes all processors. " alt="" coords="425,5,536,32"/>
-<area shape="rect" id="node4" href="$vm_8cpp.html#a333fe16a14884b6ac29abc21c51dd817" title="VmpIsVmxAvailable" alt="" coords="221,31,359,57"/>
-<area shape="rect" id="node5" href="$vm_8cpp.html#a2648caf61baf53da2b4ff47e6f409a94" title="VmpVmxOffThreadRoutine" alt="" coords="203,81,377,108"/>
-<area shape="rect" id="node3" href="$driver_8cpp.html#aac4a8434f7a41d9a409bea25fedbf04d" title="DriverEntry" alt="" coords="584,5,669,32"/>
-</map>

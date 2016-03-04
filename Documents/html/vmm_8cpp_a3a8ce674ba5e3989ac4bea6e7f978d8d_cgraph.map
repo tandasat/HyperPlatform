@@ -1,8 +1,0 @@
-<map id="VmmpHandleMsrAccess" name="VmmpHandleMsrAccess">
-<area shape="rect" id="node2" href="$util_8h.html#a131ab25ba676523d82ffa34bfba7f79d" title="UtilIsInBounds" alt="" coords="263,5,369,32"/>
-<area shape="rect" id="node3" href="$util_8cpp.html#a2829d328801fb1508cc3fa41eaeda37b" title="UtilVmRead" alt="" coords="271,56,361,83"/>
-<area shape="rect" id="node4" href="$util_8cpp.html#a611e39a4bf1b59a0ca1ba5ba9828d333" title="UtilReadMsr64" alt="" coords="263,107,369,133"/>
-<area shape="rect" id="node5" href="$util_8cpp.html#a9c2691652599483f24fd4c99442deb6f" title="UtilVmWrite" alt="" coords="270,157,362,184"/>
-<area shape="rect" id="node6" href="$util_8cpp.html#ad4b848399f57f85f4d85b0353dc1327e" title="UtilWriteMsr64" alt="" coords="262,208,370,235"/>
-<area shape="rect" id="node7" href="$vmm_8cpp.html#a74d575262c9085bf28b9de246129c17e" title="VmmpAdjustGuestInstruction\lPointer" alt="" coords="220,259,412,301"/>
-</map>

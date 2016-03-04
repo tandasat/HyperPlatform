@@ -1,5 +1,0 @@
-<map id="LogpSleep" name="LogpSleep">
-<area shape="rect" id="node2" href="$log_8cpp.html#ab9e42c136393fa9c4d51140e90123854" title="LogpInitializeLogFile" alt="" coords="166,5,305,32"/>
-<area shape="rect" id="node3" href="$log_8h.html#ab41316e7a1d8ee16eba2c7f88b3a5c08" title="Terminates the log system. Should be called from an IRP_MJ_SHUTDOWN handler. " alt="" coords="156,56,315,83"/>
-<area shape="rect" id="node4" href="$log_8cpp.html#a9b57db3b3cac60d3914dcb383f3ae982" title="LogpBufferFlushThreadRoutine" alt="" coords="136,107,335,133"/>
-</map>

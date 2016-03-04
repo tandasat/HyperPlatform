@@ -1,9 +1,0 @@
-<map id="VmmInitialStack" name="VmmInitialStack">
-<area shape="rect" id="node2" href="$struct_processor_data.html" title="Represents VMM related data associated with each processor. " alt="" coords="74,303,182,329"/>
-<area shape="rect" id="node3" href="$struct_vm_control_structure.html" title="See: Virtual&#45;Machine Control Structures &amp; FORMAT OF THE VMCS REGION. " alt="" coords="5,199,141,225"/>
-<area shape="rect" id="node4" href="$struct_shared_processor_data.html" title="Represents VMM related data shared across all processors. " alt="" coords="165,199,315,225"/>
-<area shape="rect" id="node5" href="$struct_ept_data.html" title="EptData" alt="" coords="205,109,275,136"/>
-<area shape="rect" id="node6" href="$union_ept_common_entry.html" title="EptCommonEntry" alt="" coords="104,5,229,32"/>
-<area shape="rect" id="node7" href="$union_ept_pointer.html" title="See: Extended&#45;Page&#45;Table Pointer (EPTP) " alt="" coords="273,5,356,32"/>
-<area shape="rect" id="node8" href="$struct_gp_registers_x86.html" title="Reprsents a stack layout after PUSHAD. " alt="" coords="207,303,321,329"/>
-</map>

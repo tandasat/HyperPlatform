@@ -1,6 +1,0 @@
-<map id="VmmpSelectRegister" name="VmmpSelectRegister">
-<area shape="rect" id="node2" href="$vmm_8cpp.html#a44b3407560964424607947c1c40dca48" title="VmmpHandleGdtrOrIdtrAccess" alt="" coords="199,5,400,32"/>
-<area shape="rect" id="node3" href="$vmm_8cpp.html#a17c50a69ea016af36beac73fdf58bad2" title="VmmpHandleLdtrOrTrAccess" alt="" coords="204,56,395,83"/>
-<area shape="rect" id="node4" href="$vmm_8cpp.html#ab6c87b60d5c701263b10ea747019e06b" title="VmmpHandleDrAccess" alt="" coords="221,107,378,133"/>
-<area shape="rect" id="node5" href="$vmm_8cpp.html#a8fb9289d967c49d8900b22df4dc1911a" title="VmmpHandleCrAccess" alt="" coords="221,157,378,184"/>
-</map>

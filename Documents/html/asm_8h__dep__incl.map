@@ -1,6 +1,0 @@
-<map id="HyperPlatform/asm.h" name="HyperPlatform/asm.h">
-<area shape="rect" id="node2" href="$ept_8cpp.html" title="Implements EPT functions. " alt="" coords="5,80,156,107"/>
-<area shape="rect" id="node3" href="$util_8cpp.html" title="Implements primitive utility functions. " alt="" coords="180,80,331,107"/>
-<area shape="rect" id="node4" href="$vm_8cpp.html" title="Implements VMM initialization functions. " alt="" coords="355,80,505,107"/>
-<area shape="rect" id="node5" href="$vmm_8cpp.html" title="Implements VMM functions. " alt="" coords="529,80,689,107"/>
-</map>

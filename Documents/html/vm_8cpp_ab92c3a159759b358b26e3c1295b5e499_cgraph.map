@@ -1,7 +1,0 @@
-<map id="VmpEnterVmxMode" name="VmpEnterVmxMode">
-<area shape="rect" id="node2" href="$util_8cpp.html#a0909d1290d5ec841c59711603906ad17" title="UtilReadMsr" alt="" coords="199,5,292,32"/>
-<area shape="rect" id="node3" href="$util_8cpp.html#a611e39a4bf1b59a0ca1ba5ba9828d333" title="UtilReadMsr64" alt="" coords="192,56,299,83"/>
-<area shape="rect" id="node4" href="$util_8cpp.html#a6e7699a4fec28b70202362994bc57280" title="UtilPaFromVa" alt="" coords="194,107,297,133"/>
-<area shape="rect" id="node5" href="$util_8cpp.html#a26380029ce6cda809af3b6794674debd" title="UtilInveptAll" alt="" coords="201,157,290,184"/>
-<area shape="rect" id="node6" href="$asm_8h.html#ab081966c06c5956b992dc8086e1b1832" title="Invalidates translations derived from EPT. " alt="" coords="347,157,429,184"/>
-</map>

@@ -1,7 +1,0 @@
-<map id="HyperPlatform/perf_counter.h" name="HyperPlatform/perf_counter.h">
-<area shape="rect" id="node2" href="$performance_8h.html" title="Declares interfaces to performance measurement functions. " alt="" coords="273,95,463,121"/>
-<area shape="rect" id="node3" href="$driver_8cpp.html" title="Implements an entry point of the driver. " alt="" coords="5,169,168,196"/>
-<area shape="rect" id="node4" href="$ept_8cpp.html" title="Implements EPT functions. " alt="" coords="193,169,343,196"/>
-<area shape="rect" id="node5" href="$performance_8cpp.html" title="Implements performance measurement functions. " alt="" coords="367,169,571,196"/>
-<area shape="rect" id="node6" href="$vmm_8cpp.html" title="Implements VMM functions. " alt="" coords="596,169,756,196"/>
-</map>

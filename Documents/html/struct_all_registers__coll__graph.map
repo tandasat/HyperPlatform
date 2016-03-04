@@ -1,4 +1,0 @@
-<map id="AllRegisters" name="AllRegisters">
-<area shape="rect" id="node2" href="$union_flag_register.html" title="See: SYSTEM FLAGS AND FIELDS IN THE EFLAGS REGISTER. " alt="" coords="5,5,100,32"/>
-<area shape="rect" id="node3" href="$struct_gp_registers_x86.html" title="Reprsents a stack layout after PUSHAD. " alt="" coords="125,5,239,32"/>
-</map>

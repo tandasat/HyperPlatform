@@ -1,9 +1,0 @@
-<map id="VmpInitializeVm" name="VmpInitializeVm">
-<area shape="rect" id="node2" href="$util_8cpp.html#a758b4d7c75eb00575d351f960a061a69" title="UtilAllocateContiguousMemory" alt="" coords="169,5,369,32"/>
-<area shape="rect" id="node3" href="$vm_8cpp.html#a19b93e0e23802f213312f3f9754863c2" title="VmpEnterVmxMode" alt="" coords="200,56,339,83"/>
-<area shape="rect" id="node4" href="$vm_8cpp.html#abef2495abf84486aa76241e8a6d686f2" title="VmpInitializeVMCS" alt="" coords="202,107,337,133"/>
-<area shape="rect" id="node5" href="$vm_8cpp.html#a2cb6e626a09aeab3643c3c43a8e1ed73" title="VmpSetupVMCS" alt="" coords="209,157,330,184"/>
-<area shape="rect" id="node6" href="$vm_8cpp.html#af0c85a5f16c835dbb0d65e85e5f4790a" title="VmpLaunchVM" alt="" coords="214,208,325,235"/>
-<area shape="rect" id="node8" href="$vm_8cpp.html#a3389f68a439cd3ced2cbf00cc46edbe8" title="VmpFreeProcessorData" alt="" coords="189,259,350,285"/>
-<area shape="rect" id="node7" href="$util_8cpp.html#a1e0beb2532d7c8ffe16e6733aa96ee66" title="UtilVmRead" alt="" coords="417,208,508,235"/>
-</map>

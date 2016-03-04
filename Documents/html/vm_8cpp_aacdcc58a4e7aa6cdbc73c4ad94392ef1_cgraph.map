@@ -1,7 +1,0 @@
-<map id="VmpEnterVmxMode" name="VmpEnterVmxMode">
-<area shape="rect" id="node2" href="$util_8cpp.html#abe8e96ad856f42ddc384dcdea1a74000" title="UtilReadMsr" alt="" coords="199,5,292,32"/>
-<area shape="rect" id="node3" href="$util_8cpp.html#ae031e3644a8ebf1146b50ac00700b7a6" title="UtilReadMsr64" alt="" coords="192,56,299,83"/>
-<area shape="rect" id="node4" href="$util_8cpp.html#ae0ab2e6120ff2d3cc2f8ae779e62706a" title="UtilPaFromVa" alt="" coords="194,107,297,133"/>
-<area shape="rect" id="node5" href="$util_8cpp.html#a26380029ce6cda809af3b6794674debd" title="Executes the INVEPT instruction and invalidates EPT entry cache. " alt="" coords="201,157,290,184"/>
-<area shape="rect" id="node6" href="$asm_8h.html#ab081966c06c5956b992dc8086e1b1832" title="Invalidates translations derived from EPT. " alt="" coords="347,157,429,184"/>
-</map>

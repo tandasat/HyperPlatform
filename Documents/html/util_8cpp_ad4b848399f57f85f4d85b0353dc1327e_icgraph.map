@@ -1,7 +1,0 @@
-<map id="UtilWriteMsr64" name="UtilWriteMsr64">
-<area shape="rect" id="node2" href="$vm_8cpp.html#aca963e7783d9fbeff48ee8ce4ed5f505" title="VmpSetLockBitCallback" alt="" coords="163,5,326,32"/>
-<area shape="rect" id="node6" href="$vmm_8cpp.html#a3a8ce674ba5e3989ac4bea6e7f978d8d" title="VmmpHandleMsrAccess" alt="" coords="161,56,328,83"/>
-<area shape="rect" id="node3" href="$vm_8cpp.html#a333fe16a14884b6ac29abc21c51dd817" title="VmpIsVmxAvailable" alt="" coords="376,5,513,32"/>
-<area shape="rect" id="node4" href="$vm_8h.html#a147812b07dd4d8cf330b225c912280c7" title="Virtualizes all processors. " alt="" coords="561,5,672,32"/>
-<area shape="rect" id="node5" href="$driver_8cpp.html#aac4a8434f7a41d9a409bea25fedbf04d" title="DriverEntry" alt="" coords="720,5,805,32"/>
-</map>

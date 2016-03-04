@@ -1,9 +1,0 @@
-<map id="EptpDestructTables" name="EptpDestructTables">
-<area shape="rect" id="node2" href="$ept_8h.html#a21bd47144c33a9bec105e47f7d14d696" title="Builds EPT, allocates pre&#45;allocated enties, initializes and returns EptData. " alt="" coords="202,5,313,32"/>
-<area shape="rect" id="node6" href="$ept_8cpp.html#a6157e432b60f71f2e0cc47c0940a382b" title="EptTermination" alt="" coords="203,56,312,83"/>
-<area shape="rect" id="node8" href="$ept_8cpp.html#a305794d584c40ceaad4e4944ae606fbc" title="EptpDestructTables" alt="" coords="189,107,325,133"/>
-<area shape="rect" id="node3" href="$vm_8cpp.html#a59a15f91f00f1b51f12580d106d8fd03" title="VmpInitializeSharedData" alt="" coords="373,5,537,32"/>
-<area shape="rect" id="node4" href="$vm_8h.html#a147812b07dd4d8cf330b225c912280c7" title="Virtualizes all processors. " alt="" coords="585,5,696,32"/>
-<area shape="rect" id="node5" href="$driver_8cpp.html#a7475895c182f826798d611e99cb56494" title="DriverEntry" alt="" coords="744,5,829,32"/>
-<area shape="rect" id="node7" href="$vm_8cpp.html#ae6ef522ccd1e92fe8a2651001460ee94" title="VmpFreeProcessorData" alt="" coords="375,56,536,83"/>
-</map>

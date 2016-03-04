@@ -1,5 +1,0 @@
-<map id="VmpStartVM" name="VmpStartVM">
-<area shape="rect" id="node2" href="$asm_8h.html#ab03bb7695eee1c29a0cf7fb7ef45ad4c" title="A wrapper for vm_initialization_routine. " alt="" coords="162,5,278,32"/>
-<area shape="rect" id="node3" href="$vm_8cpp.html#aa1cbc431d2b400dc2c6a6b4a18fc5671" title="VmpInitializeVm" alt="" coords="162,56,278,83"/>
-<area shape="rect" id="node4" href="$vm_8cpp.html#a0ff1bbb93039a4d6f8b8f085a262b502" title="VmpIsVmmInstalled" alt="" coords="151,107,289,133"/>
-</map>

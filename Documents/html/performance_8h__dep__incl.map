@@ -1,6 +1,0 @@
-<map id="HyperPlatform/performance.h" name="HyperPlatform/performance.h">
-<area shape="rect" id="node2" href="$driver_8cpp.html" title="Implements an entry point of the driver. " alt="" coords="5,80,168,107"/>
-<area shape="rect" id="node3" href="$ept_8cpp.html" title="Implements EPT functions. " alt="" coords="193,80,343,107"/>
-<area shape="rect" id="node4" href="$performance_8cpp.html" title="Implements performance measurement functions. " alt="" coords="367,80,571,107"/>
-<area shape="rect" id="node5" href="$vmm_8cpp.html" title="Implements VMM functions. " alt="" coords="596,80,756,107"/>
-</map>

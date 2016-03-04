@@ -1,8 +1,0 @@
-<map id="LogpPut" name="LogpPut">
-<area shape="rect" id="node2" href="$log_8cpp.html#a9fd7eae9e7ff190ffd52818025456000" title="LogpIsLogFileEnabled" alt="" coords="135,5,284,32"/>
-<area shape="rect" id="node3" href="$log_8cpp.html#ad77b785034a6129f6796abe93093bb4f" title="LogpIsLogFileActivated" alt="" coords="132,56,287,83"/>
-<area shape="rect" id="node4" href="$log_8cpp.html#ad60955857599701665a0e356faa0b1c3" title="LogpWriteLogBufferToFile" alt="" coords="124,107,295,133"/>
-<area shape="rect" id="node5" href="$log_8cpp.html#a1e6140a2b3e053b1708e69e91e711c5c" title="LogpWriteMessageToFile" alt="" coords="125,157,294,184"/>
-<area shape="rect" id="node6" href="$log_8cpp.html#acbc0ceac6a76b499646aa586dea8a0f2" title="LogpSetPrintedBit" alt="" coords="146,208,273,235"/>
-<area shape="rect" id="node7" href="$log_8cpp.html#a07bf2145ca33bec2222fba83fd02ef5a" title="LogpBufferMessage" alt="" coords="141,259,277,285"/>
-</map>

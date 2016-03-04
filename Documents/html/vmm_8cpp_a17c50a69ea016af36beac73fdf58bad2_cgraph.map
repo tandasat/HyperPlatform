@@ -1,6 +1,0 @@
-<map id="VmmpHandleLdtrOrTrAccess" name="VmmpHandleLdtrOrTrAccess">
-<area shape="rect" id="node2" href="$util_8cpp.html#a1e0beb2532d7c8ffe16e6733aa96ee66" title="UtilVmRead" alt="" coords="295,5,385,32"/>
-<area shape="rect" id="node3" href="$vmm_8cpp.html#a1c01a0073985999db6eaf5836fdaf56a" title="VmmpSelectRegister" alt="" coords="267,56,413,83"/>
-<area shape="rect" id="node4" href="$util_8cpp.html#a47aa45a9e2a816d5cf54a0173d4e786f" title="UtilVmWrite" alt="" coords="294,107,386,133"/>
-<area shape="rect" id="node5" href="$vmm_8cpp.html#a74d575262c9085bf28b9de246129c17e" title="VmmpAdjustGuestInstruction\lPointer" alt="" coords="244,158,436,199"/>
-</map>

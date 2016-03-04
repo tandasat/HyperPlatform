@@ -1,6 +1,0 @@
-<map id="VmpIsVmxAvailable" name="VmpIsVmxAvailable">
-<area shape="rect" id="node2" href="$util_8cpp.html#ae031e3644a8ebf1146b50ac00700b7a6" title="UtilReadMsr64" alt="" coords="401,55,508,81"/>
-<area shape="rect" id="node3" href="$util_8cpp.html#a498c779c12e188b0ff8d4037ab6591ce" title="UtilForEachProcessor" alt="" coords="197,29,347,56"/>
-<area shape="rect" id="node4" href="$vm_8cpp.html#a6324891d7b010dd62553916e5f7bbeb4" title="VmpSetLockBitCallback" alt="" coords="191,80,353,107"/>
-<area shape="rect" id="node5" href="$ept_8cpp.html#ae1a710c5e98d60441af5d3cb8349abc7" title="Checks if the system supports EPT technology sufficient enough. " alt="" coords="211,131,333,157"/>
-</map>

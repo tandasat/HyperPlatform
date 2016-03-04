@@ -1,5 +1,0 @@
-<map id="LogpBufferFlushThreadRoutine" name="LogpBufferFlushThreadRoutine">
-<area shape="rect" id="node2" href="$log_8cpp.html#ad77b785034a6129f6796abe93093bb4f" title="LogpIsLogFileActivated" alt="" coords="260,5,415,32"/>
-<area shape="rect" id="node3" href="$log_8cpp.html#ad60955857599701665a0e356faa0b1c3" title="LogpWriteLogBufferToFile" alt="" coords="252,56,423,83"/>
-<area shape="rect" id="node4" href="$log_8cpp.html#aced14de25b5bcc0e735e1254c697e53b" title="LogpSleep" alt="" coords="296,107,379,133"/>
-</map>

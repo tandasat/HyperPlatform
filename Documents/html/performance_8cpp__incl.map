@@ -1,6 +1,0 @@
-<map id="HyperPlatform/performance.cpp" name="HyperPlatform/performance.cpp">
-<area shape="rect" id="node2" href="$performance_8h.html" title="Declares interfaces to performance measurement functions. " alt="" coords="19,80,123,107"/>
-<area shape="rect" id="node5" href="$common_8h.html" title="Declares and implements common things across the project. " alt="" coords="133,155,216,181"/>
-<area shape="rect" id="node6" href="$log_8h.html" title="Declares interfaces to logging functions. " alt="" coords="220,80,271,107"/>
-<area shape="rect" id="node3" href="$perf__counter_8h.html" title="Declares interfaces to performance mesurement primitives. " alt="" coords="5,155,109,181"/>
-</map>

@@ -1,7 +1,0 @@
-<map id="LogpFinalizeBufferInfo" name="LogpFinalizeBufferInfo">
-<area shape="rect" id="node2" href="$log_8cpp.html#a31adb602a5853992527918a920b634a8" title="LogInitialization" alt="" coords="221,5,332,32"/>
-<area shape="rect" id="node4" href="$log_8cpp.html#a7caf9c27ee59b3f60fdd199b54d256d5" title="LogpInitializeBufferInfo" alt="" coords="201,56,352,83"/>
-<area shape="rect" id="node5" href="$log_8h.html#a96551bc40e7b6f61102ca34d3ed01132" title="Terminates the log system. Should be called from a DriverUnload routine. " alt="" coords="221,107,332,133"/>
-<area shape="rect" id="node3" href="$driver_8cpp.html#a7475895c182f826798d611e99cb56494" title="DriverEntry" alt="" coords="424,31,509,57"/>
-<area shape="rect" id="node6" href="$driver_8cpp.html#a601ab246ef7b8990c3aaec46ab1c1c3d" title="DriverpDriverUnload" alt="" coords="400,107,533,133"/>
-</map>

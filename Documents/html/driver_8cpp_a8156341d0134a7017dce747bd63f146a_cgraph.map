@@ -1,9 +1,0 @@
-<map id="DriverpDriverUnload" name="DriverpDriverUnload">
-<area shape="rect" id="node2" href="$vm_8cpp.html#ad7d37044a95ebcee2bd5b6dfe6414d1f" title="De&#45;virtualize all processors. " alt="" coords="188,5,297,32"/>
-<area shape="rect" id="node4" href="$util_8cpp.html#ab7627f19525a1be1074ad461297257e1" title="UtilTermination" alt="" coords="189,56,297,83"/>
-<area shape="rect" id="node5" href="$performance_8cpp.html#ac86e665ab4bb9f45fed3bc9f76541281" title="Ends performance monitoring and outputs its results. " alt="" coords="187,107,299,133"/>
-<area shape="rect" id="node7" href="$log_8cpp.html#aff51f8bdc0deda6f883b8a1995cecfab" title="Terminates the log system. Should be called from a DriverUnload routine. " alt="" coords="187,157,298,184"/>
-<area shape="rect" id="node3" href="$vm_8cpp.html#a0ff1bbb93039a4d6f8b8f085a262b502" title="VmpIsVmmInstalled" alt="" coords="358,5,497,32"/>
-<area shape="rect" id="node6" href="$class_perf_collector.html#a51b2e62b26270d56013049142d1230a3" title="Destructor; prints out accumerated performance results. " alt="" coords="347,107,508,133"/>
-<area shape="rect" id="node8" href="$log_8cpp.html#ae3c1e8192b36243fbfbccce15748e10a" title="LogpFinalizeBufferInfo" alt="" coords="353,157,501,184"/>
-</map>

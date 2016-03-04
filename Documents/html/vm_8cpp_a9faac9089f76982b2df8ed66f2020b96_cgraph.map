@@ -1,5 +1,0 @@
-<map id="VmpGetSegmentBase" name="VmpGetSegmentBase">
-<area shape="rect" id="node2" href="$vm_8cpp.html#a4dcd03b22c1aa7eaaf5b9e9dae757992" title="VmpGetSegmentDescriptor" alt="" coords="228,5,409,32"/>
-<area shape="rect" id="node3" href="$asm_8h.html#a6d5433a97e66d132e9e86e08c269b716" title="Reads SLDT. " alt="" coords="263,56,374,83"/>
-<area shape="rect" id="node4" href="$vm_8cpp.html#ab24bd783b2e5b9d9e19afe7481815a78" title="VmpGetSegmentBaseByDescriptor" alt="" coords="205,107,432,133"/>
-</map>

@@ -1,9 +1,0 @@
-<map id="HyperPlatform/ia32_type.h" name="HyperPlatform/ia32_type.h">
-<area shape="rect" id="node2" href="$asm_8h.html" title="Declares interfaces to assembly functions. " alt="" coords="198,95,342,121"/>
-<area shape="rect" id="node7" href="$util_8h.html" title="Declares interfaces to utility functions. " alt="" coords="366,95,502,121"/>
-<area shape="rect" id="node3" href="$ept_8cpp.html" title="Implements EPT functions. " alt="" coords="539,169,689,196"/>
-<area shape="rect" id="node4" href="$util_8cpp.html" title="Implements primitive utility functions. " alt="" coords="5,169,156,196"/>
-<area shape="rect" id="node5" href="$vm_8cpp.html" title="Implements VMM initialization functions. " alt="" coords="181,169,330,196"/>
-<area shape="rect" id="node6" href="$vmm_8cpp.html" title="Implements VMM functions. " alt="" coords="354,169,514,196"/>
-<area shape="rect" id="node8" href="$driver_8cpp.html" title="Implements an entry point of the driver. " alt="" coords="714,169,877,196"/>
-</map>

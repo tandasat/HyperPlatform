@@ -1,7 +1,0 @@
-<map id="UtilGetPhysicalMemoryRanges" name="UtilGetPhysicalMemoryRanges">
-<area shape="rect" id="node2" href="$ept_8h.html#a21bd47144c33a9bec105e47f7d14d696" title="Builds EPT, allocates pre&#45;allocated enties, initializes and returns EptData. " alt="" coords="273,5,383,32"/>
-<area shape="rect" id="node6" href="$ept_8cpp.html#ac6d2a4ee32680eee9215d16e92f66751" title="EptpIsDeviceMemory" alt="" coords="256,56,400,83"/>
-<area shape="rect" id="node3" href="$vm_8cpp.html#a59a15f91f00f1b51f12580d106d8fd03" title="VmpInitializeSharedData" alt="" coords="448,5,612,32"/>
-<area shape="rect" id="node4" href="$vm_8h.html#a147812b07dd4d8cf330b225c912280c7" title="Virtualizes all processors. " alt="" coords="660,5,771,32"/>
-<area shape="rect" id="node5" href="$driver_8cpp.html#a7475895c182f826798d611e99cb56494" title="DriverEntry" alt="" coords="819,5,904,32"/>
-</map>

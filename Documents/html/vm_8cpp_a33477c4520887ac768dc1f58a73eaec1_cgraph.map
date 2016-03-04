@@ -1,5 +1,0 @@
-<map id="VmpStopVM" name="VmpStopVM">
-<area shape="rect" id="node2" href="$util_8cpp.html#a05864dbcd7f0b2c004a7253a4af01d87" title="UtilVmCall" alt="" coords="189,5,271,32"/>
-<area shape="rect" id="node4" href="$vm_8cpp.html#a3389f68a439cd3ced2cbf00cc46edbe8" title="VmpFreeProcessorData" alt="" coords="149,56,311,83"/>
-<area shape="rect" id="node3" href="$asm_8h.html#a242cf7f553b78ec66615d191dd2dc429" title="Executes VMCALL with the given hypercall number and a context. " alt="" coords="359,5,457,32"/>
-</map>

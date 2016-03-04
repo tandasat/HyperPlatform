@@ -1,9 +1,0 @@
-<map id="HyperPlatform/log.h" name="HyperPlatform/log.h">
-<area shape="rect" id="node2" href="$driver_8cpp.html" title="Implements an entry point of the driver. " alt="" coords="5,80,168,107"/>
-<area shape="rect" id="node3" href="$ept_8cpp.html" title="Implements EPT functions. " alt="" coords="193,80,343,107"/>
-<area shape="rect" id="node4" href="$log_8cpp.html" title="Implements logging functions. " alt="" coords="367,80,518,107"/>
-<area shape="rect" id="node5" href="$performance_8cpp.html" title="Implements performance measurement functions. " alt="" coords="542,80,746,107"/>
-<area shape="rect" id="node6" href="$util_8cpp.html" title="Implements primitive utility functions. " alt="" coords="770,80,921,107"/>
-<area shape="rect" id="node7" href="$vm_8cpp.html" title="Implements VMM initialization functions. " alt="" coords="945,80,1095,107"/>
-<area shape="rect" id="node8" href="$vmm_8cpp.html" title="Implements VMM functions. " alt="" coords="1119,80,1279,107"/>
-</map>
