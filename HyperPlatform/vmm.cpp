@@ -487,9 +487,6 @@ _Use_decl_annotations_ static void VmmpHandleMsrAccess(
   NT_ASSERT(UtilIsInBounds(vmcs_field, VmcsField::kIoBitmapA,
                            VmcsField::kHostIa32PerfGlobalCtrlHigh) == false);
 
-  // This unconditional __readmsr and __writemsr may cause #GP resulting in
-  // bug check. A proper way to solve this is check supported MSR values
-  // beforehand and inject an exception when unsupported MSR values are given.
   LARGE_INTEGER msr_value = {};
   if (read_access) {
     if (transfer_to_vmcs) {

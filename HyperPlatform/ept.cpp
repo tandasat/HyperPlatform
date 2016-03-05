@@ -152,6 +152,7 @@ static void EptpFreeUnusedPreAllocatedEntries(
 // implementations
 //
 
+// Checks if the system supports EPT technology sufficient enough
 _Use_decl_annotations_ bool EptIsEptAvailable() {
   PAGED_CODE();
 
@@ -159,7 +160,7 @@ _Use_decl_annotations_ bool EptIsEptAvailable() {
   __cpuidex(regs, 0x80000008, 0);
   Cpuid80000008Eax cpuidEax = {static_cast<ULONG32>(regs[0])};
   HYPERPLATFORM_LOG_DEBUG("Physical Address Range = %d bits",
-                           cpuidEax.fields.physical_address_bits);
+                          cpuidEax.fields.physical_address_bits);
 
   // No processors supporting the Intel 64 architecture support more than 48
   // physical-address bits
@@ -181,10 +182,12 @@ _Use_decl_annotations_ bool EptIsEptAvailable() {
   return true;
 }
 
+// Returns an EPT pointer from ept_data
 _Use_decl_annotations_ ULONG64 EptGetEptPointer(EptData *ept_data) {
   return ept_data->ept_pointer->all;
 }
 
+// Builds EPT, allocates pre-allocated enties, initializes and returns EptData
 _Use_decl_annotations_ EptData *EptInitialization() {
   PAGED_CODE();
 
@@ -467,7 +470,7 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
 
   } else {
     HYPERPLATFORM_LOG_DEBUG_SAFE("[IGNR] OTH VA = %p, PA = %016llx", fault_va,
-                                  fault_pa);
+                                 fault_pa);
   }
 }
 

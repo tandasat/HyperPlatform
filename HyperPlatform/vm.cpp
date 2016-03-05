@@ -231,6 +231,16 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
   RtlZeroMemory(msr_bitmap, PAGE_SIZE);
   shared_data->msr_bitmap = msr_bitmap;
 
+  // Checks MSRs causing #GP and should not cause VM-exit from 0 to 0xfff.
+  bool unsafe_msr_map[0x1000] = {};
+  for (auto msr = 0ul; msr < RTL_NUMBER_OF(unsafe_msr_map); ++msr) {
+    __try {
+      UtilReadMsr(static_cast<Msr>(msr));
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+      unsafe_msr_map[msr] = true;
+    }
+  }
+
   // Activate VM-exit for RDMSR against all MSRs
   const auto bitmap_read_low = reinterpret_cast<UCHAR *>(msr_bitmap);
   const auto bitmap_read_high = bitmap_read_low + 1024;
@@ -242,6 +252,14 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
   RtlInitializeBitMap(&bitmap_read_low_header,
                       reinterpret_cast<PULONG>(bitmap_read_low), 1024 * 8);
   RtlClearBits(&bitmap_read_low_header, 0xe7, 2);
+
+  // Also ignore the unsage MSRs
+  for (auto msr = 0ul; msr < RTL_NUMBER_OF(unsafe_msr_map); ++msr) {
+    const auto ignore = unsafe_msr_map[msr];
+    if (ignore) {
+      RtlClearBits(&bitmap_read_low_header, msr, 1);
+    }
+  }
 
   // But ignore IA32_GS_BASE (c0000101) and IA32_KERNEL_GS_BASE (c0000102)
   RTL_BITMAP bitmap_read_high_header = {};

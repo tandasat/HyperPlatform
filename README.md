@@ -4,17 +4,17 @@ HyperPlatform
 Introduction
 -------------
 HyperPlatform is an Intel VT-x based hypervisor (a.k.a. virtual machine monitor)
-aiming to provide a thin platform for research on Windows. HyperPlatform is 
-capable of monitoring a wide range of events, including but not limited to, 
+aiming to provide a thin platform for research on Windows. HyperPlatform is
+capable of monitoring a wide range of events, including but not limited to,
 access to virtual/physical memory and system registers, occurrence of interrupts
 and execution of certain instructions.
 
 Researchers are free to selectively enable and/or disable any of those event
-monitoring and implement their own logic on the top of HyperPlatform. Some 
+monitoring and implement their own logic on the top of HyperPlatform. Some
 potential applications are:
 - Analyzing kernel mode rootkit
-- Implementing virtual-machine-based intrusion prevention system (VIPS) 
-- Reverse-engineering the Windows kernel 
+- Implementing virtual-machine-based intrusion prevention system (VIPS)
+- Reverse-engineering the Windows kernel
 
 Two of those ideas are already implemented: MemoryMon detecting execution of
 kernel memory, and GuardMon monitoring some of PatchGuard activities. See their
