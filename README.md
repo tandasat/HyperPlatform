@@ -16,7 +16,7 @@ potential applications are:
 - Implementing virtual-machine-based intrusion prevention system (VIPS)
 - Reverse-engineering the Windows kernel
 
-Two of those ideas are already implemented: MemoryMon detecting execution of
+Two of those ideas were already implemented: MemoryMon detecting execution of
 kernel memory, and GuardMon monitoring some of PatchGuard activities. See their
 project pages for more details:
 - https://github.com/tandasat/MemoryMon
@@ -32,7 +32,7 @@ especially those who are familiar with Windows. For instance:
 - HyperPlatform compiles in Visual Studio and can be debugged though Windbg
   just like a regular software driver.
 - Source code of HyperPlatform is written and formatted in existing styles
-  (Google C++ Style Guide and clean-format), and well commented.
+  (Google C++ Style Guide and clang-format), and well commented.
 - HyperPlatform has no dependencies, supports use of STL and is released under
   a relaxed license.
 
