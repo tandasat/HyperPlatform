@@ -95,7 +95,7 @@ static const char *LogpFindBaseFunctionName(_In_ const char *function_name);
 static NTSTATUS LogpPut(_In_ char *message, _In_ ULONG attribute);
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
-    LogpWriteLogBufferToFile(_Inout_ LogBufferInfo *info, _In_ bool do_print);
+    LogpFlushLogBuffer(_Inout_ LogBufferInfo *info);
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     LogpWriteMessageToFile(_In_ const char *message,
@@ -103,6 +103,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
 
 static NTSTATUS LogpBufferMessage(_In_ const char *message,
                                   _Inout_ LogBufferInfo *info);
+
+static void LogpDoDbgPrint(_In_ char *message);
 
 static bool LogpIsLogFileEnabled(_In_ const LogBufferInfo &info);
 
@@ -118,6 +120,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
 static void LogpSetPrintedBit(_In_ char *message, _In_ bool on);
 
 static bool LogpIsPrinted(_In_ char *message);
+
+static void LogpDbgBreak();
 
 #if defined(ALLOC_PRAGMA)
 #pragma alloc_text(INIT, LogInitialization)
@@ -354,7 +358,7 @@ _Use_decl_annotations_ static void LogpFinalizeBufferInfo(LogBufferInfo *info) {
     auto status =
         ZwWaitForSingleObject(info->buffer_flush_thread_handle, FALSE, nullptr);
     if (!NT_SUCCESS(status)) {
-      NT_ASSERT(false);
+      LogpDbgBreak();
     }
     ZwClose(info->buffer_flush_thread_handle);
     info->buffer_flush_thread_handle = nullptr;
@@ -486,14 +490,12 @@ _Use_decl_annotations_ static NTSTATUS LogpMakePrefix(
     }
   }
 
-  //
   // It uses PsGetProcessId(PsGetCurrentProcess()) instead of
   // PsGetCurrentThreadProcessId() because the later sometimes returns
   // unwanted value, for example:
   //  PID == 4 but its image name != ntoskrnl.exe
   // The author is guessing that it is related to attaching processes but
   // not quite sure. The former way works as expected.
-  //
   status = RtlStringCchPrintfA(
       log_buffer, log_buffer_length, "%s%s%s%5Iu\t%5Iu\t%-15s\t%s%s\r\n",
       time_buffer, level_string, processro_number,
@@ -539,7 +541,7 @@ _Use_decl_annotations_ static NTSTATUS LogpPut(char *message, ULONG attribute) {
 #pragma warning(disable : 28123)
       if (!KeAreAllApcsDisabled()) {
         // Yes, it can. Do it.
-        LogpWriteLogBufferToFile(&info, false);
+        LogpFlushLogBuffer(&info);
         status = LogpWriteMessageToFile(message, info);
       }
 #pragma warning(pop)
@@ -555,19 +557,16 @@ _Use_decl_annotations_ static NTSTATUS LogpPut(char *message, ULONG attribute) {
 
   // Can it safely be printed?
   if (do_DbgPrint) {
-    const auto location_of_cr = strlen(message) - 2;
-    message[location_of_cr] = '\n';
-    message[location_of_cr + 1] = '\0';
-    DbgPrintEx(DPFLTR_DEFAULT_ID, DPFLTR_ERROR_LEVEL, "%s", message);
+    LogpDoDbgPrint(message);
   }
   return status;
 }
 
-// Switch the current log buffer and save the contents of old buffer to the log
-// file. This function does not flush the log file, so code should call
-// LogpWriteMessageToFile() or ZwFlushBuffersFile() later.
-_Use_decl_annotations_ static NTSTATUS LogpWriteLogBufferToFile(
-    LogBufferInfo *info, bool do_print) {
+// Switchs the current log buffer, saves the contents of old buffer to the log
+// file, and prints them out as necessary. This function does not flush the log
+// file, so code should call LogpWriteMessageToFile() or ZwFlushBuffersFile()
+// later.
+_Use_decl_annotations_ static NTSTATUS LogpFlushLogBuffer(LogBufferInfo *info) {
   NT_ASSERT(info);
   NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
 
@@ -607,16 +606,12 @@ _Use_decl_annotations_ static NTSTATUS LogpWriteLogBufferToFile(
       // It could happen when you did not register IRP_SHUTDOWN and call
       // LogIrpShutdownHandler() and the system tried to log to a file after
       // a file system was unmounted.
-      NT_ASSERT(false);
+      LogpDbgBreak();
     }
 
     // Print it out if requested and the message is not already printed out
-    if (do_print && !printed_out) {
-      const auto location_of_cr = current_log_entry_length - 2;
-      current_log_entry[location_of_cr] = '\n';
-      current_log_entry[location_of_cr + 1] = '\0';
-      DbgPrintEx(DPFLTR_DEFAULT_ID, DPFLTR_ERROR_LEVEL, "%s",
-                 current_log_entry);
+    if (!printed_out) {
+      LogpDoDbgPrint(current_log_entry);
     }
 
     current_log_entry += current_log_entry_length + 1;
@@ -641,7 +636,7 @@ _Use_decl_annotations_ static NTSTATUS LogpWriteMessageToFile(
     // It could happen when you did not register IRP_SHUTDOWN and call
     // LogIrpShutdownHandler() and the system tried to log to a file after
     // a file system was unmounted.
-    NT_ASSERT(false);
+    LogpDbgBreak();
   }
   status = ZwFlushBuffersFile(info.log_file_handle, &io_status);
   return status;
@@ -687,6 +682,14 @@ _Use_decl_annotations_ static NTSTATUS LogpBufferMessage(const char *message,
     KeReleaseInStackQueuedSpinLockFromDpcLevel(&lock_handle);
   }
   return status;
+}
+
+// Calls DbgPrintEx() while converting \r\n to \n\0
+_Use_decl_annotations_ static void LogpDoDbgPrint(char *message) {
+  const auto location_of_cr = strlen(message) - 2;
+  message[location_of_cr] = '\n';
+  message[location_of_cr + 1] = '\0';
+  DbgPrintEx(DPFLTR_DEFAULT_ID, DPFLTR_ERROR_LEVEL, "%s", message);
 }
 
 // Returns true when a log file is enabled.
@@ -739,7 +742,7 @@ _Use_decl_annotations_ static VOID LogpBufferFlushThreadRoutine(
     if (info->log_buffer_head[0]) {
       NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
       NT_ASSERT(!KeAreAllApcsDisabled());
-      status = LogpWriteLogBufferToFile(info, true);
+      status = LogpFlushLogBuffer(info);
       // Do not flush the file for overall performance. Even a case of
       // bug check, we should be able to recover logs by looking at both
       // log buffers.
@@ -771,6 +774,13 @@ _Use_decl_annotations_ static void LogpSetPrintedBit(char *message, bool on) {
 // Tests if the printed bit is on
 _Use_decl_annotations_ static bool LogpIsPrinted(char *message) {
   return (message[0] & 0x80) != 0;
+}
+
+// Sets a break point that works only when a debugger is present
+/*_Use_decl_annotations_*/ static void LogpDbgBreak() {
+  if (!KD_DEBUGGER_NOT_PRESENT) {
+    __debugbreak();
+  }
 }
 
 // Provides an implementation of _vsnprintf as it fails to link when a include

@@ -41,7 +41,7 @@
 // macro utilities
 //
 
-/// Sets a break point that works only when a debugger is enabled
+/// Sets a break point that works only when a debugger is present
 #if !defined(HYPERPLATFORM_COMMON_DBG_BREAK)
 #define HYPERPLATFORM_COMMON_DBG_BREAK() \
   if (KD_DEBUGGER_NOT_PRESENT) {         \
