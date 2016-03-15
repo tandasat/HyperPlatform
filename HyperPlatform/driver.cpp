@@ -84,6 +84,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
 
   // Test if the system is supported
   if (!DriverpIsSuppoetedOS()) {
+    LogTermination();
     return STATUS_CANCELLED;
   }
 
