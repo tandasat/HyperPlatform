@@ -28,6 +28,21 @@ extern "C" {
 
 struct EptData;
 
+/// A structure made up of mutual fields across all EPT entry types
+union EptCommonEntry {
+  ULONG64 all;
+  struct {
+    ULONG64 read_access : 1;       ///< [0]
+    ULONG64 write_access : 1;      ///< [1]
+    ULONG64 execute_access : 1;    ///< [2]
+    ULONG64 memory_type : 3;       ///< [3:5]
+    ULONG64 reserved1 : 6;         ///< [6:11]
+    ULONG64 physial_address : 36;  ///< [12:48-1]
+    ULONG64 reserved2 : 16;        ///< [48:63]
+  } fields;
+};
+static_assert(sizeof(EptCommonEntry) == 8, "Size check");
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // prototypes
@@ -57,6 +72,13 @@ void EptTermination(_In_ EptData* ept_data);
 /// @param ept_data   EptData to get an EPT pointer
 _IRQL_requires_min_(DISPATCH_LEVEL) void EptHandleEptViolation(
     _In_ EptData* ept_data);
+
+/// Returns an EPT entry corresponds to \a physical_address
+/// @param ept_data   EptData to get an EPT entry
+/// @param physical_address   Physical address to get an EPT entry
+/// @return An EPT entry
+EptCommonEntry* EptGetEptPtEntry(_In_ EptData* ept_data,
+                                 _In_ ULONG64 physical_address);
 
 ////////////////////////////////////////////////////////////////////////////////
 //

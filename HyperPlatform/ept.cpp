@@ -58,27 +58,13 @@ static const auto kVmxpNumberOfPreallocatedEntries = 50;
 // types
 //
 
-// A structure consists of common fields across all EPT entry types
-union EptCommonEntry {
-  ULONG64 all;
-  struct {
-    ULONG64 read_access : 1;       // [0]
-    ULONG64 write_access : 1;      // [1]
-    ULONG64 execute_access : 1;    // [2]
-    ULONG64 memory_type : 3;       // [3:5]
-    ULONG64 reserved1 : 6;         // [6:11]
-    ULONG64 physial_address : 36;  // [12:48-1]
-    ULONG64 reserved2 : 16;        // [48:63]
-  } fields;
-};
-static_assert(sizeof(EptCommonEntry) == 8, "Size check");
-
+// EPT related data stored in ProcessorSharedData
 struct EptData {
   EptPointer *ept_pointer;
   EptCommonEntry *ept_pml4;
 
-  EptCommonEntry **preallocated_entries;
-  volatile long preallocated_entries_count;
+  EptCommonEntry **preallocated_entries;  // An array of pre-allocated entries
+  volatile long preallocated_entries_count;  // # of used pre-allocated entries
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -489,6 +475,12 @@ _Use_decl_annotations_ static bool EptpIsDeviceMemory(
     }
   }
   return true;
+}
+
+// Returns an EPT entry corresponds to the physical_address
+_Use_decl_annotations_ EptCommonEntry *EptGetEptPtEntry(
+    EptData *ept_data, ULONG64 physical_address) {
+  return EptpGetEptPtEntry(ept_data->ept_pml4, 4, physical_address);
 }
 
 // Returns an EPT entry corresponds to the physical_address
