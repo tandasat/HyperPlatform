@@ -181,6 +181,35 @@ static_assert(sizeof(Gdtr) == 6, "Size check");
 #endif
 #include <poppack.h>
 
+/// IDT entry (nt!_KIDTENTRY)
+#include <pshpack1.h>
+union KidtEntry {
+  ULONG64 all;
+  struct
+  {
+    unsigned short offset_low;
+    unsigned short selector;
+    unsigned char ist_index:3;    ///< [0:2]
+    unsigned char reserved :5;    ///< [3:7]
+    unsigned char type :5;        ///< [8:12]
+    unsigned char dpl :2;         ///< [13:14]
+    unsigned char present :1;     ///< [15]
+    unsigned short offset_middle;
+  } fields;
+};
+static_assert(sizeof(KidtEntry) == 8, "Size check");
+#include <poppack.h>
+
+/// IDT entry for x64 (nt!_KIDTENTRY64)
+#include <pshpack1.h>
+struct KidtEntry64 {
+  KidtEntry idt_entry;
+  ULONG32 offset_high;
+  ULONG32 reserved;
+};
+static_assert(sizeof(KidtEntry64) == 16, "Size check");
+#include <poppack.h>
+
 /// See: Segment Selectors
 #include <pshpack1.h>
 union SegmentSelector {
