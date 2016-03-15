@@ -130,12 +130,12 @@ _Use_decl_annotations_ NTSTATUS VmInitialization() {
     return STATUS_HV_FEATURE_UNAVAILABLE;
   }
 
-  // Virtualize all processors
   const auto shared_data = VmpInitializeSharedData();
   if (!shared_data) {
     return STATUS_MEMORY_NOT_ALLOCATED;
   }
 
+  // Virtualize all processors
   auto status = UtilForEachProcessor(VmpStartVM, shared_data);
   if (!NT_SUCCESS(status)) {
     UtilForEachProcessor(VmpStopVM, nullptr);

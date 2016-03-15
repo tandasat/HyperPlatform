@@ -1003,13 +1003,16 @@ union Ia32VmxEptVpidCapMsr {
 };
 static_assert(sizeof(Ia32VmxEptVpidCapMsr) == 8, "Size check");
 
-/// See: VM-ENTRY FAILURES DURING OR AFTER LOADING GUEST STATE
+/// See: Format of Exit Reason in Basic VM-Exit Information
 union VmExitInformation {
   unsigned int all;
   struct {
-    VmxExitReason reason;                 ///< [0:15]
-    unsigned short reserved : 15;         ///< [16:30]
-    unsigned short vm_entry_failure : 1;  ///< [31]
+    VmxExitReason reason;                      ///< [0:15]
+    unsigned short reserved1 : 12;             ///< [16:30]
+    unsigned short pending_mtf_vm_exit : 1;    ///< [28]
+    unsigned short vm_exit_from_vmx_root : 1;  ///< [29]
+    unsigned short reserved2 : 1;              ///< [30]
+    unsigned short vm_entry_failure : 1;       ///< [31]
   } fields;
 };
 static_assert(sizeof(VmExitInformation) == 4, "Size check");
