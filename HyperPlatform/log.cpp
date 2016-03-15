@@ -785,7 +785,7 @@ _Use_decl_annotations_ static bool LogpIsPrinted(char *message) {
 
 // Provides an implementation of _vsnprintf as it fails to link when a include
 // directory setting is modified for using STL
-_Success_(return >= 0) int __cdecl __stdio_common_vsprintf(
+_Success_(return >= 0) _Check_return_opt_ int __cdecl __stdio_common_vsprintf(
     _In_ unsigned __int64 _Options, _Out_writes_z_(_BufferCount) char *_Buffer,
     _In_ size_t _BufferCount,
     _In_z_ _Printf_format_string_params_(2) char const *_Format,
@@ -793,6 +793,7 @@ _Success_(return >= 0) int __cdecl __stdio_common_vsprintf(
   UNREFERENCED_PARAMETER(_Options);
   UNREFERENCED_PARAMETER(_Locale);
 
+  // Calls _vsnprintf exported by ntoskrnl
   using _vsnprintf_type = int __cdecl(char *, size_t, const char *, va_list);
   static _vsnprintf_type *local__vsnprintf = nullptr;
   if (!local__vsnprintf) {
@@ -802,6 +803,30 @@ _Success_(return >= 0) int __cdecl __stdio_common_vsprintf(
         MmGetSystemRoutineAddress(&proc_name_U));
   }
   return local__vsnprintf(_Buffer, _BufferCount, _Format, _ArgList);
+}
+
+// Provides an implementation of _vsnwprintf as it fails to link when a include
+// directory setting is modified for using STL
+_Success_(return >= 0) _Check_return_opt_ int __cdecl __stdio_common_vswprintf(
+    _In_ unsigned __int64 _Options,
+    _Out_writes_z_(_BufferCount) wchar_t *_Buffer, _In_ size_t _BufferCount,
+    _In_z_ _Printf_format_string_params_(2) wchar_t const *_Format,
+    _In_opt_ _locale_t _Locale, va_list _ArgList) {
+  UNREFERENCED_PARAMETER(_Options);
+  UNREFERENCED_PARAMETER(_Locale);
+
+  // Calls _vsnwprintf exported by ntoskrnl
+  using _vsnwprintf_type =
+      int __cdecl(wchar_t *, size_t, const wchar_t *, va_list);
+  static _vsnwprintf_type *local__vsnwprintf = nullptr;
+  if (!local__vsnwprintf) {
+    UNICODE_STRING proc_name_U = {};
+    RtlInitUnicodeString(&proc_name_U, L"_vsnwprintf");
+    local__vsnwprintf = reinterpret_cast<_vsnwprintf_type *>(
+        MmGetSystemRoutineAddress(&proc_name_U));
+  }
+
+  return local__vsnwprintf(_Buffer, _BufferCount, _Format, _ArgList);
 }
 
 }  // extern "C"
