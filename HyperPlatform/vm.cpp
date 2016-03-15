@@ -487,6 +487,8 @@ _Use_decl_annotations_ static bool VmpSetupVMCS(
   vm_procctl2_requested.fields.enable_ept = true;
   vm_procctl2_requested.fields.enable_rdtscp = true;  // required for Win10
   vm_procctl2_requested.fields.descriptor_table_exiting = true;
+  // required for Win10 Redstone
+  vm_procctl2_requested.fields.enable_xsaves_xstors = true;
   VmxSecondaryProcessorBasedControls vm_procctl2 = {VmpAdjustControlValue(
       Msr::kIa32VmxProcBasedCtls2, vm_procctl2_requested.all)};
 
