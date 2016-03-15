@@ -915,8 +915,12 @@ _Use_decl_annotations_ static void VmmpHandleEptMisconfig(
   UNREFERENCED_PARAMETER(guest_context);
 
   const auto fault_address = UtilVmRead(VmcsField::kGuestPhysicalAddress);
-  UNREFERENCED_PARAMETER(fault_address);
-  HYPERPLATFORM_COMMON_DBG_BREAK();
+  const auto ept_pt_entry = EptGetEptPtEntry(
+      guest_context->stack->processor_data->shared_data->ept_data,
+      fault_address);
+  HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kEptMisconfigVmExit,
+                                 fault_address,
+                                 reinterpret_cast<ULONG_PTR>(ept_pt_entry), 0);
 }
 
 // Selects a register to be used based on the index

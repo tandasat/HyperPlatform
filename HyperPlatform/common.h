@@ -10,7 +10,7 @@
 /// These pages serve as a programmer's reference manual for HyperPlatform and
 /// were automatically generated from the source using Doxygen.
 ///
-/// For compilatio and installation of HyperPlatform, see the HyperPlatform 
+/// For compilation and installation of HyperPlatform, see the HyperPlatform
 /// project page. For more general information about development using
 /// HyperPlatform, see User's Documents in the project page.
 /// @li https://github.com/tandasat/HyperPlatform
@@ -25,7 +25,8 @@
 /// Developer Manuals (Intel SDM). Any descriptions like
 /// "See: CONTROL REGISTERS" implies that details are explained in a page or a
 /// table titled as "CONTROL REGISTERS" in the Intel SDM.
-/// @li http://www.intel.com/content/www/us/en/processors/architectures-software-developer-manuals.html
+/// @li
+/// http://www.intel.com/content/www/us/en/processors/architectures-software-developer-manuals.html
 ///
 /// @copyright Use of this source code is governed by a MIT-style license that
 ///            can be found in the LICENSE file.
@@ -73,7 +74,7 @@
 ///
 /// Enables #HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE() which maeasures
 /// an elapesed time of the scope when set to non 0. Enabling it introduces
-/// nagative performance impact. 
+/// nagative performance impact.
 #define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
 
 /// A pool tag
@@ -91,6 +92,7 @@ enum class HyperPlatformBugCheck : ULONG {
   kTripleFaultVmExit,              ///< A triple fault VM-exit occured
   kExhaustedPreallocatedEntries,   ///< All pre-allocated entries are used
   kCriticalVmxInstructionFailure,  ///< VMRESUME or VMXOFF has failed
+  kEptMisconfigVmExit,             ///< EPT misconfig VM-exit occured
 };
 
 ////////////////////////////////////////////////////////////////////////////////
