@@ -95,6 +95,18 @@ static const auto kUtilpPtiMaskPae = 0xfffff;
 // types
 //
 
+_Must_inspect_result_ _IRQL_requires_max_(DISPATCH_LEVEL) NTKERNELAPI
+    _When_(return != NULL, _Post_writable_byte_size_(NumberOfBytes)) PVOID
+    MmAllocateContiguousNodeMemory(
+        _In_ SIZE_T NumberOfBytes,
+        _In_ PHYSICAL_ADDRESS LowestAcceptableAddress,
+        _In_ PHYSICAL_ADDRESS HighestAcceptableAddress,
+        _In_opt_ PHYSICAL_ADDRESS BoundaryAddressMultiple, _In_ ULONG Protect,
+        _In_ NODE_REQUIREMENT PreferredNode);
+
+using MmAllocateContiguousNodeMemoryType =
+    decltype(MmAllocateContiguousNodeMemory);
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // prototypes
@@ -136,6 +148,9 @@ static HardwarePte *UtilpAddressToPtePAE(_In_ const void *address);
 
 static PhysicalMemoryDescriptor *g_utilp_physical_memory_ranges;
 
+static MmAllocateContiguousNodeMemoryType
+    *g_utilp_MmAllocateContiguousNodeMemory;
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // implementations
@@ -150,6 +165,9 @@ _Use_decl_annotations_ NTSTATUS UtilInitialization() {
     return status;
   }
 
+  g_utilp_MmAllocateContiguousNodeMemory =
+      reinterpret_cast<MmAllocateContiguousNodeMemoryType *>(
+          UtilGetSystemProcAddress(L"MmAllocateContiguousNodeMemory"));
   return status;
 }
 
@@ -484,11 +502,20 @@ _Use_decl_annotations_ void *UtilAllocateContiguousMemory(
     SIZE_T number_of_bytes) {
   PHYSICAL_ADDRESS highest_acceptable_address = {};
   highest_acceptable_address.QuadPart = -1;
+  if (g_utilp_MmAllocateContiguousNodeMemory) {
+    // Allocate NX physical memory
+    PHYSICAL_ADDRESS lowest_acceptable_address = {};
+    PHYSICAL_ADDRESS boundary_address_multiple = {};
+    return g_utilp_MmAllocateContiguousNodeMemory(
+        number_of_bytes, lowest_acceptable_address, highest_acceptable_address,
+        boundary_address_multiple, PAGE_READWRITE, MM_ANY_NODE_OK);
+  } else {
 #pragma warning(push)
 #pragma warning(disable : 30029)
-  return MmAllocateContiguousMemory(number_of_bytes,
-                                    highest_acceptable_address);
+    return MmAllocateContiguousMemory(number_of_bytes,
+                                      highest_acceptable_address);
 #pragma warning(pop)
+  }
 }
 
 // Frees an address allocated by UtilAllocateContiguousMemory()
