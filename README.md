@@ -27,7 +27,7 @@ Advantages
 -----------
 HyperPlatform is designed to be easy to read and extend by researchers,
 especially those who are familiar with Windows. For instance:
-- HyperPlatform run on Windows 7, 8.1 and 10 in both 32 and 64 bit architectures
+- HyperPlatform runs on Windows 7, 8.1 and 10 in both 32 and 64 bit architectures
   without any special configuration (except for enabling Intel-VT technology).
 - HyperPlatform compiles in Visual Studio and can be debugged though Windbg
   just like a regular software driver.
@@ -79,9 +79,18 @@ All logs are printed out to DbgView and saved in C:\Windows\HyperPlatform.log.
 
 
 Supported Platforms
-----------------------
+--------------------
 - x86 and x64 Windows 7, 8.1 and 10
 - The system must support the Intel VT-x and EPT technology
+
+
+Related Project(s)
+--------------------
+SimpleVisor is a very (very) simple and readable Windows-specific hypervisor. If 
+HyperPlatform is still too large and complicated to learn VT-x for you, I would
+recommend to take a look at the project. It should give you a clearer
+view of how a hypervisor is initialized and executed.
+- http://ionescu007.github.io/SimpleVisor/
 
 
 License
