@@ -46,7 +46,7 @@ union FlagRegister {
     ULONG_PTR zf : 1;          ///< [6] Zero flag
     ULONG_PTR sf : 1;          ///< [7] Sign flag
     ULONG_PTR tf : 1;          ///< [8] Trap flag
-    ULONG_PTR IF : 1;          ///< [9] Interrupt flag
+    ULONG_PTR intf : 1;        ///< [9] Interrupt flag
     ULONG_PTR df : 1;          ///< [10] Direction flag
     ULONG_PTR of : 1;          ///< [11] Overflow flag
     ULONG_PTR iopl : 2;        ///< [12:13] I/O privilege level
