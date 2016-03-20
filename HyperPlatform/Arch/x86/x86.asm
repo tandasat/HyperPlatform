@@ -291,16 +291,6 @@ AsmWriteCR2 PROC cr2_value
     ret
 AsmWriteCR2 ENDP
 
-; void __stdcall AsmXsetbv(_In_ ULONG32 index, _In_ ULONG32 high_value,
-;                          _In_ ULONG32 low_value);
-AsmXsetbv PROC index, high_value, low_value
-    mov ecx, index
-    mov edx, high_value
-    mov eax, low_value
-    xsetbv      ; XCR[ECX] <= EDX:EAX;
-    ret
-AsmXsetbv ENDP
-
 ; unsigned char __stdcall AsmInvept(_In_ InvEptType invept_type,
 ;                                   _In_ const InvEptDescriptor *invept_descriptor);
 AsmInvept PROC invept_type, invept_descriptor
@@ -321,13 +311,6 @@ errorWithCode:
     mov eax, VMX_ERROR_WITH_STATUS
     ret
 AsmInvept ENDP
-
-; void __stdcall AsmInvlpg(_In_ ULONG_PTR virtual_address);
-AsmInvlpg PROC virtual_address
-    mov ecx, virtual_address
-    invlpg [ecx]
-    ret
-AsmInvlpg ENDP
 
 
 PURGE ASM_DUMP_REGISTERS

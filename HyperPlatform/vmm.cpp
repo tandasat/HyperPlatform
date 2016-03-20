@@ -429,9 +429,10 @@ _Use_decl_annotations_ static void VmmpHandleRdtscp(
 _Use_decl_annotations_ static void VmmpHandleXsetbv(
     GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
-  AsmXsetbv(static_cast<ULONG>(guest_context->gp_regs->cx),
-            static_cast<ULONG>(guest_context->gp_regs->dx),
-            static_cast<ULONG>(guest_context->gp_regs->ax));
+  ULARGE_INTEGER value = {};
+  value.LowPart = static_cast<ULONG>(guest_context->gp_regs->ax);
+  value.HighPart = static_cast<ULONG>(guest_context->gp_regs->dx);
+  _xsetbv(static_cast<ULONG>(guest_context->gp_regs->cx), value.QuadPart);
 
   VmmpAdjustGuestInstructionPointer(guest_context->ip);
 }
@@ -896,8 +897,8 @@ _Use_decl_annotations_ static void VmmpHandleInvalidateTLBEntry(
     GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
   const auto invalidate_address =
-      static_cast<ULONG_PTR>(UtilVmRead(VmcsField::kExitQualification));
-  AsmInvlpg(invalidate_address);
+      reinterpret_cast<void*>(UtilVmRead(VmcsField::kExitQualification));
+  __invlpg(invalidate_address);
   VmmpAdjustGuestInstructionPointer(guest_context->ip);
 }
 

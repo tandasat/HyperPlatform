@@ -58,10 +58,6 @@ void __stdcall AsmWriteGDT(_In_ const Gdtr *gdtr);
 /// @param gdtr   A pointer to read GDTR
 void __stdcall AsmReadGDT(_Out_ Gdtr *gdtr);
 
-/// Writes to LDT
-/// @param local_segmeng_selector   A value to write
-void __stdcall AsmWriteLDTR(_In_ USHORT local_segmeng_selector);
-
 /// Reads SLDT
 /// @return LDT
 USHORT __stdcall AsmReadLDTR();
@@ -134,13 +130,6 @@ void __stdcall AsmInvalidateInternalCaches();
 /// @param cr2_value  A value to write
 void __stdcall AsmWriteCR2(_In_ ULONG_PTR cr2_value);
 
-/// Sets extended control register (XCR)
-/// @param index  An index of XCR
-/// @param high_value   high-order 32 bits to write
-/// @param low_value  low-order 32 bits to write
-void __stdcall AsmXsetbv(_In_ ULONG32 index, _In_ ULONG32 high_value,
-                         _In_ ULONG32 low_value);
-
 /// Invalidates translations derived from EPT
 /// @param invept_type  A type of invalidation
 /// @param invept_descriptor  A reference to EPTP to invalidate
@@ -148,10 +137,6 @@ void __stdcall AsmXsetbv(_In_ ULONG32 index, _In_ ULONG32 high_value,
 unsigned char __stdcall AsmInvept(
     _In_ InvEptType invept_type,
     _In_ const InvEptDescriptor *invept_descriptor);
-
-/// Invalidates TLB entries
-/// @param virtual_address  An address to invalidate TLB entries
-void __stdcall AsmInvlpg(_In_ ULONG_PTR virtual_address);
 
 ////////////////////////////////////////////////////////////////////////////////
 //

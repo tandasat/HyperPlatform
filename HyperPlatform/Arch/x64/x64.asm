@@ -324,14 +324,6 @@ AsmWriteCR2 PROC
     ret
 AsmWriteCR2 ENDP
 
-; void __stdcall AsmXsetbv(_In_ ULONG32 index, _In_ ULONG32 high_value,
-;                        _In_ ULONG32 low_value);
-AsmXsetbv PROC
-    mov rax, r8
-    xsetbv      ; XCR[ECX] <= EDX:EAX;
-    ret
-AsmXsetbv ENDP
-
 ; unsigned char __stdcall AsmInvept(_In_ InvEptType invept_type,
 ;                                   _In_ const InvEptDescriptor *invept_descriptor);
 AsmInvept PROC
@@ -350,12 +342,6 @@ errorWithCode:
     mov rax, VMX_ERROR_WITH_STATUS
     ret
 AsmInvept ENDP
-
-; void __stdcall AsmInvlpg(_In_ ULONG_PTR virtual_address);
-AsmInvlpg PROC
-    invlpg  [rcx]
-    ret
-AsmInvlpg ENDP
 
 
 PURGE PUSHAQ
