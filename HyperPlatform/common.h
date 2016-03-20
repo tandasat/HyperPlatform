@@ -93,6 +93,7 @@ enum class HyperPlatformBugCheck : ULONG {
   kExhaustedPreallocatedEntries,   ///< All pre-allocated entries are used
   kCriticalVmxInstructionFailure,  ///< VMRESUME or VMXOFF has failed
   kEptMisconfigVmExit,             ///< EPT misconfig VM-exit occured
+  kCritialPoolAllocationFailure,   ///< Critial pool allocation failed
 };
 
 ////////////////////////////////////////////////////////////////////////////////
