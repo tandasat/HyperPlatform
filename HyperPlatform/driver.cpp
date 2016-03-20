@@ -5,6 +5,9 @@
 /// @file
 /// Implements an entry point of the driver.
 
+#ifndef POOL_NX_OPTIN
+#define POOL_NX_OPTIN 1
+#endif
 #include "driver.h"
 #include "common.h"
 #include "log.h"
@@ -72,6 +75,10 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   auto status = STATUS_UNSUCCESSFUL;
   driver_object->DriverUnload = DriverpDriverUnload;
   HYPERPLATFORM_COMMON_DBG_BREAK();
+
+  // Make the NonPagedPoolNx pool type default
+  // See "Single Binary Opt-In: POOL_NX_OPTIN" on MSDN
+  ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
 
   // Initialize log functions
   bool need_reinitialization = false;
