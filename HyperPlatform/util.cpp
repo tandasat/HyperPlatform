@@ -524,12 +524,12 @@ _Use_decl_annotations_ void UtilFreeContiguousMemory(void *base_address) {
 }
 
 // Executes VMCALL
-_Use_decl_annotations_ NTSTATUS UtilVmCall(ULONG_PTR hypercall_number,
+_Use_decl_annotations_ NTSTATUS UtilVmCall(HypercallNumber hypercall_number,
                                            void *context) {
   EXCEPTION_POINTERS *exp_info = nullptr;
   __try {
-    const auto vmx_status =
-        static_cast<VmxStatus>(AsmVmxCall(hypercall_number, context));
+    const auto vmx_status = static_cast<VmxStatus>(
+        AsmVmxCall(static_cast<ULONG>(hypercall_number), context));
     return (vmx_status == VmxStatus::kOk) ? STATUS_SUCCESS
                                           : STATUS_UNSUCCESSFUL;
   } __except (exp_info = GetExceptionInformation(), EXCEPTION_EXECUTE_HANDLER) {

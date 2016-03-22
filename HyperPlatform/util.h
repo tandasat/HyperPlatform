@@ -64,6 +64,13 @@ constexpr VmxStatus operator|=(_In_ VmxStatus lhs, _In_ VmxStatus rhs) {
                                 static_cast<unsigned __int8>(rhs));
 }
 
+/// Avaialable command numbers for VMCALL
+enum class HypercallNumber {
+  kTerminateVmm,                ///< Terminates VMM
+  kDdimonEnablePageShadowing,   ///< Calls DdimCoreVmCallEnablePageShadowing()
+  kDdimonDisablePageShadowing,  ///< Calls DdimCoreVmCallDisablePageShadowing()
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // prototypes
@@ -171,7 +178,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void UtilFreeContiguousMemory(
 /// @param hypercall_number   A command number
 /// @param context  An arbitrary parameter
 /// @return STATUS_SUCCESS if VMXON instruction succedded
-NTSTATUS UtilVmCall(_In_ ULONG_PTR hypercall_number, _In_opt_ void *context);
+NTSTATUS UtilVmCall(_In_ HypercallNumber hypercall_number, _In_opt_ void *context);
 
 /// Debug prints registers
 /// @param all_regs   Registers to print out

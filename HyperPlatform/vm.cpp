@@ -800,7 +800,7 @@ _Use_decl_annotations_ static NTSTATUS VmpStopVM(void *context) {
 
   // Stop virtualization and get an address of the management structure
   ProcessorData *processor_data = nullptr;
-  auto status = UtilVmCall(kHyperPlatformVmmBackdoorCode, &processor_data);
+  auto status = UtilVmCall(HypercallNumber::kTerminateVmm, &processor_data);
   if (!NT_SUCCESS(status)) {
     return status;
   }

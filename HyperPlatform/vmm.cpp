@@ -831,10 +831,11 @@ _Use_decl_annotations_ static void VmmpHandleVmCall(
     GuestContext *guest_context) {
   // VMCALL for Sushi expects that cx holds a command number, and dx holds an
   // address of a context parameter optionally
-  const auto hypercall_number = guest_context->gp_regs->cx;
+  const auto hypercall_number =
+      static_cast<HypercallNumber>(guest_context->gp_regs->cx);
   const auto context = reinterpret_cast<void *>(guest_context->gp_regs->dx);
 
-  if (hypercall_number == kHyperPlatformVmmBackdoorCode) {
+  if (hypercall_number == HypercallNumber::kTerminateVmm) {
     // Unloading requested
     HYPERPLATFORM_COMMON_DBG_BREAK();
 
@@ -876,8 +877,6 @@ _Use_decl_annotations_ static void VmmpHandleVmCall(
     guest_context->gp_regs->ax = guest_context->flag_reg.all;
     guest_context->vm_continue = false;
 
-    UtilInveptAll();
-
   } else {
     // Unsupported hypercall. Handle like other VMX instructions
     VmmpHandleVmx(guest_context);
@@ -897,7 +896,7 @@ _Use_decl_annotations_ static void VmmpHandleInvalidateTLBEntry(
     GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
   const auto invalidate_address =
-      reinterpret_cast<void*>(UtilVmRead(VmcsField::kExitQualification));
+      reinterpret_cast<void *>(UtilVmRead(VmcsField::kExitQualification));
   __invlpg(invalidate_address);
   VmmpAdjustGuestInstructionPointer(guest_context->ip);
 }
