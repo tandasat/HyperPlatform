@@ -178,7 +178,8 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void UtilFreeContiguousMemory(
 /// @param hypercall_number   A command number
 /// @param context  An arbitrary parameter
 /// @return STATUS_SUCCESS if VMXON instruction succedded
-NTSTATUS UtilVmCall(_In_ HypercallNumber hypercall_number, _In_opt_ void *context);
+NTSTATUS UtilVmCall(_In_ HypercallNumber hypercall_number,
+                    _In_opt_ void *context);
 
 /// Debug prints registers
 /// @param all_regs   Registers to print out

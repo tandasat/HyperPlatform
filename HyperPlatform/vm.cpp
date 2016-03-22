@@ -280,7 +280,7 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
 // Virtualize the current processor
 _Use_decl_annotations_ static NTSTATUS VmpStartVM(void *context) {
   HYPERPLATFORM_LOG_INFO("Initializing VMX for the processor %d.",
-                         KeGetCurrentProcessorNumber());
+                         KeGetCurrentProcessorNumberEx(nullptr));
   const auto ok = AsmInitializeVm(VmpInitializeVm, context);
   NT_ASSERT(VmpIsVmmInstalled() == ok);
   if (!ok) {
@@ -796,7 +796,7 @@ _Use_decl_annotations_ static NTSTATUS VmpStopVM(void *context) {
   UNREFERENCED_PARAMETER(context);
 
   HYPERPLATFORM_LOG_INFO("Terminating VMX for the processor %d.",
-                         KeGetCurrentProcessorNumber());
+                         KeGetCurrentProcessorNumberEx(nullptr));
 
   // Stop virtualization and get an address of the management structure
   ProcessorData *processor_data = nullptr;

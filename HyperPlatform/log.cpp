@@ -484,7 +484,7 @@ _Use_decl_annotations_ static NTSTATUS LogpMakePrefix(
   if ((g_logp_debug_flag & kLogOptDisableProcessorNumber) == 0) {
     status =
         RtlStringCchPrintfA(processro_number, RTL_NUMBER_OF(processro_number),
-                            "#%lu\t", KeGetCurrentProcessorNumber());
+                            "#%lu\t", KeGetCurrentProcessorNumberEx(nullptr));
     if (!NT_SUCCESS(status)) {
       return status;
     }

@@ -272,19 +272,30 @@ UtilGetPhysicalMemoryRanges() {
 // to call remaining callbacks and returns the value.
 _Use_decl_annotations_ NTSTATUS
 UtilForEachProcessor(NTSTATUS (*callback_routine)(void *), void *context) {
-  const auto number_of_processors = KeQueryActiveProcessorCount(nullptr);
-  for (ULONG processor_number = 0; processor_number < number_of_processors;
-       processor_number++) {
+  const auto number_of_processors =
+      KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
+  for (ULONG processor_index = 0; processor_index < number_of_processors;
+       processor_index++) {
+    PROCESSOR_NUMBER processor_number = {};
+    auto status =
+        KeGetProcessorNumberFromIndex(processor_index, &processor_number);
+    if (!NT_SUCCESS(status)) {
+      return status;
+    }
+
     // Switch the current processor
-    const auto old_affinity = KeSetSystemAffinityThreadEx(
-        static_cast<KAFFINITY>(1ull << processor_number));
+    GROUP_AFFINITY affinity = {};
+    affinity.Group = processor_number.Group;
+    affinity.Mask = 1ull << processor_number.Number;
+    GROUP_AFFINITY previous_affinity = {};
+    KeSetSystemGroupAffinityThread(&affinity, &previous_affinity);
     const auto old_irql = KeRaiseIrqlToDpcLevel();
 
     // Execute callback
-    const auto status = callback_routine(context);
+    status = callback_routine(context);
 
     KeLowerIrql(old_irql);
-    KeRevertToUserAffinityThreadEx(old_affinity);
+    KeRevertToUserGroupAffinityThread(&previous_affinity);
     if (!NT_SUCCESS(status)) {
       return status;
     }

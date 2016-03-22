@@ -202,7 +202,7 @@ _Use_decl_annotations_ static void VmmpHandleVmExit(
 
   if (kVmmpEnableRecordVmExit) {
     // Save them for ease of trouble shooting
-    const auto processor = KeGetCurrentProcessorNumber();
+    const auto processor = KeGetCurrentProcessorNumberEx(nullptr);
     auto &index = g_vmmp_next_history_index[processor];
     auto &history = g_vmmp_vm_exit_history[processor][index];
 
