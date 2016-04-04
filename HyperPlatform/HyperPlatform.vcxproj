@@ -121,6 +121,7 @@
   <ItemGroup>
     <ClCompile Include="driver.cpp" />
     <ClCompile Include="ept.cpp" />
+    <ClCompile Include="kernel_stl.cpp" />
     <ClCompile Include="log.cpp" />
     <ClCompile Include="performance.cpp" />
     <ClCompile Include="util.cpp" />
