@@ -645,7 +645,9 @@ _Use_decl_annotations_ static ULONG64 EptpAddressToPteIndex(
 }
 
 // Deal with EPT violation VM-exit.
-_Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
+_Use_decl_annotations_ void EptHandleEptViolation(
+    EptData *ept_data, ShadowHookData *sh_data,
+    SharedShadowHookData *shared_sh_data) {
   const EptViolationQualification exit_qualification = {
       UtilVmRead(VmcsField::kExitQualification)};
 
@@ -664,7 +666,7 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
     return;
   }
 
-if (exit_qualification.fields.caused_by_translation) {	// FIXME
+  if (exit_qualification.fields.caused_by_translation) {	// FIXME
     // Tell EPT violation when it is caused due to read or write violation.
     const auto read_failure = exit_qualification.fields.read_access &&
                               !exit_qualification.fields.ept_readable;
@@ -673,6 +675,8 @@ if (exit_qualification.fields.caused_by_translation) {	// FIXME
     if (read_failure || write_failure) {
       ShHandleEptViolation(sh_data, shared_sh_data, ept_data, fault_va);
     }
+    return;
+  }
 
   const auto ept_entry = EptGetEptPtEntry(ept_data, fault_pa);
   if (ept_entry && ept_entry->all) {

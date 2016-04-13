@@ -994,9 +994,9 @@ _Use_decl_annotations_ static void VmpFreeSharedData(
     ExFreePoolWithTag(processor_data->shared_data->msr_bitmap,
                       kHyperPlatformCommonPoolTag);
   }
-    if (processor_data->shared_data->shared_sh_data) {
-      ShFreeSharedShadowHookData(processor_data->shared_data->shared_sh_data);
-    }
+  if (processor_data->shared_data->shared_sh_data) {
+    ShFreeSharedShadowHookData(processor_data->shared_data->shared_sh_data);
+  }
   ExFreePoolWithTag(processor_data->shared_data, kHyperPlatformCommonPoolTag);
 }
 
