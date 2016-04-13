@@ -14,6 +14,8 @@
 #include "log.h"
 #include "util.h"
 #include "vmm.h"
+#include "../../DdiMon/ddi_mon.h"
+#include "../../DdiMon/shadow_hook.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -161,6 +163,12 @@ _Use_decl_annotations_ NTSTATUS VmInitialization() {
 
   // Virtualize all processors
   auto status = UtilForEachProcessor(VmpStartVm, shared_data);
+  if (!NT_SUCCESS(status)) {
+    UtilForEachProcessor(VmpStopVm, nullptr);
+    return status;
+  }
+
+  status = DdimonInitialization(shared_data->shared_sh_data);
   if (!NT_SUCCESS(status)) {
     UtilForEachProcessor(VmpStopVm, nullptr);
     return status;
@@ -379,6 +387,11 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   // Set up EPT
   processor_data->ept_data = EptInitialization();
   if (!processor_data->ept_data) {
+    goto ReturnFalse;
+  }
+
+  processor_data->sh_data = ShAllocateShadowHookData();
+  if (!processor_data->sh_data) {
     goto ReturnFalse;
   }
 
@@ -612,7 +625,7 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
 
   // NOTE: Comment in any of those as needed
   const auto exception_bitmap =
-      // 1 << InterruptionVector::kBreakpointException |
+      1 << InterruptionVector::kBreakpointException |
       // 1 << InterruptionVector::kGeneralProtectionException |
       // 1 << InterruptionVector::kPageFaultException |
       0;
@@ -892,6 +905,7 @@ _Use_decl_annotations_ void VmTermination() {
   PAGED_CODE();
 
   HYPERPLATFORM_LOG_INFO("Uninstalling VMM.");
+  DdimonTermination();
   auto status = UtilForEachProcessor(VmpStopVm, nullptr);
   if (NT_SUCCESS(status)) {
     HYPERPLATFORM_LOG_INFO("The VMM has been uninstalled.");
@@ -943,6 +957,9 @@ _Use_decl_annotations_ static void VmpFreeProcessorData(
     ExFreePoolWithTag(processor_data->vmxon_region,
                       kHyperPlatformCommonPoolTag);
   }
+  if (processor_data->sh_data) {
+    ShFreeShadowHookData(processor_data->sh_data);
+  }
   if (processor_data->ept_data) {
     EptTermination(processor_data->ept_data);
   }
@@ -975,6 +992,9 @@ _Use_decl_annotations_ static void VmpFreeSharedData(
     ExFreePoolWithTag(processor_data->shared_data->msr_bitmap,
                       kHyperPlatformCommonPoolTag);
   }
+    if (processor_data->shared_data->shared_sh_data) {
+      ShFreeSharedShadowHookData(processor_data->shared_data->shared_sh_data);
+    }
   ExFreePoolWithTag(processor_data->shared_data, kHyperPlatformCommonPoolTag);
 }
 
