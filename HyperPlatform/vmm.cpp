@@ -16,6 +16,7 @@
 #define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
 #endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
+#include "../../DdiMon/shadow_hook.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -311,10 +312,11 @@ _Use_decl_annotations_ static void VmmpHandleUnexpectedExit(
 // MTF VM-exit
 _Use_decl_annotations_ static void VmmpHandleMonitorTrap(
     GuestContext *guest_context) {
-  VmmpDumpGuestSelectors();
-  HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kUnexpectedVmExit,
-                                 reinterpret_cast<ULONG_PTR>(guest_context), 0,
-                                 0);
+  HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+  auto processor_data = guest_context->stack->processor_data;
+  ShHandleMonitorTrapFlag(processor_data->sh_data,
+                          processor_data->shared_data->shared_sh_data,
+                          processor_data->ept_data);
 }
 
 // Interrupt
@@ -373,6 +375,12 @@ _Use_decl_annotations_ static void VmmpHandleException(
     if (static_cast<InterruptionVector>(exception.fields.vector) ==
         InterruptionVector::kBreakpointException) {
       // #BP
+      if (ShHandleBreakpoint(
+              guest_context->stack->processor_data->sh_data,
+              guest_context->stack->processor_data->shared_data->shared_sh_data,
+              reinterpret_cast<void *>(guest_context->ip))) {
+        return;
+      }
       VmEntryInterruptionInformationField inject = {};
       inject.fields.interruption_type = exception.fields.interruption_type;
       inject.fields.vector = exception.fields.vector;
@@ -905,6 +913,28 @@ _Use_decl_annotations_ static void VmmpHandleVmCall(
     guest_context->gp_regs->ax = guest_context->flag_reg.all;
     guest_context->vm_continue = false;
 
+  } else if (hypercall_number == HypercallNumber::kShEnablePageShadowing) {
+    ShEnablePageShadowing(
+        guest_context->stack->processor_data->ept_data,
+        guest_context->stack->processor_data->shared_data->shared_sh_data);
+
+    VmmpAdjustGuestInstructionPointer(guest_context->ip);
+    // Indicates successful VMCALL
+    guest_context->flag_reg.fields.cf = false;
+    guest_context->flag_reg.fields.zf = false;
+    UtilVmWrite(VmcsField::kGuestRflags, guest_context->flag_reg.all);
+
+  } else if (hypercall_number == HypercallNumber::kShDisablePageShadowing) {
+    ShVmCallDisablePageShadowing(
+        guest_context->stack->processor_data->ept_data,
+        guest_context->stack->processor_data->shared_data->shared_sh_data);
+
+    VmmpAdjustGuestInstructionPointer(guest_context->ip);
+    // Indicates successful VMCALL
+    guest_context->flag_reg.fields.cf = false;
+    guest_context->flag_reg.fields.zf = false;
+    UtilVmWrite(VmcsField::kGuestRflags, guest_context->flag_reg.all);
+
   } else {
     // Unsupported hypercall. Handle like other VMX instructions
     VmmpHandleVmx(guest_context);
@@ -934,7 +964,9 @@ _Use_decl_annotations_ static void VmmpHandleEptViolation(
     GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
   auto processor_data = guest_context->stack->processor_data;
-  EptHandleEptViolation(processor_data->ept_data);
+  EptHandleEptViolation(
+      processor_data->ept_data, processor_data->sh_data,
+      processor_data->shared_data->shared_sh_data);
 }
 
 // EXIT_REASON_EPT_MISCONFIG

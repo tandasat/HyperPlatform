@@ -13,6 +13,8 @@
 #include "log.h"
 #include "util.h"
 #include "vmm.h"
+#include "../../DdiMon/ddi_mon.h"
+#include "../../DdiMon/shadow_hook.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -137,6 +139,12 @@ _Use_decl_annotations_ NTSTATUS VmInitialization() {
 
   // Virtualize all processors
   auto status = UtilForEachProcessor(VmpStartVM, shared_data);
+  if (!NT_SUCCESS(status)) {
+    UtilForEachProcessor(VmpStopVM, nullptr);
+    return status;
+  }
+
+  status = DdimonInitialization(shared_data->shared_sh_data);
   if (!NT_SUCCESS(status)) {
     UtilForEachProcessor(VmpStopVM, nullptr);
     return status;
@@ -267,6 +275,13 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
                       reinterpret_cast<PULONG>(bitmap_read_high), 1024 * 8);
   RtlClearBits(&bitmap_read_high_header, 0x101, 2);
 
+  // Set up shared shadow hook data
+  shared_data->shared_sh_data = ShAllocateSharedShaowHookData();
+  if (!shared_data->shared_sh_data) {
+    ExFreePoolWithTag(msr_bitmap, kHyperPlatformCommonPoolTag);
+    ExFreePoolWithTag(shared_data, kHyperPlatformCommonPoolTag);
+    return nullptr;
+  }
   return shared_data;
 }
 
@@ -305,6 +320,11 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   // Set up EPT
   processor_data->ept_data = EptInitialization();
   if (!processor_data->ept_data) {
+    goto ReturnFalse;
+  }
+
+  processor_data->sh_data = ShAllocateShadowHookData();
+  if (!processor_data->sh_data) {
     goto ReturnFalse;
   }
 
@@ -515,7 +535,7 @@ _Use_decl_annotations_ static bool VmpSetupVMCS(
   }
 
   const auto exception_bitmap =
-      // 1 << InterruptionVector::kBreakpointException |
+      1 << InterruptionVector::kBreakpointException |
       // 1 << InterruptionVector::kGeneralProtectionException |
       // 1 << InterruptionVector::kPageFaultException |
       0;
@@ -783,6 +803,7 @@ _Use_decl_annotations_ static void VmpVmxOffThreadRoutine(void *start_context) {
   PAGED_CODE();
 
   HYPERPLATFORM_LOG_INFO("Uninstalling VMM.");
+  DdimonTermination();
   auto status = UtilForEachProcessor(VmpStopVM, nullptr);
   if (NT_SUCCESS(status)) {
     HYPERPLATFORM_LOG_INFO("The VMM has been uninstalled.");
@@ -826,6 +847,9 @@ _Use_decl_annotations_ static void VmpFreeProcessorData(
     ExFreePoolWithTag(processor_data->vmxon_region,
                       kHyperPlatformCommonPoolTag);
   }
+  if (processor_data->sh_data) {
+    ShFreeShadowHookData(processor_data->sh_data);
+  }
   if (processor_data->ept_data) {
     EptTermination(processor_data->ept_data);
   }
@@ -838,6 +862,9 @@ _Use_decl_annotations_ static void VmpFreeProcessorData(
     if (processor_data->shared_data->msr_bitmap) {
       ExFreePoolWithTag(processor_data->shared_data->msr_bitmap,
                         kHyperPlatformCommonPoolTag);
+    }
+    if (processor_data->shared_data->shared_sh_data) {
+      ShFreeSharedShadowHookData(processor_data->shared_data->shared_sh_data);
     }
     ExFreePoolWithTag(processor_data->shared_data, kHyperPlatformCommonPoolTag);
   }

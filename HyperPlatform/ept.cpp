@@ -14,6 +14,7 @@
 #define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
 #endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
+#include "../../DdiMon/shadow_hook.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -159,6 +160,7 @@ _Use_decl_annotations_ bool EptIsEptAvailable() {
   // INVEPT instruction with all possible types is supported
   Ia32VmxEptVpidCapMsr vpid = {UtilReadMsr64(Msr::kIa32VmxEptVpidCap)};
   if (!vpid.fields.support_page_walk_length4 ||
+      !vpid.fields.support_execute_only_pages ||
       !vpid.fields.support_write_back_memory_type ||
       !vpid.fields.support_invept ||
       !vpid.fields.support_single_context_invept ||
@@ -421,7 +423,9 @@ _Use_decl_annotations_ static ULONG64 EptpAddressToPteIndex(
 }
 
 // Deal with EPT violation VM-exit.
-_Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
+_Use_decl_annotations_ void EptHandleEptViolation(
+    EptData *ept_data, ShadowHookData *sh_data,
+    SharedShadowHookData *shared_sh_data) {
   const EptViolationQualification exit_qualification = {
       UtilVmRead(VmcsField::kExitQualification)};
 
@@ -443,7 +447,18 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
     EptpConstructTables(ept_data->ept_pml4, 4, fault_pa, ept_data);
 
     UtilInveptAll();
-
+  } else if (exit_qualification.fields.caused_by_translation) {
+    // Tell EPT violation when it is caused due to read or write violation.
+    const auto read_failure = exit_qualification.fields.read_access &&
+                              !exit_qualification.fields.ept_readable;
+    const auto write_failure = exit_qualification.fields.write_access &&
+                               !exit_qualification.fields.ept_writeable;
+    if (read_failure || write_failure) {
+      ShHandleEptViolation(sh_data, shared_sh_data, ept_data, fault_va);
+    } else {
+      HYPERPLATFORM_LOG_DEBUG_SAFE("[IGNR] OTH VA = %p, PA = %016llx", fault_va,
+                                   fault_pa);
+    }
   } else {
     HYPERPLATFORM_LOG_DEBUG_SAFE("[IGNR] OTH VA = %p, PA = %016llx", fault_va,
                                  fault_pa);
