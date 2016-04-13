@@ -11,6 +11,7 @@
 #include "log.h"
 #include "util.h"
 #include "performance.h"
+#include "../../DdiMon/shadow_hook.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -662,6 +663,16 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
                                  fault_pa);
     return;
   }
+
+if (exit_qualification.fields.caused_by_translation) {	// FIXME
+    // Tell EPT violation when it is caused due to read or write violation.
+    const auto read_failure = exit_qualification.fields.read_access &&
+                              !exit_qualification.fields.ept_readable;
+    const auto write_failure = exit_qualification.fields.write_access &&
+                               !exit_qualification.fields.ept_writeable;
+    if (read_failure || write_failure) {
+      ShHandleEptViolation(sh_data, shared_sh_data, ept_data, fault_va);
+    }
 
   const auto ept_entry = EptGetEptPtEntry(ept_data, fault_pa);
   if (ept_entry && ept_entry->all) {

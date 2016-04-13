@@ -13,6 +13,7 @@
 #include "log.h"
 #include "util.h"
 #include "performance.h"
+#include "../../DdiMon/shadow_hook.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -343,10 +344,11 @@ _Use_decl_annotations_ static void VmmpHandleUnexpectedExit(
 // MTF VM-exit
 _Use_decl_annotations_ static void VmmpHandleMonitorTrap(
     GuestContext *guest_context) {
-  VmmpDumpGuestState();
-  HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kUnexpectedVmExit,
-                                 reinterpret_cast<ULONG_PTR>(guest_context),
-                                 guest_context->ip, 0);
+  HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+  auto processor_data = guest_context->stack->processor_data;
+  ShHandleMonitorTrapFlag(processor_data->sh_data,
+                          processor_data->shared_data->shared_sh_data,
+                          processor_data->ept_data);
 }
 
 // Interrupt
@@ -391,6 +393,12 @@ _Use_decl_annotations_ static void VmmpHandleException(
     // Software exception
     if (vector == InterruptionVector::kBreakpointException) {
       // #BP
+      if (ShHandleBreakpoint(
+              guest_context->stack->processor_data->sh_data,
+              guest_context->stack->processor_data->shared_data->shared_sh_data,
+              reinterpret_cast<void *>(guest_context->ip))) {
+        return;
+      }
       VmmpInjectInterruption(interruption_type, vector, false, 0);
       HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %016Ix, #BP ", guest_context->ip);
       const auto exit_inst_length =
@@ -1253,7 +1261,9 @@ _Use_decl_annotations_ static void VmmpHandleEptViolation(
     GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
   auto processor_data = guest_context->stack->processor_data;
-  EptHandleEptViolation(processor_data->ept_data);
+  EptHandleEptViolation(
+      processor_data->ept_data, processor_data->sh_data,
+      processor_data->shared_data->shared_sh_data);
 }
 
 // EXIT_REASON_EPT_MISCONFIG
