@@ -436,20 +436,10 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
       !exit_qualification.fields.ept_executable) {
     // EPT entry miss. It should be device memory.
     HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
-    // HYPERPLATFORM_LOG_DEBUG_SAFE(
-    //    "[INIT] Dev VA = %p, PA = %016llx, Used = %d",
-    //    0, fault_pa, ept_data->preallocated_entries_count);
 
     if (!IsReleaseBuild()) {
-      const auto is_device_memory = EptpIsDeviceMemory(fault_pa);
-      NT_ASSERT(is_device_memory);
-      UNREFERENCED_PARAMETER(is_device_memory);
+      NT_VERIFY(EptpIsDeviceMemory(fault_pa));
     }
-
-    // There is a race condition here. If multiple processors reach this code
-    // with the same fault_pa, this function may create multiple EPT entries for
-    // one physical address and leads memory leak. This call should probably be
-    // guarded by a spin-lock but is not yet just because impact is so small.
     EptpConstructTables(ept_data->ept_pml4, 4, fault_pa, ept_data);
 
     UtilInveptAll();

@@ -59,7 +59,7 @@ static bool VmpSetupVMCS(_In_ const ProcessorData *processor_data,
                          _In_ ULONG_PTR guest_instruction_pointer,
                          _In_ ULONG_PTR vmm_stack_pointer);
 
-_IRQL_requires_(DISPATCH_LEVEL) static void VmpLaunchVM();
+static void VmpLaunchVM();
 
 static ULONG VmpGetSegmentAccessRight(_In_ USHORT segment_selector);
 
@@ -267,13 +267,6 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
                       reinterpret_cast<PULONG>(bitmap_read_high), 1024 * 8);
   RtlClearBits(&bitmap_read_high_header, 0x101, 2);
 
-  // Set up EPT
-  shared_data->ept_data = EptInitialization();
-  if (!shared_data->ept_data) {
-    ExFreePoolWithTag(msr_bitmap, kHyperPlatformCommonPoolTag);
-    ExFreePoolWithTag(shared_data, kHyperPlatformCommonPoolTag);
-    return nullptr;
-  }
   return shared_data;
 }
 
@@ -308,6 +301,12 @@ _Use_decl_annotations_ static void VmpInitializeVm(
     return;
   }
   RtlZeroMemory(processor_data, sizeof(ProcessorData));
+
+  // Set up EPT
+  processor_data->ept_data = EptInitialization();
+  if (!processor_data->ept_data) {
+    goto ReturnFalse;
+  }
 
   const auto vmm_stack_limit = UtilAllocateContiguousMemory(KERNEL_STACK_SIZE);
   const auto vmcs_region =
@@ -448,8 +447,9 @@ _Use_decl_annotations_ static bool VmpSetupVMCS(
   __sidt(&idtr);
 
   // See: Algorithms for Determining VMX Capabilities
-  const auto use_true_msrs = Ia32VmxBasicMsr{UtilReadMsr64(Msr::kIa32VmxBasic)}
-                                 .fields.vmx_capability_hint;
+  const auto use_true_msrs = Ia32VmxBasicMsr{
+      UtilReadMsr64(
+          Msr::kIa32VmxBasic)}.fields.vmx_capability_hint;
 
   VmxVmEntryControls vm_entryctl_requested = {};
   vm_entryctl_requested.fields.ia32e_mode_guest = IsX64();
@@ -474,7 +474,7 @@ _Use_decl_annotations_ static bool VmpSetupVMCS(
   vm_procctl_requested.fields.invlpg_exiting = false;
   vm_procctl_requested.fields.rdtsc_exiting = false;
   vm_procctl_requested.fields.cr3_load_exiting = true;
-  vm_procctl_requested.fields.cr8_load_exiting = true;
+  vm_procctl_requested.fields.cr8_load_exiting = false;  // NB: very frequent
   vm_procctl_requested.fields.mov_dr_exiting = true;
   vm_procctl_requested.fields.use_msr_bitmaps = true;
   vm_procctl_requested.fields.activate_secondary_control = true;
@@ -487,7 +487,7 @@ _Use_decl_annotations_ static bool VmpSetupVMCS(
   vm_procctl2_requested.fields.enable_ept = true;
   vm_procctl2_requested.fields.enable_rdtscp = true;  // required for Win10
   vm_procctl2_requested.fields.descriptor_table_exiting = true;
-  // required for Win10 Redstone
+  // required for Win10
   vm_procctl2_requested.fields.enable_xsaves_xstors = true;
   VmxSecondaryProcessorBasedControls vm_procctl2 = {VmpAdjustControlValue(
       Msr::kIa32VmxProcBasedCtls2, vm_procctl2_requested.all)};
@@ -547,16 +547,15 @@ _Use_decl_annotations_ static bool VmpSetupVMCS(
   /* 64-Bit Control Fields */
   error |= UtilVmWrite64(VmcsField::kIoBitmapA, 0);
   error |= UtilVmWrite64(VmcsField::kIoBitmapB, 0);
-  error |= UtilVmWrite64(VmcsField::kMsrBitmap,
-    UtilPaFromVa(processor_data->shared_data->msr_bitmap));
-  error |= UtilVmWrite64(VmcsField::kEptPointer,
-    EptGetEptPointer(processor_data->shared_data->ept_data));
+  error |= UtilVmWrite64(VmcsField::kMsrBitmap, UtilPaFromVa(processor_data->shared_data->msr_bitmap));
+  error |= UtilVmWrite64(VmcsField::kEptPointer, EptGetEptPointer(processor_data->ept_data));
 
   /* 64-Bit Guest-State Fields */
   error |= UtilVmWrite64(VmcsField::kVmcsLinkPointer, MAXULONG64);
-  error |= UtilVmWrite64(VmcsField::kGuestIa32Debugctl,
-    UtilReadMsr64(Msr::kIa32Debugctl));
-  if (UtilIsX86Pae()) { UtilLoadPdptes(__readcr3()); }
+  error |= UtilVmWrite64(VmcsField::kGuestIa32Debugctl, UtilReadMsr64(Msr::kIa32Debugctl));
+  if (UtilIsX86Pae()) {
+    UtilLoadPdptes(__readcr3());
+  }
 
   /* 32-Bit Control Fields */
   error |= UtilVmWrite(VmcsField::kPinBasedVmExecControl, vm_pinctl.all);
@@ -660,7 +659,7 @@ _Use_decl_annotations_ static bool VmpSetupVMCS(
 }
 
 // Executes vmlaunch
-_Use_decl_annotations_ static void VmpLaunchVM() {
+/*_Use_decl_annotations_*/ static void VmpLaunchVM() {
   auto error_code = UtilVmRead(VmcsField::kVmInstructionError);
   if (error_code) {
     HYPERPLATFORM_LOG_WARN("VM_INSTRUCTION_ERROR = %d", error_code);
@@ -750,9 +749,11 @@ _Use_decl_annotations_ static ULONG VmpAdjustControlValue(
   LARGE_INTEGER msr_value = {};
   msr_value.QuadPart = UtilReadMsr64(msr);
   auto adjusted_value = requested_value;
-  adjusted_value &=
-      msr_value.HighPart;  // bit == 0 in high word ==> must be zero
-  adjusted_value |= msr_value.LowPart;  // bit == 1 in low word  ==> must be one
+
+  // bit == 0 in high word ==> must be zero
+  adjusted_value &= msr_value.HighPart;
+  // bit == 1 in low word  ==> must be one
+  adjusted_value |= msr_value.LowPart;
   return adjusted_value;
 }
 
@@ -825,16 +826,19 @@ _Use_decl_annotations_ static void VmpFreeProcessorData(
     ExFreePoolWithTag(processor_data->vmxon_region,
                       kHyperPlatformCommonPoolTag);
   }
+  if (processor_data->ept_data) {
+    EptTermination(processor_data->ept_data);
+  }
+
+  // Free shared data if this is the last reference
   if (processor_data->shared_data &&
       InterlockedDecrement(&processor_data->shared_data->reference_count) ==
           0) {
-    // the last one
     HYPERPLATFORM_LOG_DEBUG("Freeing shared data...");
     if (processor_data->shared_data->msr_bitmap) {
       ExFreePoolWithTag(processor_data->shared_data->msr_bitmap,
                         kHyperPlatformCommonPoolTag);
     }
-    EptTermination(processor_data->shared_data->ept_data);
     ExFreePoolWithTag(processor_data->shared_data, kHyperPlatformCommonPoolTag);
   }
 
@@ -846,9 +850,9 @@ _Use_decl_annotations_ static void VmpFreeProcessorData(
   int cpu_info[4] = {};
   __cpuidex(cpu_info, 0, kHyperPlatformVmmBackdoorCode);
   char vendor_id[13] = {};
-  memcpy(&vendor_id[0], &cpu_info[1], 4);  // ebx
-  memcpy(&vendor_id[4], &cpu_info[3], 4);  // edx
-  memcpy(&vendor_id[8], &cpu_info[2], 4);  // ecx
+  RtlCopyMemory(&vendor_id[0], &cpu_info[1], 4);  // ebx
+  RtlCopyMemory(&vendor_id[4], &cpu_info[3], 4);  // edx
+  RtlCopyMemory(&vendor_id[8], &cpu_info[2], 4);  // ecx
   return RtlCompareMemory(vendor_id, "Pong by VMM!\0", sizeof(vendor_id)) ==
          sizeof(vendor_id);
 }

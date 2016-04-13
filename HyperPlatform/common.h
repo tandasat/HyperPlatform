@@ -87,7 +87,7 @@ static const ULONG kHyperPlatformCommonPoolTag = 'PpyH';
 
 /// BugCheck codes for #HYPERPLATFORM_COMMON_BUG_CHECK().
 enum class HyperPlatformBugCheck : ULONG {
-  kUnknown,                        ///< An unspecified bug occured
+  kUnspecified,                    ///< An unspecified bug occured
   kUnexpectedVmExit,               ///< An unexpected VM-exit occured
   kTripleFaultVmExit,              ///< A triple fault VM-exit occured
   kExhaustedPreallocatedEntries,   ///< All pre-allocated entries are used

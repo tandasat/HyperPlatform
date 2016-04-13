@@ -77,14 +77,21 @@ enum class HypercallNumber {
 //
 
 /// Makes the Util functions ready for use
+/// @param driver_object   The current driver's driver object
 /// @return STATUS_SUCCESS on success
-_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS UtilInitialization();
+_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
+    UtilInitialization(_In_ PDRIVER_OBJECT driver_object);
 
 /// Frees all resources allocated for the sake of the Util funcions
 _IRQL_requires_max_(PASSIVE_LEVEL) void UtilTermination();
 
+/// Returns a module base address of \a address
+/// @param address An address to get a base address
+/// @return A base address of a range \a address belongs to, or nullptr
+void *UtilPcToFileHeader(_In_ void *address);
+
 /// Returns ranges of physical memory on the system
-/// @return Physical memory ranges; never fails.
+/// @return Physical memory ranges; never fails
 const PhysicalMemoryDescriptor *UtilGetPhysicalMemoryRanges();
 
 /// Executes \a callback_routine on each processor
@@ -236,6 +243,15 @@ VmxStatus UtilInveptAll();
 /// Loads the PDPTE registers from CR3 to VMCS
 /// @param cr3_value  CR3 value to retrive PDPTEs
 void UtilLoadPdptes(_In_ ULONG_PTR cr3_value);
+
+/// Does RtlCopyMemory safely even if destination is a read only region
+/// @param destination  A destination address
+/// @param source  A source address
+/// @param length  A size to copy in bytes
+/// @return STATUS_SUCCESS if successful
+_IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS
+    UtilForceCopyMemory(_In_ void *destination, _In_ const void *source,
+                        _In_ SIZE_T length);
 
 ////////////////////////////////////////////////////////////////////////////////
 //

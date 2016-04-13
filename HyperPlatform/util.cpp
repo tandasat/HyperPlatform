@@ -22,6 +22,11 @@ extern "C" {
 // constants and macros
 //
 
+// Use RtlPcToFileHeader if available. Using the API causes a broken font bug
+// on the 64 bit Windows 10 and should be avoided. This flag exist for only
+// futher investigation.
+static const auto kUtilpUseRtlPcToFileHeader = false;
+
 #if defined(_AMD64_)
 
 // Base addresses of page structures. Use !pte to obtain them.
@@ -95,6 +100,10 @@ static const auto kUtilpPtiMaskPae = 0xfffff;
 // types
 //
 
+PVOID NTAPI RtlPcToFileHeader(_In_ PVOID PcValue, _Out_ PVOID *BaseOfImage);
+
+using RtlPcToFileHeaderType = decltype(RtlPcToFileHeader);
+
 _Must_inspect_result_ _IRQL_requires_max_(DISPATCH_LEVEL) NTKERNELAPI
     _When_(return != NULL, _Post_writable_byte_size_(NumberOfBytes)) PVOID
     MmAllocateContiguousNodeMemory(
@@ -107,10 +116,28 @@ _Must_inspect_result_ _IRQL_requires_max_(DISPATCH_LEVEL) NTKERNELAPI
 using MmAllocateContiguousNodeMemoryType =
     decltype(MmAllocateContiguousNodeMemory);
 
+// dt nt!_LDR_DATA_TABLE_ENTRY
+struct LdrDataTableEntry {
+  LIST_ENTRY in_load_order_links;
+  LIST_ENTRY in_memory_order_links;
+  LIST_ENTRY in_initialization_order_links;
+  void *dll_base;
+  void *entry_point;
+  ULONG size_of_image;
+  UNICODE_STRING full_dll_name;
+  // ...
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // prototypes
 //
+
+_IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
+    UtilpInitializeRtlPcToFileHeader(_In_ PDRIVER_OBJECT driver_object);
+
+_Success_(return != nullptr) static PVOID NTAPI
+    UtilpUnsafePcToFileHeader(_In_ PVOID pc_value, _Out_ PVOID *base_of_image);
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     UtilpInitializePhysicalMemoryRanges();
@@ -135,6 +162,7 @@ static HardwarePte *UtilpAddressToPtePAE(_In_ const void *address);
 #if defined(ALLOC_PRAGMA)
 #pragma alloc_text(INIT, UtilInitialization)
 #pragma alloc_text(PAGE, UtilTermination)
+#pragma alloc_text(INIT, UtilpInitializeRtlPcToFileHeader)
 #pragma alloc_text(INIT, UtilpInitializePhysicalMemoryRanges)
 #pragma alloc_text(INIT, UtilpBuildPhysicalMemoryRanges)
 #pragma alloc_text(PAGE, UtilSleep)
@@ -145,6 +173,10 @@ static HardwarePte *UtilpAddressToPtePAE(_In_ const void *address);
 //
 // variables
 //
+
+static RtlPcToFileHeaderType *g_utilp_RtlPcToFileHeader;
+
+static LIST_ENTRY *g_utilp_PsLoadedModuleList;
 
 static PhysicalMemoryDescriptor *g_utilp_physical_memory_ranges;
 
@@ -157,10 +189,16 @@ static MmAllocateContiguousNodeMemoryType
 //
 
 // Initializes utility functions
-_Use_decl_annotations_ NTSTATUS UtilInitialization() {
+_Use_decl_annotations_ NTSTATUS
+UtilInitialization(PDRIVER_OBJECT driver_object) {
   PAGED_CODE();
 
-  auto status = UtilpInitializePhysicalMemoryRanges();
+  auto status = UtilpInitializeRtlPcToFileHeader(driver_object);
+  if (!NT_SUCCESS(status)) {
+    return status;
+  }
+
+  status = UtilpInitializePhysicalMemoryRanges();
   if (!NT_SUCCESS(status)) {
     return status;
   }
@@ -179,6 +217,60 @@ _Use_decl_annotations_ void UtilTermination() {
     ExFreePoolWithTag(g_utilp_physical_memory_ranges,
                       kHyperPlatformCommonPoolTag);
   }
+}
+
+// Locates RtlPcToFileHeader
+_Use_decl_annotations_ static NTSTATUS UtilpInitializeRtlPcToFileHeader(
+    PDRIVER_OBJECT driver_object) {
+  PAGED_CODE();
+
+  if (kUtilpUseRtlPcToFileHeader) {
+    const auto p_RtlPcToFileHeader =
+        UtilGetSystemProcAddress(L"RtlPcToFileHeader");
+    if (p_RtlPcToFileHeader) {
+      g_utilp_RtlPcToFileHeader =
+          reinterpret_cast<RtlPcToFileHeaderType *>(p_RtlPcToFileHeader);
+      return STATUS_SUCCESS;
+    }
+  }
+
+#pragma warning(push)
+#pragma warning(disable : 28175)
+  auto module =
+      reinterpret_cast<LdrDataTableEntry *>(driver_object->DriverSection);
+#pragma warning(pop)
+
+  g_utilp_PsLoadedModuleList = module->in_load_order_links.Flink;
+  g_utilp_RtlPcToFileHeader = UtilpUnsafePcToFileHeader;
+  return STATUS_SUCCESS;
+}
+
+// A fake RtlPcToFileHeader without accquireing PsLoadedModuleSpinLock. Thus, it
+// is unsafe and should be updated if we can locate PsLoadedModuleSpinLock.
+_Use_decl_annotations_ static PVOID NTAPI
+UtilpUnsafePcToFileHeader(PVOID pc_value, PVOID *base_of_image) {
+  if (pc_value < MmSystemRangeStart) {
+    return nullptr;
+  }
+
+  const auto head = g_utilp_PsLoadedModuleList;
+  for (auto current = head->Flink; current != head; current = current->Flink) {
+    const auto module =
+        CONTAINING_RECORD(current, LdrDataTableEntry, in_load_order_links);
+    const auto driver_end = reinterpret_cast<void *>(
+        reinterpret_cast<ULONG_PTR>(module->dll_base) + module->size_of_image);
+    if (UtilIsInBounds(pc_value, module->dll_base, driver_end)) {
+      *base_of_image = module->dll_base;
+      return module->dll_base;
+    }
+  }
+  return nullptr;
+}
+
+// A wrapper of RtlPcToFileHeader
+_Use_decl_annotations_ PVOID UtilPcToFileHeader(PVOID pc_value) {
+  void *base = nullptr;
+  return g_utilp_RtlPcToFileHeader(pc_value, &base);
 }
 
 // Initializes the physical memory ranges
@@ -289,12 +381,10 @@ UtilForEachProcessor(NTSTATUS (*callback_routine)(void *), void *context) {
     affinity.Mask = 1ull << processor_number.Number;
     GROUP_AFFINITY previous_affinity = {};
     KeSetSystemGroupAffinityThread(&affinity, &previous_affinity);
-    const auto old_irql = KeRaiseIrqlToDpcLevel();
 
     // Execute callback
     status = callback_routine(context);
 
-    KeLowerIrql(old_irql);
     KeRevertToUserGroupAffinityThread(&previous_affinity);
     if (!NT_SUCCESS(status)) {
       return status;
@@ -709,6 +799,48 @@ _Use_decl_annotations_ void UtilLoadPdptes(ULONG_PTR cr3_value) {
   UtilVmWrite64(VmcsField::kGuestPdptr1, pd_pointers[1].all);
   UtilVmWrite64(VmcsField::kGuestPdptr2, pd_pointers[2].all);
   UtilVmWrite64(VmcsField::kGuestPdptr3, pd_pointers[3].all);
+}
+
+// Does RtlCopyMemory safely even if destination is a read only region
+_Use_decl_annotations_ NTSTATUS UtilForceCopyMemory(void *destination,
+                                                    const void *source,
+                                                    SIZE_T length) {
+  auto mdl = IoAllocateMdl(destination, static_cast<ULONG>(length), FALSE,
+                           FALSE, nullptr);
+  if (!mdl) {
+    return STATUS_INSUFFICIENT_RESOURCES;
+  }
+  MmBuildMdlForNonPagedPool(mdl);
+
+#pragma warning(push)
+#pragma warning(disable : 28145)
+  // Following MmMapLockedPagesSpecifyCache() call causes bug check in case
+  // you are using Driver Verifier. The reason is explained as followings:
+  //
+  // A driver must not try to create more than one system-address-space
+  // mapping for an MDL. Additionally, because an MDL that is built by the
+  // MmBuildMdlForNonPagedPool routine is already mapped to the system
+  // address space, a driver must not try to map this MDL into the system
+  // address space again by using the MmMapLockedPagesSpecifyCache routine.
+  // -- MSDN
+  //
+  // This flag modification hacks Driver Verifier's check and prevent leading
+  // bug check.
+  mdl->MdlFlags &= ~MDL_SOURCE_IS_NONPAGED_POOL;
+  mdl->MdlFlags |= MDL_PAGES_LOCKED;
+#pragma warning(pop)
+
+  const auto writable_dest =
+      MmMapLockedPagesSpecifyCache(mdl, KernelMode, MmCached, nullptr, FALSE,
+                                   NormalPagePriority | MdlMappingNoExecute);
+  if (!writable_dest) {
+    IoFreeMdl(mdl);
+    return STATUS_INSUFFICIENT_RESOURCES;
+  }
+  RtlCopyMemory(writable_dest, source, length);
+  MmUnmapLockedPages(writable_dest, mdl);
+  IoFreeMdl(mdl);
+  return STATUS_SUCCESS;
 }
 
 }  // extern "C"

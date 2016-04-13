@@ -76,8 +76,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   driver_object->DriverUnload = DriverpDriverUnload;
   HYPERPLATFORM_COMMON_DBG_BREAK();
 
-  // Make the NonPagedPoolNx pool type default
-  // See "Single Binary Opt-In: POOL_NX_OPTIN" on MSDN
+  // Request NX Non-Paged Pool when available
   ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
 
   // Initialize log functions
@@ -103,7 +102,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   }
 
   // Initialize utility functions
-  status = UtilInitialization();
+  status = UtilInitialization(driver_object);
   if (!NT_SUCCESS(status)) {
     PerfTermination();
     LogTermination();
