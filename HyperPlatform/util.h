@@ -69,6 +69,8 @@ enum class HypercallNumber : unsigned __int32 {
   kTerminateVmm,            //!< Terminates VMM
   kPingVmm,                 //!< Sends ping to the VMM
   kGetSharedProcessorData,  //!< Terminates VMM
+  kShEnablePageShadowing,   //!< Calls ShEnablePageShadowing()
+  kShDisablePageShadowing,  //!< Calls ShVmCallDisablePageShadowing()
 };
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -14,6 +14,8 @@
 #include "log.h"
 #include "util.h"
 #include "vmm.h"
+#include "../../DdiMon/ddi_mon.h"
+#include "../../DdiMon/shadow_hook.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -163,6 +165,12 @@ _Use_decl_annotations_ NTSTATUS VmInitialization() {
   auto status = UtilForEachProcessor(VmpStartVm, shared_data);
   if (!NT_SUCCESS(status)) {
     UtilForEachProcessor(VmpStopVm, nullptr);
+    return status;
+  }
+
+  status = DdimonInitialization(shared_data->shared_sh_data);
+  if (!NT_SUCCESS(status)) {
+    UtilForEachProcessor(VmpStopVM, nullptr);
     return status;
   }
   return status;
@@ -418,6 +426,19 @@ _Use_decl_annotations_ static void VmpInitializeVm(
     }
   }
 
+  processor_data->sh_data = ShAllocateShadowHookData();
+  if (!processor_data->sh_data) {
+    goto ReturnFalse;
+  }
+
+  const auto vmm_stack_limit = UtilAllocateContiguousMemory(KERNEL_STACK_SIZE);
+  const auto vmcs_region =
+      reinterpret_cast<VmControlStructure *>(ExAllocatePoolWithTag(
+          NonPagedPoolNx, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
+  const auto vmxon_region =
+      reinterpret_cast<VmControlStructure *>(ExAllocatePoolWithTag(
+          NonPagedPoolNx, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
+
   // Allocated other processor data fields
   processor_data->vmm_stack_limit =
       UtilAllocateContiguousMemory(KERNEL_STACK_SIZE);
@@ -645,6 +666,12 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
     cr4_mask.fields.pse = true;
     cr4_mask.fields.smep = true;
   }
+
+  const auto exception_bitmap =
+      1 << InterruptionVector::kBreakpointException |
+      // 1 << InterruptionVector::kGeneralProtectionException |
+      // 1 << InterruptionVector::kPageFaultException |
+      0;
 
   // clang-format off
   auto error = VmxStatus::kOk;
@@ -892,7 +919,8 @@ _Use_decl_annotations_ void VmTermination() {
   PAGED_CODE();
 
   HYPERPLATFORM_LOG_INFO("Uninstalling VMM.");
-  auto status = UtilForEachProcessor(VmpStopVm, nullptr);
+  DdimonTermination();
+  auto status = UtilForEachProcessor(VmpStopVM, nullptr);
   if (NT_SUCCESS(status)) {
     HYPERPLATFORM_LOG_INFO("The VMM has been uninstalled.");
   } else {
@@ -937,6 +965,9 @@ _Use_decl_annotations_ static void VmpFreeProcessorData(
   if (processor_data->vmxon_region) {
     ExFreePoolWithTag(processor_data->vmxon_region,
                       kHyperPlatformCommonPoolTag);
+  }
+  if (processor_data->sh_data) {
+    ShFreeShadowHookData(processor_data->sh_data);
   }
   if (processor_data->ept_data) {
     EptTermination(processor_data->ept_data);
