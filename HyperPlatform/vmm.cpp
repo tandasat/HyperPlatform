@@ -13,6 +13,7 @@
 #include "log.h"
 #include "util.h"
 #include "performance.h"
+#include "../../guard_mon.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -441,6 +442,13 @@ _Use_decl_annotations_ static void VmmpHandleRdtsc(
   guest_context->gp_regs->ax = tsc.LowPart;
 
   VmmpAdjustGuestInstructionPointer(guest_context);
+
+  // Log when the guest is in an interesting address
+  if (GMonIsNonImageKernelAddress(guest_context->ip)) {
+    HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %p, Rdtsc => %p", guest_context->ip,
+                                tsc.QuadPart);
+    GMonRemoveNoCr0ModificationFlag(guest_context->gp_regs);
+  }
 }
 
 // RDTSCP
@@ -538,6 +546,12 @@ _Use_decl_annotations_ static void VmmpHandleMsrAccess(
     }
     guest_context->gp_regs->ax = msr_value.LowPart;
     guest_context->gp_regs->dx = msr_value.HighPart;
+
+    // Log when the guest is in an interesting address
+    if (GMonIsNonImageKernelAddress(guest_context->ip)) {
+      HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %p, RDMSR(%p)", guest_context->ip,
+                                  msr);
+    }
   } else {
     msr_value.LowPart = static_cast<ULONG>(guest_context->gp_regs->ax);
     msr_value.HighPart = static_cast<ULONG>(guest_context->gp_regs->dx);
@@ -649,6 +663,16 @@ _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
 
   __writecr3(vmm_cr3);
   VmmpAdjustGuestInstructionPointer(guest_context);
+
+  // Log when the guest is in an interesting address
+  if (GMonIsNonImageKernelAddress(guest_context->ip)) {
+    HYPERPLATFORM_LOG_INFO_SAFE(
+        "GuestIp= %p, %s%sDT(Base=%p, Limit=%04X, at %p)", guest_context->ip,
+        ((instruction_info.fields.instruction_identity & 2) ? "L" : "S"),
+        ((instruction_info.fields.instruction_identity & 1) ? "I" : "G"),
+        descriptor_table_reg->base, descriptor_table_reg->limit,
+        operation_address);
+  }
 }
 
 // LLDT, LTR, SLDT, and STR
@@ -899,6 +923,18 @@ _Use_decl_annotations_ static void VmmpHandleDrAccess(
   }
 
   VmmpAdjustGuestInstructionPointer(guest_context);
+
+  // Log when the guest is in an interesting address
+  if (GMonIsNonImageKernelAddress(guest_context->ip)) {
+    HYPERPLATFORM_LOG_INFO_SAFE(
+        "GuestIp= %p, DR=%d, %s, Register=%2d (%p)", guest_context->ip,
+        exit_qualification.fields.debugl_register,
+        ((static_cast<MovDrDirection>(exit_qualification.fields.direction) ==
+          MovDrDirection::kMoveToDr)
+             ? "Write"
+             : "Read "),
+        exit_qualification.fields.gp_register, *register_used);
+  }
 }
 
 // IN, INS, OUT, OUTS
@@ -1028,12 +1064,31 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
   const auto register_used =
       VmmpSelectRegister(exit_qualification.fields.gp_register, guest_context);
 
+  ULONG_PTR updated_ip = 0;
   switch (static_cast<MovCrAccessType>(exit_qualification.fields.access_type)) {
     case MovCrAccessType::kMoveToCr:
       switch (exit_qualification.fields.control_register) {
         // CR0 <- Reg
         case 0: {
           HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+          // Log when the guest is in an interesting address
+          if (GMonIsNonImageKernelAddress(guest_context->ip)) {
+            const Cr0 cr0current = {UtilVmRead(VmcsField::kGuestCr0)};
+            const Cr0 cr0requested = {*register_used};
+            // And WP is being changed
+            if (cr0current.fields.wp != cr0requested.fields.wp) {
+              HYPERPLATFORM_LOG_INFO_SAFE(
+                  "GuestIp= %p, CR0WP Modification %p(%d) -> %p(%d)",
+                  guest_context->ip, cr0current.all, cr0current.fields.wp,
+                  cr0requested.all, cr0requested.fields.wp);
+              // Stop execution when WP is being enabled and the current context
+              // seems to be interesting as well.
+              if (!cr0current.fields.wp && cr0requested.fields.wp) {
+                updated_ip = GMonCheckExecutionContext(guest_context->gp_regs,
+                                                       guest_context->ip);
+              }
+            }
+          }
           if (UtilIsX86Pae()) {
             UtilLoadPdptes(UtilVmRead(VmcsField::kGuestCr3));
           }
@@ -1050,6 +1105,14 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
         // CR3 <- Reg
         case 3: {
           HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+          // Log when the guest is in an interesting address
+          if (GMonIsNonImageKernelAddress(guest_context->ip)) {
+            // And values of current and requested CR3 are the same
+            if (UtilVmRead(VmcsField::kGuestCr3) == *register_used) {
+              HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %p, TLB Flush with CR3 %p",
+                                          guest_context->ip, *register_used);
+            }
+          }
           if (UtilIsX86Pae()) {
             UtilLoadPdptes(*register_used);
           }
@@ -1070,6 +1133,18 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
         // CR4 <- Reg
         case 4: {
           HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+          // Log when the guest is in an interesting address
+          if (GMonIsNonImageKernelAddress(guest_context->ip)) {
+            const Cr4 cr4current = {UtilVmRead(VmcsField::kGuestCr4)};
+            const Cr4 cr4requested = {*register_used};
+            // And PGE is being changed
+            if (cr4current.fields.pge != cr4requested.fields.pge) {
+              HYPERPLATFORM_LOG_INFO_SAFE(
+                  "GuestIp= %p, TLB Flush with CR4 %p(%d) -> %p(%d)",
+                  guest_context->ip, cr4current.all, cr4current.fields.pge,
+                  cr4requested.all, cr4requested.fields.pge);
+            }
+          }
           if (UtilIsX86Pae()) {
             UtilLoadPdptes(UtilVmRead(VmcsField::kGuestCr3));
           }
@@ -1087,6 +1162,17 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
         // CR8 <- Reg
         case 8: {
           HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+          // Log when the guest is in an interesting address
+          if (GMonIsNonImageKernelAddress(guest_context->ip)) {
+            // And CR8 is being raised to any of certain values
+            if (*register_used > guest_context->cr8 &&
+                (*register_used == DISPATCH_LEVEL ||
+                 *register_used == HIGH_LEVEL)) {
+              HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %p, CR8 %d -> %d",
+                                          guest_context->ip, guest_context->cr8,
+                                          *register_used);
+            }
+          }
           guest_context->cr8 = *register_used;
           break;
         }
@@ -1129,7 +1215,13 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
       break;
   }
 
-  VmmpAdjustGuestInstructionPointer(guest_context);
+  if (updated_ip) {
+    // Detected a PatchGuard context and want to stop its execution.
+    UtilVmWrite(VmcsField::kGuestRip, updated_ip);
+  } else {
+    // Just continue as usual
+    VmmpAdjustGuestInstructionPointer(guest_context);
+  }
 }
 
 // VMX instructions except for VMCALL

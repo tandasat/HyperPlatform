@@ -146,6 +146,13 @@ unsigned char __stdcall AsmInvvpid(
     _In_ InvVpidType invvpid_type,
     _In_ const InvVpidDescriptor *invvpid_descriptor);
 
+/// Invalidates TLB entries
+/// @param virtual_address  An address to invalidate TLB entries
+void __stdcall AsmInvlpg(_In_ ULONG_PTR virtual_address);
+
+/// Enters sleep indefinitly
+void __stdcall AsmWaitForever();
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // variables

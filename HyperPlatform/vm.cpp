@@ -578,7 +578,9 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
                             vm_pinctl_requested.all)};
 
   VmxProcessorBasedControls vm_procctl_requested = {};
+  vm_procctl_requested.fields.rdtsc_exiting = true;
   vm_procctl_requested.fields.cr3_load_exiting = true;
+  vm_procctl_requested.fields.cr8_load_exiting = true;
   vm_procctl_requested.fields.mov_dr_exiting = true;
   vm_procctl_requested.fields.use_io_bitmaps = true;
   vm_procctl_requested.fields.use_msr_bitmaps = true;
@@ -612,7 +614,7 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   // NOTE: Comment in any of those as needed
   const auto exception_bitmap =
       // 1 << InterruptionVector::kBreakpointException |
-      // 1 << InterruptionVector::kGeneralProtectionException |
+      1 << InterruptionVector::kGeneralProtectionException |
       // 1 << InterruptionVector::kPageFaultException |
       0;
 
@@ -628,6 +630,8 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   // For example, when we want to hide CR4.VMXE from the guest, comment in below
   // cr4_mask.fields.vmxe = true;
   // cr4_shadow.fields.vmxe = false;
+  cr0_mask.fields.wp = true;  // request VM-exit
+  cr4_mask.fields.pge = true;  // request VM-exit
 
   // See: PDPTE Registers
   // If PAE paging would be in use following an execution of MOV to CR0 or MOV

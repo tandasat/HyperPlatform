@@ -13,6 +13,7 @@
 EXTERN VmmVmExitHandler : PROC
 EXTERN VmmVmxFailureHandler : PROC
 EXTERN UtilDumpGpRegisters : PROC
+EXTERN GMonWaitForever : PROC
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -379,6 +380,23 @@ errorWithCode:
     ret
 AsmInvvpid ENDP
 
+; void __stdcall AsmWaitForever();
+AsmWaitForever PROC
+    pushfq
+    PUSHAQ                  ; -8 * 16
+    mov rcx, rsp
+    mov rdx, rsp
+    add rdx, 8*17
+
+    sub rsp, 28h            ; align RSP
+    call GMonWaitForever
+    add rsp, 28h
+
+    POPAQ
+    popfq
+    int 3
+    ret
+AsmWaitForever ENDP
 
 PURGE PUSHAQ
 PURGE POPAQ

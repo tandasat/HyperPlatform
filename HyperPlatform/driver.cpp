@@ -17,6 +17,7 @@
 #include "util.h"
 #include "vm.h"
 #include "performance.h"
+#include "../../guard_mon.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -67,7 +68,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   UNREFERENCED_PARAMETER(registry_path);
   PAGED_CODE();
 
-  static const wchar_t kLogFilePath[] = L"\\SystemRoot\\HyperPlatform.log";
+  static const wchar_t kLogFilePath[] = L"\\SystemRoot\\GuardMon.log";
   static const auto kLogLevel =
       (IsReleaseBuild()) ? kLogPutLevelInfo | kLogOptDisableFunctionName
                          : kLogPutLevelDebug | kLogOptDisableFunctionName;
@@ -139,11 +140,30 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     return status;
   }
 
+  // Initialize GuardMon
+  status = GMonInitialization();
+  if (!NT_SUCCESS(status)) {
+    UtilTermination();
+    PerfTermination();
+    LogTermination();
+    return status;
+  }
+
+  // Initialize GuardMon
+  status = GMonInitialization();
+  if (!NT_SUCCESS(status)) {
+    UtilTermination();
+    PerfTermination();
+    LogTermination();
+    return status;
+  }
+
   // Virtualize all processors
   status = VmInitialization();
   if (!NT_SUCCESS(status)) {
     HotplugCallbackTermination();
     PowerCallbackTermination();
+    GMonTermination();
     UtilTermination();
     PerfTermination();
     GlobalObjectTermination();
@@ -157,6 +177,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   }
 
   HYPERPLATFORM_LOG_INFO("The VMM has been installed.");
+  UtilForEachProcessor(GMonInstallPatchCallback, nullptr);
   return status;
 }
 
@@ -171,6 +192,7 @@ _Use_decl_annotations_ static void DriverpDriverUnload(
   VmTermination();
   HotplugCallbackTermination();
   PowerCallbackTermination();
+  GMonTermination();
   UtilTermination();
   PerfTermination();
   GlobalObjectTermination();
