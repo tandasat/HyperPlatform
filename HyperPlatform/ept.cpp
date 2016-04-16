@@ -461,7 +461,7 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
       !exit_qualification.fields.ept_executable) {
     const auto ept_pt_entry = EptGetEptPtEntry(ept_data, fault_pa);
 
-    MmoneptHandleDodgyRegionExecution(ept_data->hs_ept_data, ept_pt_entry,
+    MmoneptHandleDodgyRegionExecution(ept_data->mmon_ept_data, ept_pt_entry,
                                       fault_pa,
                                       reinterpret_cast<void *>(fault_va));
   } else {
