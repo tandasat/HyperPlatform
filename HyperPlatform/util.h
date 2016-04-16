@@ -128,6 +128,9 @@ bool UtilIsX86Pae();
 /// @return true if the \a address is present on physical memory
 bool UtilIsAccessibleAddress(_In_ void *address);
 
+bool UtilIsNonPageableAddress(_In_ void *address, _In_ void *pfn_database,
+                              _In_ bool is_v6_kernel);
+
 /// VA -> PA
 /// @param va   A virtual address to get its physical address
 /// @return A pysical address of \a va, or nullptr
