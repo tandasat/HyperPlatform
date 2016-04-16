@@ -883,6 +883,10 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
         // CR3 <- Reg
         case 3: {
           HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+          // Is TLB Flush?
+          if (UtilVmRead(VmcsField::kGuestCr3) == *register_used) {
+            EptHandleTlbFlush(guest_context->stack->processor_data->ept_data);
+          }
           if (UtilIsX86Pae()) {
             UtilLoadPdptes(*register_used);
           }
@@ -893,6 +897,13 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
         // CR4 <- Reg
         case 4: {
           HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+
+          const Cr4 cr4_current = {UtilVmRead(VmcsField::kGuestCr4)};
+          const Cr4 cr4_requested = {*register_used};
+          // Is PGE being changed?
+          if (cr4_current.fields.pge && !cr4_requested.fields.pge) {
+            EptHandleTlbFlush(guest_context->stack->processor_data->ept_data);
+          }
           if (UtilIsX86Pae()) {
             UtilLoadPdptes(UtilVmRead(VmcsField::kGuestCr3));
           }
