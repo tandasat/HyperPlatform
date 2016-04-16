@@ -145,6 +145,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
 _IRQL_requires_max_(PASSIVE_LEVEL) static PhysicalMemoryDescriptor
     *UtilpBuildPhysicalMemoryRanges();
 
+static bool UtilpIsCanonicalFormAddress(_In_ void *address);
+
 #if defined(_AMD64_)
 static HardwarePte *UtilpAddressToPxe(_In_ const void *address);
 
@@ -268,7 +270,7 @@ UtilpUnsafePcToFileHeader(PVOID pc_value, PVOID *base_of_image) {
 }
 
 // A wrapper of RtlPcToFileHeader
-_Use_decl_annotations_ PVOID UtilPcToFileHeader(PVOID pc_value) {
+_Use_decl_annotations_ void *UtilPcToFileHeader(void *pc_value) {
   void *base = nullptr;
   return g_utilp_RtlPcToFileHeader(pc_value, &base);
 }
@@ -436,6 +438,10 @@ _Use_decl_annotations_ void *UtilGetSystemProcAddress(
 // Return true if the given address is accessible. It does not prevent a race
 // condition.
 _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
+  if (!UtilpIsCanonicalFormAddress(address)) {
+    return false;
+  }
+
 #if defined(_AMD64_)
   const auto pxe = UtilpAddressToPxe(address);
   const auto ppe = UtilpAddressToPpe(address);
@@ -459,6 +465,15 @@ _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
     return false;
   }
   return true;
+}
+
+// Checks whether the address is the canonical address
+_Use_decl_annotations_ static bool UtilpIsCanonicalFormAddress(void *address) {
+  if (!IsX64()) {
+    return true;
+  }
+  return !UtilIsInBounds(0x0000800000000000ull, 0xffff7fffffffffffull,
+                         reinterpret_cast<ULONG64>(address));
 }
 
 // Virtual Address Interpretation For Handling PTEs
