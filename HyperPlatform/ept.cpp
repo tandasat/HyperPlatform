@@ -67,7 +67,7 @@ struct EptData {
   EptCommonEntry **preallocated_entries;  // An array of pre-allocated entries
   volatile long preallocated_entries_count;  // # of used pre-allocated entries
 
-  MmonEptData *mmon_ept_data;
+  MmonEptData *mmon_ept_data
 };
 
 ////////////////////////////////////////////////////////////////////////////////
