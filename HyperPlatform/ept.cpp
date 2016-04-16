@@ -14,6 +14,7 @@
 #define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
 #endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
+#include "../../MemoryMon/memorymon_ept.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -65,6 +66,8 @@ struct EptData {
 
   EptCommonEntry **preallocated_entries;  // An array of pre-allocated entries
   volatile long preallocated_entries_count;  // # of used pre-allocated entries
+
+  MmonEptData *hs_ept_data;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -173,6 +176,11 @@ _Use_decl_annotations_ ULONG64 EptGetEptPointer(EptData *ept_data) {
   return ept_data->ept_pointer->all;
 }
 
+// Returns a EPT pointer from ept_data
+_Use_decl_annotations_ void EptHandleTlbFlush(EptData *ept_data) {
+  MmoneptResetDisabledEntries(ept_data->hs_ept_data);
+}
+
 // Builds EPT, allocates pre-allocated enties, initializes and returns EptData
 _Use_decl_annotations_ EptData *EptInitialization() {
   PAGED_CODE();
@@ -268,11 +276,20 @@ _Use_decl_annotations_ EptData *EptInitialization() {
     preallocated_entries[i] = ept_entry;
   }
 
-  // Initialization completed
   ept_data->ept_pointer = ept_poiner;
   ept_data->ept_pml4 = ept_pml4;
   ept_data->preallocated_entries = preallocated_entries;
   ept_data->preallocated_entries_count = 0;
+  ept_data->hs_ept_data = MmoneptInitialization(ept_data);
+  if (!ept_data->hs_ept_data) {
+    EptpFreeUnusedPreAllocatedEntries(preallocated_entries, 0);
+    EptpDestructTables(ept_pml4, 4);
+    ExFreePoolWithTag(ept_poiner, kHyperPlatformCommonPoolTag);
+    ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
+    return nullptr;
+  }
+
+  // Initialization completed
   return ept_data;
 }
 
@@ -443,7 +460,13 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
     EptpConstructTables(ept_data->ept_pml4, 4, fault_pa, ept_data);
 
     UtilInveptAll();
+  } else if (exit_qualification.fields.caused_by_translation &&
+             exit_qualification.fields.execute_access &&
+             !exit_qualification.fields.ept_executable) {
+    const auto ept_pt_entry = EptGetEptPtEntry(ept_data, fault_pa);
 
+    MmoneptHandleDodgyRegionExecution(ept_data->hs_ept_data, ept_pt_entry,
+                                      fault_pa, fault_va);
   } else {
     HYPERPLATFORM_LOG_DEBUG_SAFE("[IGNR] OTH VA = %p, PA = %016llx", fault_va,
                                  fault_pa);
@@ -519,6 +542,7 @@ _Use_decl_annotations_ void EptTermination(EptData *ept_data) {
                           ept_data->preallocated_entries_count,
                           kVmxpNumberOfPreallocatedEntries);
 
+  MmoneptTermination(ept_data->hs_ept_data);
   EptpFreeUnusedPreAllocatedEntries(ept_data->preallocated_entries,
                                     ept_data->preallocated_entries_count);
   EptpDestructTables(ept_data->ept_pml4, 4);
