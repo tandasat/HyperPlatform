@@ -100,7 +100,8 @@ static const auto kUtilpPtiMaskPae = 0xfffff;
 // types
 //
 
-PVOID NTAPI RtlPcToFileHeader(_In_ PVOID PcValue, _Out_ PVOID *BaseOfImage);
+NTKERNELAPI PVOID NTAPI RtlPcToFileHeader(_In_ PVOID PcValue,
+                                          _Out_ PVOID *BaseOfImage);
 
 using RtlPcToFileHeaderType = decltype(RtlPcToFileHeader);
 

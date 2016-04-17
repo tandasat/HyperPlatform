@@ -110,14 +110,6 @@ static EptCommonEntry *EptpGetEptPtEntry(_In_ EptCommonEntry *table,
                                          _In_ ULONG table_level,
                                          _In_ ULONG64 physical_address);
 
-static bool EptpIsCopiedKiInterruptTemplate(_In_ void *virtual_address);
-
-_IRQL_requires_min_(DISPATCH_LEVEL) static void EptpAddDisabledEntry(
-    _In_ EptData *ept_data, _In_ EptCommonEntry *ept_entry);
-
-_IRQL_requires_min_(DISPATCH_LEVEL) static void EptpResetDisabledEntriesUnsafe(
-    _In_ EptData *ept_data);
-
 static void EptpFreeUnusedPreAllocatedEntries(
     _Pre_notnull_ __drv_freesMem(Mem) EptCommonEntry **preallocated_entries,
     _In_ long used_count);
