@@ -96,8 +96,6 @@ const PhysicalMemoryDescriptor *UtilGetPhysicalMemoryRanges();
 /// @param callback_routine   A function to execute
 /// @param context  An arbitrary parameter for \a callback_routine
 /// @return STATUS_SUCCESS when \a returned STATUS_SUCCESS on all processors
-///
-/// \a callback_routine is executed on DISPATCH_LEVEL.
 _IRQL_requires_max_(APC_LEVEL) NTSTATUS
     UtilForEachProcessor(_In_ NTSTATUS (*callback_routine)(void *),
                          _In_opt_ void *context);
