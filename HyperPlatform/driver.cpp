@@ -147,6 +147,8 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   }
 
   HYPERPLATFORM_LOG_INFO("The VMM has been installed.");
+
+  // This execution should be detected
   MmonExecuteDoggyRegion();
   return status;
 }

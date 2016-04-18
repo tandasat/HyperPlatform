@@ -67,7 +67,7 @@ struct EptData {
   EptCommonEntry **preallocated_entries;  // An array of pre-allocated entries
   volatile long preallocated_entries_count;  // # of used pre-allocated entries
 
-  MmonEptData *hs_ept_data;
+  MmonEptData *mmon_ept_data;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -169,7 +169,7 @@ _Use_decl_annotations_ ULONG64 EptGetEptPointer(EptData *ept_data) {
 
 // Returns a EPT pointer from ept_data
 _Use_decl_annotations_ void EptHandleTlbFlush(EptData *ept_data) {
-  MmoneptResetDisabledEntries(ept_data->hs_ept_data);
+  MmoneptResetDisabledEntries(ept_data->mmon_ept_data);
 }
 
 // Builds EPT, allocates pre-allocated enties, initializes and returns EptData
@@ -271,8 +271,8 @@ _Use_decl_annotations_ EptData *EptInitialization() {
   ept_data->ept_pml4 = ept_pml4;
   ept_data->preallocated_entries = preallocated_entries;
   ept_data->preallocated_entries_count = 0;
-  ept_data->hs_ept_data = MmoneptInitialization(ept_data);
-  if (!ept_data->hs_ept_data) {
+  ept_data->mmon_ept_data = MmoneptInitialization(ept_data);
+  if (!ept_data->mmon_ept_data) {
     EptpFreeUnusedPreAllocatedEntries(preallocated_entries, 0);
     EptpDestructTables(ept_pml4, 4);
     ExFreePoolWithTag(ept_poiner, kHyperPlatformCommonPoolTag);
@@ -542,7 +542,7 @@ _Use_decl_annotations_ void EptTermination(EptData *ept_data) {
                           ept_data->preallocated_entries_count,
                           kVmxpNumberOfPreallocatedEntries);
 
-  MmoneptTermination(ept_data->hs_ept_data);
+  MmoneptTermination(ept_data->mmon_ept_data);
   EptpFreeUnusedPreAllocatedEntries(ept_data->preallocated_entries,
                                     ept_data->preallocated_entries_count);
   EptpDestructTables(ept_data->ept_pml4, 4);
