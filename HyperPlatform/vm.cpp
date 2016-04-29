@@ -76,8 +76,6 @@ static ULONG VmpAdjustControlValue(_In_ Msr msr, _In_ ULONG requested_value);
 
 static NTSTATUS VmpStopVM(_In_opt_ void *context);
 
-static KSTART_ROUTINE VmpVmxOffThreadRoutine;
-
 static void VmpFreeProcessorData(_In_opt_ ProcessorData *processor_data);
 
 static bool VmpIsVmmInstalled();
@@ -99,7 +97,6 @@ static bool VmpIsVmmInstalled();
 #pragma alloc_text(INIT, VmpGetSegmentBaseByDescriptor)
 #pragma alloc_text(INIT, VmpAdjustControlValue)
 #pragma alloc_text(PAGE, VmTermination)
-#pragma alloc_text(PAGE, VmpVmxOffThreadRoutine)
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -664,7 +661,6 @@ _Use_decl_annotations_ static bool VmpSetupVMCS(
   if (error_code) {
     HYPERPLATFORM_LOG_WARN("VM_INSTRUCTION_ERROR = %d", error_code);
   }
-  HYPERPLATFORM_COMMON_DBG_BREAK();
   auto vmx_status = static_cast<VmxStatus>(__vmx_vmlaunch());
 
   // Here is not be executed with successful vmlaunch. Instead, the context
@@ -760,27 +756,6 @@ _Use_decl_annotations_ static ULONG VmpAdjustControlValue(
 // Terminates VM
 _Use_decl_annotations_ void VmTermination() {
   PAGED_CODE();
-  // Create a thread dedicated to de-virtualizing processors. For some reasons,
-  // de-virtualizing processors from this thread makes the system stop
-  // processing all timer related events and functioning properly.
-  HANDLE thread_handle = nullptr;
-  auto status =
-      PsCreateSystemThread(&thread_handle, GENERIC_ALL, nullptr, nullptr,
-                           nullptr, VmpVmxOffThreadRoutine, nullptr);
-  if (NT_SUCCESS(status)) {
-    // Wait until the thread ends its work.
-    status = ZwWaitForSingleObject(thread_handle, FALSE, nullptr);
-    status = ZwClose(thread_handle);
-  } else {
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-  }
-  NT_ASSERT(!VmpIsVmmInstalled());
-}
-
-// De-virtualizing all processors
-_Use_decl_annotations_ static void VmpVmxOffThreadRoutine(void *start_context) {
-  UNREFERENCED_PARAMETER(start_context);
-  PAGED_CODE();
 
   HYPERPLATFORM_LOG_INFO("Uninstalling VMM.");
   auto status = UtilForEachProcessor(VmpStopVM, nullptr);
@@ -789,7 +764,7 @@ _Use_decl_annotations_ static void VmpVmxOffThreadRoutine(void *start_context) {
   } else {
     HYPERPLATFORM_LOG_WARN("The VMM has not been uninstalled (%08x).", status);
   }
-  PsTerminateSystemThread(status);
+  NT_ASSERT(!VmpIsVmmInstalled());
 }
 
 // Stops virtualization through a hypercall and frees all related memory
