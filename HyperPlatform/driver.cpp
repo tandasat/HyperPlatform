@@ -67,7 +67,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   UNREFERENCED_PARAMETER(registry_path);
   PAGED_CODE();
 
-  static const wchar_t kLogFilePath[] = L"\\SystemRoot\\HyperPlatform.log";
+  static const wchar_t kLogFilePath[] = L"\\SystemRoot\\EopMon.log";
   static const auto kLogLevel =
       (IsReleaseBuild()) ? kLogPutLevelInfo | kLogOptDisableFunctionName
                          : kLogPutLevelDebug | kLogOptDisableFunctionName;
