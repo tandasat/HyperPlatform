@@ -64,9 +64,9 @@ AsmInitializeVm PROC vm_initialization_routine, context
 
     mov ecx, esp            ; esp
     
-    ; vm_initialization_routine(rsp, asmResumeVM, context)
+    ; vm_initialization_routine(rsp, asmResumeVm, context)
     push context
-    push asmResumeVM
+    push asmResumeVm
     push ecx
     call vm_initialization_routine
 
@@ -77,7 +77,7 @@ AsmInitializeVm PROC vm_initialization_routine, context
 
     ; This is where the virtualized guest start to execute after successful
     ; vmlaunch. 
-asmResumeVM:
+asmResumeVm:
     nop                     ; keep this nop for ease of debugging
     popad
     popfd
@@ -101,13 +101,13 @@ AsmVmmEntryPoint PROC
     call VmmVmExitHandler@4 ; bool vm_continue = VmmVmExitHandler(guest_context);
 
     test al, al
-    jz exitVM               ; if (!vm_continue) jmp exitVM
+    jz exitVm               ; if (!vm_continue) jmp exitVm
 
     popad
     vmresume
     jmp vmxError
 
-exitVM:
+exitVm:
     ; Executes vmxoff and ends virtualization
     ;   eax = Guest's eflags
     ;   edx = Guest's esp

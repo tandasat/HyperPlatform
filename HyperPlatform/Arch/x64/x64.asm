@@ -104,11 +104,11 @@ AsmInitializeVm PROC
     
     mov rax, rcx
     mov r8, rdx
-    mov rdx, asmResumeVM
+    mov rdx, asmResumeVm
     mov rcx, rsp
 
     sub rsp, 20h
-    call rax            ; vm_initialization_routine(rsp, asmResumeVM, context)
+    call rax            ; vm_initialization_routine(rsp, asmResumeVm, context)
     add rsp, 20h
 
     POPAQ
@@ -118,7 +118,7 @@ AsmInitializeVm PROC
 
     ; This is where the virtualized guest start to execute after successful
     ; vmlaunch. 
-asmResumeVM:
+asmResumeVm:
     nop                 ; keep this nop for ease of debugging
     POPAQ
     popfq
@@ -147,13 +147,13 @@ AsmVmmEntryPoint PROC
     add rsp, 20h
 
     test al, al
-    jz exitVM               ; if (!vm_continue) jmp exitVM
+    jz exitVm               ; if (!vm_continue) jmp exitVm
 
     POPAQ
     vmresume
     jmp vmxError
 
-exitVM:
+exitVm:
     ; Executes vmxoff and ends virtualization
     ;   rax = Guest's rflags
     ;   rdx = Guest's rsp

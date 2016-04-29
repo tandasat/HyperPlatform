@@ -44,7 +44,7 @@ _IRQL_requires_max_(
     PASSIVE_LEVEL) static SharedProcessorData *VmpInitializeSharedData();
 
 _IRQL_requires_(DISPATCH_LEVEL) static NTSTATUS
-    VmpStartVM(_In_opt_ void *context);
+    VmpStartVm(_In_opt_ void *context);
 
 static void VmpInitializeVm(_In_ ULONG_PTR guest_stack_pointer,
                             _In_ ULONG_PTR guest_instruction_pointer,
@@ -52,14 +52,14 @@ static void VmpInitializeVm(_In_ ULONG_PTR guest_stack_pointer,
 
 static bool VmpEnterVmxMode(_Inout_ ProcessorData *processor_data);
 
-static bool VmpInitializeVMCS(_Inout_ ProcessorData *processor_data);
+static bool VmpInitializeVmcs(_Inout_ ProcessorData *processor_data);
 
-static bool VmpSetupVMCS(_In_ const ProcessorData *processor_data,
+static bool VmpSetupVmcs(_In_ const ProcessorData *processor_data,
                          _In_ ULONG_PTR guest_stack_pointer,
                          _In_ ULONG_PTR guest_instruction_pointer,
                          _In_ ULONG_PTR vmm_stack_pointer);
 
-static void VmpLaunchVM();
+static void VmpLaunchVm();
 
 static ULONG VmpGetSegmentAccessRight(_In_ USHORT segment_selector);
 
@@ -74,7 +74,7 @@ static ULONG_PTR VmpGetSegmentBase(_In_ ULONG_PTR gdt_base,
 
 static ULONG VmpAdjustControlValue(_In_ Msr msr, _In_ ULONG requested_value);
 
-static NTSTATUS VmpStopVM(_In_opt_ void *context);
+static NTSTATUS VmpStopVm(_In_opt_ void *context);
 
 static void VmpFreeProcessorData(_In_opt_ ProcessorData *processor_data);
 
@@ -85,12 +85,12 @@ static bool VmpIsVmmInstalled();
 #pragma alloc_text(INIT, VmpIsVmxAvailable)
 #pragma alloc_text(INIT, VmpSetLockBitCallback)
 #pragma alloc_text(INIT, VmpInitializeSharedData)
-#pragma alloc_text(INIT, VmpStartVM)
+#pragma alloc_text(INIT, VmpStartVm)
 #pragma alloc_text(INIT, VmpInitializeVm)
 #pragma alloc_text(INIT, VmpEnterVmxMode)
-#pragma alloc_text(INIT, VmpInitializeVMCS)
-#pragma alloc_text(INIT, VmpSetupVMCS)
-#pragma alloc_text(INIT, VmpLaunchVM)
+#pragma alloc_text(INIT, VmpInitializeVmcs)
+#pragma alloc_text(INIT, VmpSetupVmcs)
+#pragma alloc_text(INIT, VmpLaunchVm)
 #pragma alloc_text(INIT, VmpGetSegmentAccessRight)
 #pragma alloc_text(INIT, VmpGetSegmentBase)
 #pragma alloc_text(INIT, VmpGetSegmentDescriptor)
@@ -133,9 +133,9 @@ _Use_decl_annotations_ NTSTATUS VmInitialization() {
   }
 
   // Virtualize all processors
-  auto status = UtilForEachProcessor(VmpStartVM, shared_data);
+  auto status = UtilForEachProcessor(VmpStartVm, shared_data);
   if (!NT_SUCCESS(status)) {
-    UtilForEachProcessor(VmpStopVM, nullptr);
+    UtilForEachProcessor(VmpStopVm, nullptr);
     return status;
   }
   return status;
@@ -268,7 +268,7 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
 }
 
 // Virtualize the current processor
-_Use_decl_annotations_ static NTSTATUS VmpStartVM(void *context) {
+_Use_decl_annotations_ static NTSTATUS VmpStartVm(void *context) {
   HYPERPLATFORM_LOG_INFO("Initializing VMX for the processor %d.",
                          KeGetCurrentProcessorNumberEx(nullptr));
   const auto ok = AsmInitializeVm(VmpInitializeVm, context);
@@ -360,16 +360,16 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   if (!VmpEnterVmxMode(processor_data)) {
     goto ReturnFalse;
   }
-  if (!VmpInitializeVMCS(processor_data)) {
+  if (!VmpInitializeVmcs(processor_data)) {
     goto ReturnFalseWithVmxOff;
   }
-  if (!VmpSetupVMCS(processor_data, guest_stack_pointer,
+  if (!VmpSetupVmcs(processor_data, guest_stack_pointer,
                     guest_instruction_pointer, vmm_stack_base)) {
     goto ReturnFalseWithVmxOff;
   }
 
   // Do virtualize the processor
-  VmpLaunchVM();
+  VmpLaunchVm();
 
 // Here is not be executed with successful vmlaunch. Instead, the context
 // jumps to an address specified by guest_instruction_pointer.
@@ -414,7 +414,7 @@ _Use_decl_annotations_ static bool VmpEnterVmxMode(
 }
 
 // See: VMM SETUP & TEAR DOWN
-_Use_decl_annotations_ static bool VmpInitializeVMCS(
+_Use_decl_annotations_ static bool VmpInitializeVmcs(
     ProcessorData *processor_data) {
   // Write a VMCS revision identifier
   const Ia32VmxBasicMsr vmx_basic_msr = {UtilReadMsr64(Msr::kIa32VmxBasic)};
@@ -434,7 +434,7 @@ _Use_decl_annotations_ static bool VmpInitializeVMCS(
 }
 
 // See: PREPARATION AND LAUNCHING A VIRTUAL MACHINE
-_Use_decl_annotations_ static bool VmpSetupVMCS(
+_Use_decl_annotations_ static bool VmpSetupVmcs(
     const ProcessorData *processor_data, ULONG_PTR guest_stack_pointer,
     ULONG_PTR guest_instruction_pointer, ULONG_PTR vmm_stack_pointer) {
   Gdtr gdtr = {};
@@ -656,7 +656,7 @@ _Use_decl_annotations_ static bool VmpSetupVMCS(
 }
 
 // Executes vmlaunch
-/*_Use_decl_annotations_*/ static void VmpLaunchVM() {
+/*_Use_decl_annotations_*/ static void VmpLaunchVm() {
   auto error_code = UtilVmRead(VmcsField::kVmInstructionError);
   if (error_code) {
     HYPERPLATFORM_LOG_WARN("VM_INSTRUCTION_ERROR = %d", error_code);
@@ -758,7 +758,7 @@ _Use_decl_annotations_ void VmTermination() {
   PAGED_CODE();
 
   HYPERPLATFORM_LOG_INFO("Uninstalling VMM.");
-  auto status = UtilForEachProcessor(VmpStopVM, nullptr);
+  auto status = UtilForEachProcessor(VmpStopVm, nullptr);
   if (NT_SUCCESS(status)) {
     HYPERPLATFORM_LOG_INFO("The VMM has been uninstalled.");
   } else {
@@ -768,7 +768,7 @@ _Use_decl_annotations_ void VmTermination() {
 }
 
 // Stops virtualization through a hypercall and frees all related memory
-_Use_decl_annotations_ static NTSTATUS VmpStopVM(void *context) {
+_Use_decl_annotations_ static NTSTATUS VmpStopVm(void *context) {
   UNREFERENCED_PARAMETER(context);
 
   HYPERPLATFORM_LOG_INFO("Terminating VMX for the processor %d.",
