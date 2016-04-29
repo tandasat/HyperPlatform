@@ -17,6 +17,7 @@
 #define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
 #endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
+#include "../../EopMon/eopmon.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -109,9 +110,20 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     return status;
   }
 
+  // Initialize EopMon
+  status = EopmonInitializaion();
+  if (!NT_SUCCESS(status))
+  {
+    UtilTermination();
+    PerfTermination();
+    LogTermination();
+    return status;
+  }
+
   // Virtualize all processors
   status = VmInitialization();
   if (!NT_SUCCESS(status)) {
+    EopmonTermination();
     UtilTermination();
     PerfTermination();
     LogTermination();
@@ -136,6 +148,7 @@ _Use_decl_annotations_ static void DriverpDriverUnload(
   HYPERPLATFORM_COMMON_DBG_BREAK();
 
   VmTermination();
+  EopmonTermination();
   UtilTermination();
   PerfTermination();
   LogTermination();

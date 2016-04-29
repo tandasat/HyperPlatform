@@ -16,6 +16,7 @@
 #define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
 #endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
+#include "../../EopMon/eopmon.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -779,6 +780,7 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
             UtilLoadPdptes(*register_used);
           }
           UtilVmWrite(VmcsField::kGuestCr3, *register_used);
+          EopmonCheckCurrentProcessToken();
           break;
         }
 
