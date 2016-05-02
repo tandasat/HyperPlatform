@@ -16,11 +16,15 @@ potential applications are:
 - Implementing virtual-machine-based intrusion prevention system (VIPS)
 - Reverse-engineering the Windows kernel
 
-Two of those ideas were already implemented: MemoryMon detecting execution of
-kernel memory, and GuardMon monitoring some of PatchGuard activities. See their
-project pages for more details:
-- https://github.com/tandasat/MemoryMon
-- https://github.com/tandasat/GuardMon
+A simplified implementation of those ideas are available:
+- MemoryMon detecting execution of kernel memory for rootkit analysis
+ - https://github.com/tandasat/MemoryMon
+- EopMon spotting a successful elevation of privilege (EoP) exploit
+ - https://github.com/tandasat/EopMon
+- DdiMon monitoring and controlling kernel API calls with stealth hook using EPT
+ - https://github.com/tandasat/DdiMon
+- GuardMon observing some of PatchGuard activities
+ - https://github.com/tandasat/GuardMon
 
 
 Advantages
@@ -36,15 +40,15 @@ especially those who are familiar with Windows. For instance:
 - HyperPlatform has no dependencies, supports use of STL and is released under
   a relaxed license.
 
-For more details, see the HyperPlatform User's Documents and doxygen documents.
-- https://github.com/tandasat/HyperPlatform/tree/master/Documents
+For more details, see the HyperPlatform User Document and Programmer's Reference.
+- http://tandasat.github.io/HyperPlatform/userdocument/
 - http://tandasat.github.io/HyperPlatform/doxygen/
 
 
 Build
 ------
 To build HyperPlatform, the following are required.
-- Visual Studio Community 2015 Update 2
+- Visual Studio Community 2015 Update 1 or 2
  - https://www.visualstudio.com/en-us/news/vs2015-update1-vs.aspx
 - Windows Software Development Kit (SDK) for Windows 10
  - https://dev.windows.com/en-us/downloads/windows-10-sdk
@@ -54,9 +58,6 @@ To build HyperPlatform, the following are required.
 
 Installation and Uninstallation
 --------------------------------
-Download an archive file for compiled files form the release page.
-- https://github.com/tandasat/HyperPlatform/releases
-
 On the x64 platform, you have to enable test signing to install the driver.
 To do that, open the command prompt with the administrator privilege and type
 the following command, and then restart the system to activate the change:
@@ -76,10 +77,10 @@ For uninstallation:
 
 
 Note that the system must support the Intel VT-x and EPT technology to
-successfully install the driver. 
+successfully install the driver.
 
 To install the driver on a virtual machine on VMware Workstation, see an "Using
-VMware Workstation" section in the HyperPlatform User's Documents.
+VMware Workstation" section in the HyperPlatform User Document.
 
 
 Output
@@ -95,7 +96,7 @@ Supported Platforms
 
 Related Project(s)
 --------------------
-SimpleVisor is a very (very) simple and readable Windows-specific hypervisor. If 
+SimpleVisor is a very (very) simple and readable Windows-specific hypervisor. If
 HyperPlatform is still too large and complicated to learn VT-x for you, I would
 recommend to take a look at the project. It should give you a clearer
 view of how a hypervisor is initialized and executed.
