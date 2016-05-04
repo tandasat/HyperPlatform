@@ -62,7 +62,7 @@ On the x64 platform, you have to enable test signing to install the driver.
 To do that, open the command prompt with the administrator privilege and type
 the following command, and then restart the system to activate the change:
 
-    bcdedit /set testsigning on
+    >bcdedit /set testsigning on
 
 To install and uninstall the driver, use the 'sc' command. For installation:
 
