@@ -81,6 +81,7 @@ successfully install the driver.
 
 To install the driver on a virtual machine on VMware Workstation, see an "Using
 VMware Workstation" section in the HyperPlatform User Document.
+- http://tandasat.github.io/HyperPlatform/userdocument/
 
 
 Output
