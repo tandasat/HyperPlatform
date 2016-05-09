@@ -139,6 +139,7 @@
     <ClInclude Include="performance.h" />
     <ClInclude Include="perf_counter.h" />
     <ClInclude Include="util.h" />
+    <ClInclude Include="util_page_constants.h" />
     <ClInclude Include="vm.h" />
     <ClInclude Include="vmm.h" />
   </ItemGroup>
