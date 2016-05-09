@@ -538,19 +538,16 @@ _Use_decl_annotations_ bool UtilIsNonPageableAddress(void *address,
     return false;
   }
 
-#if defined(_AMD64_)
-  const auto pxe = UtilpAddressToPxe(address);
-  const auto ppe = UtilpAddressToPpe(address);
-  if (!pxe->valid || !ppe->valid) {
-    return false;
+  if (IsX64()) {
+    const auto pxe = UtilpAddressToPxe(address);
+    const auto ppe = UtilpAddressToPpe(address);
+    if (!pxe->valid || !ppe->valid) {
+      return false;
+    }
   }
-#endif
 
-  const auto is_x86_pae = UtilIsX86Pae();
-  const auto pde =
-      (is_x86_pae) ? UtilpAddressToPdePAE(address) : UtilpAddressToPde(address);
-  const auto pte =
-      (is_x86_pae) ? UtilpAddressToPtePAE(address) : UtilpAddressToPte(address);
+  const auto pde = UtilpAddressToPde(address);
+  const auto pte = UtilpAddressToPte(address);
   if (!pde->valid) {
     return false;
   }
