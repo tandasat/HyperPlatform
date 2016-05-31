@@ -112,8 +112,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
 
   // Initialize EopMon
   status = EopmonInitializaion();
-  if (!NT_SUCCESS(status))
-  {
+  if (!NT_SUCCESS(status)) {
     UtilTermination();
     PerfTermination();
     LogTermination();

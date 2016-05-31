@@ -89,7 +89,7 @@ _Use_decl_annotations_ static void PerfpInitialOutputRoutine(
     void* output_context) {
   UNREFERENCED_PARAMETER(output_context);
   HYPERPLATFORM_LOG_INFO("%-45s,%-20s,%-20s", "FunctionName(Line)",
-                          "Execution Count", "Elapsed Time");
+                         "Execution Count", "Elapsed Time");
 }
 
 _Use_decl_annotations_ static void PerfpOutputRoutine(
@@ -97,7 +97,7 @@ _Use_decl_annotations_ static void PerfpOutputRoutine(
     ULONG64 total_elapsed_time, void* output_context) {
   UNREFERENCED_PARAMETER(output_context);
   HYPERPLATFORM_LOG_INFO("%-45s,%20I64u,%20I64u,", location_name,
-                          total_execution_count, total_elapsed_time);
+                         total_execution_count, total_elapsed_time);
 }
 
 _Use_decl_annotations_ static void PerfpFinalOutputRoutine(
