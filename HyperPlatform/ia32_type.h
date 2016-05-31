@@ -185,15 +185,14 @@ static_assert(sizeof(Gdtr) == 6, "Size check");
 #include <pshpack1.h>
 union KidtEntry {
   ULONG64 all;
-  struct
-  {
+  struct {
     unsigned short offset_low;
     unsigned short selector;
-    unsigned char ist_index:3;    ///< [0:2]
-    unsigned char reserved :5;    ///< [3:7]
-    unsigned char type :5;        ///< [8:12]
-    unsigned char dpl :2;         ///< [13:14]
-    unsigned char present :1;     ///< [15]
+    unsigned char ist_index : 3;  ///< [0:2]
+    unsigned char reserved : 5;   ///< [3:7]
+    unsigned char type : 5;       ///< [8:12]
+    unsigned char dpl : 2;        ///< [13:14]
+    unsigned char present : 1;    ///< [15]
     unsigned short offset_middle;
   } fields;
 };
