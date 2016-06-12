@@ -185,15 +185,14 @@ static_assert(sizeof(Gdtr) == 6, "Size check");
 #include <pshpack1.h>
 union KidtEntry {
   ULONG64 all;
-  struct
-  {
+  struct {
     unsigned short offset_low;
     unsigned short selector;
-    unsigned char ist_index:3;    ///< [0:2]
-    unsigned char reserved :5;    ///< [3:7]
-    unsigned char type :5;        ///< [8:12]
-    unsigned char dpl :2;         ///< [13:14]
-    unsigned char present :1;     ///< [15]
+    unsigned char ist_index : 3;  ///< [0:2]
+    unsigned char reserved : 5;   ///< [3:7]
+    unsigned char type : 5;       ///< [8:12]
+    unsigned char dpl : 2;        ///< [13:14]
+    unsigned char present : 1;    ///< [15]
     unsigned short offset_middle;
   } fields;
 };
@@ -796,7 +795,7 @@ union VmxPinBasedControls {
   unsigned int all;
   struct {
     unsigned external_interrupt_exiting : 1;    ///< [0]
-    unsigned reserved1 : 2;                     ///< [1-2]
+    unsigned reserved1 : 2;                     ///< [1:2]
     unsigned nmi_exiting : 1;                   ///< [3]
     unsigned reserved2 : 1;                     ///< [4]
     unsigned virtual_nmis : 1;                  ///< [5]
@@ -810,20 +809,20 @@ static_assert(sizeof(VmxPinBasedControls) == 4, "Size check");
 union VmxProcessorBasedControls {
   unsigned int all;
   struct {
-    unsigned reserved1 : 2;                   ///< [0-1]
+    unsigned reserved1 : 2;                   ///< [0:1]
     unsigned interrupt_window_exiting : 1;    ///< [2]
     unsigned use_tsc_offseting : 1;           ///< [3]
-    unsigned reserved2 : 3;                   ///< [4-6]
+    unsigned reserved2 : 3;                   ///< [4:6]
     unsigned hlt_exiting : 1;                 ///< [7]
     unsigned reserved3 : 1;                   ///< [8]
     unsigned invlpg_exiting : 1;              ///< [9]
     unsigned mwait_exiting : 1;               ///< [10]
     unsigned rdpmc_exiting : 1;               ///< [11]
     unsigned rdtsc_exiting : 1;               ///< [12]
-    unsigned reserved4 : 2;                   ///< [13-14]
+    unsigned reserved4 : 2;                   ///< [13:14]
     unsigned cr3_load_exiting : 1;            ///< [15]
     unsigned cr3_store_exiting : 1;           ///< [16]
-    unsigned reserved5 : 2;                   ///< [17-18]
+    unsigned reserved5 : 2;                   ///< [17:18]
     unsigned cr8_load_exiting : 1;            ///< [19]
     unsigned cr8_store_exiting : 1;           ///< [20]
     unsigned use_tpr_shadow : 1;              ///< [21]
@@ -866,7 +865,7 @@ union VmxSecondaryProcessorBasedControls {
     unsigned ept_violation_ve : 1;              ///< [18]
     unsigned reserved3 : 1;                     ///< [19]
     unsigned enable_xsaves_xstors : 1;          ///< [20]
-    unsigned reserved4 : 4;                     ///< [21-24]
+    unsigned reserved4 : 4;                     ///< [21:24]
     unsigned use_tsc_scaling : 1;               ///< [25]
   } fields;
 };
@@ -876,15 +875,15 @@ static_assert(sizeof(VmxSecondaryProcessorBasedControls) == 4, "Size check");
 union VmxVmExitControls {
   unsigned int all;
   struct {
-    unsigned reserved1 : 2;                        ///< [0-1]
+    unsigned reserved1 : 2;                        ///< [0:1]
     unsigned save_debug_controls : 1;              ///< [2]
-    unsigned reserved2 : 6;                        ///< [3-8]
+    unsigned reserved2 : 6;                        ///< [3:8]
     unsigned host_address_space_size : 1;          ///< [9]
-    unsigned reserved3 : 2;                        ///< [10-11]
+    unsigned reserved3 : 2;                        ///< [10:11]
     unsigned load_ia32_perf_global_ctrl : 1;       ///< [12]
-    unsigned reserved4 : 2;                        ///< [13-14]
+    unsigned reserved4 : 2;                        ///< [13:14]
     unsigned acknowledge_interrupt_on_exit : 1;    ///< [15]
-    unsigned reserved5 : 2;                        ///< [16-17]
+    unsigned reserved5 : 2;                        ///< [16:17]
     unsigned save_ia32_pat : 1;                    ///< [18]
     unsigned load_ia32_pat : 1;                    ///< [19]
     unsigned save_ia32_efer : 1;                   ///< [20]
@@ -898,9 +897,9 @@ static_assert(sizeof(VmxVmExitControls) == 4, "Size check");
 union VmxVmEntryControls {
   unsigned int all;
   struct {
-    unsigned reserved1 : 2;                          ///< [0-1]
+    unsigned reserved1 : 2;                          ///< [0:1]
     unsigned load_debug_controls : 1;                ///< [2]
-    unsigned reserved2 : 6;                          ///< [3-8]
+    unsigned reserved2 : 6;                          ///< [3:8]
     unsigned ia32e_mode_guest : 1;                   ///< [9]
     unsigned entry_to_smm : 1;                       ///< [10]
     unsigned deactivate_dual_monitor_treatment : 1;  ///< [11]
@@ -938,11 +937,11 @@ union Ia32FeatureControlMsr {
     unsigned lock : 1;                  ///< [0]
     unsigned enable_smx : 1;            ///< [1]
     unsigned enable_vmxon : 1;          ///< [2]
-    unsigned reserved1 : 5;             ///< [3-7]
-    unsigned enable_local_senter : 7;   ///< [8-14]
+    unsigned reserved1 : 5;             ///< [3:7]
+    unsigned enable_local_senter : 7;   ///< [8:14]
     unsigned enable_global_senter : 1;  ///< [15]
     unsigned reserved2 : 16;            ///<
-    unsigned reserved3 : 32;            ///< [16-63]
+    unsigned reserved3 : 32;            ///< [16:63]
   } fields;
 };
 static_assert(sizeof(Ia32FeatureControlMsr) == 8, "Size check");
@@ -951,17 +950,17 @@ static_assert(sizeof(Ia32FeatureControlMsr) == 8, "Size check");
 union Ia32VmxBasicMsr {
   unsigned __int64 all;
   struct {
-    unsigned revision_identifier : 31;    ///< [0-30]
+    unsigned revision_identifier : 31;    ///< [0:30]
     unsigned reserved1 : 1;               ///< [31]
-    unsigned region_size : 12;            ///< [32-43]
+    unsigned region_size : 12;            ///< [32:43]
     unsigned region_clear : 1;            ///< [44]
-    unsigned reserved2 : 3;               ///< [45-47]
+    unsigned reserved2 : 3;               ///< [45:47]
     unsigned supported_ia64 : 1;          ///< [48]
     unsigned supported_dual_moniter : 1;  ///< [49]
-    unsigned memory_type : 4;             ///< [50-53]
+    unsigned memory_type : 4;             ///< [50:53]
     unsigned vm_exit_report : 1;          ///< [54]
     unsigned vmx_capability_hint : 1;     ///< [55]
-    unsigned reserved3 : 8;               ///< [56-63]
+    unsigned reserved3 : 8;               ///< [56:63]
   } fields;
 };
 static_assert(sizeof(Ia32VmxBasicMsr) == 8, "Size check");
@@ -970,20 +969,20 @@ static_assert(sizeof(Ia32VmxBasicMsr) == 8, "Size check");
 union Ia32VmxMiscMsr {
   unsigned __int64 all;
   struct {
-    unsigned time_stamp : 5;                               ///< [0-4]
+    unsigned time_stamp : 5;                               ///< [0:4]
     unsigned reserved1 : 1;                                ///< [5]
     unsigned supported_activity_state_hlt : 1;             ///< [6]
     unsigned supported_activity_state_shutdown : 1;        ///< [7]
     unsigned supported_activity_state_wait_for_sipi : 1;   ///< [8]
-    unsigned reserved2 : 6;                                ///< [9-14]
+    unsigned reserved2 : 6;                                ///< [9:14]
     unsigned supported_read_ia32_smbase_msr : 1;           ///< [15]
-    unsigned supported_cr3_target_value_number : 8;        ///< [16-23]
+    unsigned supported_cr3_target_value_number : 8;        ///< [16:23]
     unsigned supported_cr3_target_value_number_clear : 1;  ///< [24]
-    unsigned maximum_msrs_number : 3;                      ///< [25-27]
+    unsigned maximum_msrs_number : 3;                      ///< [25:27]
     unsigned suppoeted_change_ia32_smm_monitor_ctl : 1;    ///< [28]
     unsigned supported_vmwrite_vm_exit_information : 1;    ///< [29]
-    unsigned reserved3 : 2;                                ///< [30-31]
-    unsigned revision_identifier : 32;                     ///< [32-63]
+    unsigned reserved3 : 2;                                ///< [30:31]
+    unsigned revision_identifier : 32;                     ///< [32:63]
   } fields;
 };
 static_assert(sizeof(Ia32VmxMiscMsr) == 8, "Size check");
@@ -993,9 +992,9 @@ union Ia32VmxVmcsEnumMsr {
   unsigned __int64 all;
   struct {
     unsigned reserved1 : 1;                        ///< [0]
-    unsigned supported_highest_vmcs_encoding : 9;  ///< [1-9]
+    unsigned supported_highest_vmcs_encoding : 9;  ///< [1:9]
     unsigned reserved2 : 22;                       ///<
-    unsigned reserved3 : 32;                       ///< [10-63]
+    unsigned reserved3 : 32;                       ///< [10:63]
   } fields;
 };
 static_assert(sizeof(Ia32VmxVmcsEnumMsr) == 8, "Size check");
@@ -1005,29 +1004,29 @@ union Ia32VmxEptVpidCapMsr {
   unsigned __int64 all;
   struct {
     unsigned support_execute_only_pages : 1;                        ///< [0]
-    unsigned reserved1 : 5;                                         ///< [1-5]
+    unsigned reserved1 : 5;                                         ///< [1:5]
     unsigned support_page_walk_length4 : 1;                         ///< [6]
     unsigned reserved2 : 1;                                         ///< [7]
     unsigned support_uncacheble_memory_type : 1;                    ///< [8]
-    unsigned reserved3 : 5;                                         ///< [9-13]
+    unsigned reserved3 : 5;                                         ///< [9:13]
     unsigned support_write_back_memory_type : 1;                    ///< [14]
     unsigned reserved4 : 1;                                         ///< [15]
     unsigned support_pde_2mb_pages : 1;                             ///< [16]
     unsigned support_pdpte_1_gb_pages : 1;                          ///< [17]
-    unsigned reserved5 : 2;                                         ///< [18-19]
+    unsigned reserved5 : 2;                                         ///< [18:19]
     unsigned support_invept : 1;                                    ///< [20]
     unsigned support_accessed_and_dirty_flag : 1;                   ///< [21]
-    unsigned reserved6 : 3;                                         ///< [22-24]
+    unsigned reserved6 : 3;                                         ///< [22:24]
     unsigned support_single_context_invept : 1;                     ///< [25]
     unsigned support_all_context_invept : 1;                        ///< [26]
-    unsigned reserved7 : 5;                                         ///< [27-31]
+    unsigned reserved7 : 5;                                         ///< [27:31]
     unsigned support_invvpid : 1;                                   ///< [32]
-    unsigned reserved8 : 7;                                         ///< [33-39]
+    unsigned reserved8 : 7;                                         ///< [33:39]
     unsigned support_individual_address_invvpid : 1;                ///< [40]
     unsigned support_single_context_invvpid : 1;                    ///< [41]
     unsigned support_all_context_invvpid : 1;                       ///< [42]
     unsigned support_single_context_retaining_globals_invvpid : 1;  ///< [43]
-    unsigned reserved9 : 20;                                        ///< [44-63]
+    unsigned reserved9 : 20;                                        ///< [44:63]
   } fields;
 };
 static_assert(sizeof(Ia32VmxEptVpidCapMsr) == 8, "Size check");
@@ -1046,24 +1045,44 @@ union VmExitInformation {
 };
 static_assert(sizeof(VmExitInformation) == 4, "Size check");
 
+/// See: Format of the VM-Exit Instruction-Information Field as Used for INVEPT,
+/// INVPCID, and INVVPID
+union InvEptOrPcidOrVpidQualification {
+  ULONG32 all;
+  struct {
+    ULONG32 scalling : 2;                ///< [0:1]
+    ULONG32 reserved1 : 5;               ///< [2:6]
+    ULONG32 address_size : 3;            ///< [7:9]
+    ULONG32 reserved2 : 1;               ///< [10]
+    ULONG32 reserved3 : 4;               ///< [11:14]
+    ULONG32 segment_register : 3;        ///< [15:17]
+    ULONG32 index_register : 4;          ///< [18:21]
+    ULONG32 index_register_invalid : 1;  ///< [22]
+    ULONG32 base_register : 4;           ///< [23:26]
+    ULONG32 base_register_invalid : 1;   ///< [27]
+    ULONG32 index_register2 : 4;         ///< [28:31]
+  } fields;
+};
+static_assert(sizeof(InvEptOrPcidOrVpidQualification) == 4, "Size check");
+
 /// See: Format of the VM-Exit Instruction-Information Field as Used for
 /// LIDT, LGDT, SIDT, or SGDT
-enum class GdtrOrIdtrScaling {
+enum class Scaling {
   kNoScaling = 0,
   kScaleBy2,
   kScaleBy4,
   kScaleBy8,
 };
 
-/// @copydoc GdtrOrIdtrScaling
-enum class GdtrOrIdtrAaddressSize {
+/// @copydoc Scaling
+enum class AddressSize {
   k16bit = 0,
   k32bit,
   k64bit,
 };
 
-/// @copydoc GdtrOrIdtrScaling
-enum class GdtrOrIdtrSegmentRegisters {
+/// @copydoc Scaling
+enum class SegmentRegisters {
   kEs = 0,
   kCs,
   kSs,
@@ -1072,7 +1091,7 @@ enum class GdtrOrIdtrSegmentRegisters {
   kGs,
 };
 
-/// @copydoc GdtrOrIdtrScaling
+/// @copydoc Scaling
 enum class GdtrOrIdtrInstructionIdentity {
   kSgdt = 0,
   kSidt,
@@ -1080,23 +1099,23 @@ enum class GdtrOrIdtrInstructionIdentity {
   kLidt,
 };
 
-/// @copydoc GdtrOrIdtrScaling
+/// @copydoc Scaling
 union GdtrOrIdtrAccessQualification {
   ULONG32 all;
   struct {
-    ULONG32 scalling : 2;
-    ULONG32 reserved1 : 5;
-    ULONG32 address_size : 3;
-    ULONG32 reserved2 : 1;
-    ULONG32 operand_size : 1;
-    ULONG32 reserved3 : 3;
-    ULONG32 segment_register : 3;
-    ULONG32 index_register : 4;
-    ULONG32 index_register_invalid : 1;
-    ULONG32 base_register : 4;
-    ULONG32 base_register_invalid : 1;
-    ULONG32 instruction_identity : 2;
-    ULONG32 reserved4 : 2;
+    ULONG32 scalling : 2;                ///< [0:1]
+    ULONG32 reserved1 : 5;               ///< [2:6]
+    ULONG32 address_size : 3;            ///< [7:9]
+    ULONG32 reserved2 : 1;               ///< [10]
+    ULONG32 operand_size : 1;            ///< [11]
+    ULONG32 reserved3 : 3;               ///< [12:14]
+    ULONG32 segment_register : 3;        ///< [15:17]
+    ULONG32 index_register : 4;          ///< [18:21]
+    ULONG32 index_register_invalid : 1;  ///< [22]
+    ULONG32 base_register : 4;           ///< [23:26]
+    ULONG32 base_register_invalid : 1;   ///< [27]
+    ULONG32 instruction_identity : 2;    ///< [28:29]
+    ULONG32 reserved4 : 2;               ///< [30:31]
   } fields;
 };
 static_assert(sizeof(GdtrOrIdtrAccessQualification) == 4, "Size check");
@@ -1114,19 +1133,19 @@ enum class LdtrOrTrInstructionIdentity {
 union LdtrOrTrAccessQualification {
   ULONG32 all;
   struct {
-    ULONG32 scalling : 2;
-    ULONG32 reserved1 : 1;
-    ULONG32 register1 : 4;
-    ULONG32 address_size : 3;
-    ULONG32 register_access : 1;
-    ULONG32 reserved2 : 4;
-    ULONG32 segment_register : 3;
-    ULONG32 index_register : 4;
-    ULONG32 index_register_invalid : 1;
-    ULONG32 base_register : 4;
-    ULONG32 base_register_invalid : 1;
-    ULONG32 instruction_identity : 2;
-    ULONG32 reserved4 : 2;
+    ULONG32 scalling : 2;                ///< [0:1]
+    ULONG32 reserved1 : 1;               ///< [2]
+    ULONG32 register1 : 4;               ///< [3:6]
+    ULONG32 address_size : 3;            ///< [7:9]
+    ULONG32 register_access : 1;         ///< [10]
+    ULONG32 reserved2 : 4;               ///< [11:14]
+    ULONG32 segment_register : 3;        ///< [15:17]
+    ULONG32 index_register : 4;          ///< [18:21]
+    ULONG32 index_register_invalid : 1;  ///< [22]
+    ULONG32 base_register : 4;           ///< [23:26]
+    ULONG32 base_register_invalid : 1;   ///< [27]
+    ULONG32 instruction_identity : 2;    ///< [28:29]
+    ULONG32 reserved4 : 2;               ///< [30:31]
   } fields;
 };
 static_assert(sizeof(LdtrOrTrAccessQualification) == 4, "Size check");
@@ -1141,13 +1160,13 @@ enum class MovDrDirection {
 union MovDrQualification {
   ULONG_PTR all;
   struct {
-    ULONG_PTR debugl_register : 3;
-    ULONG_PTR reserved1 : 1;
-    ULONG_PTR direction : 1;
-    ULONG_PTR reserved2 : 3;
-    ULONG_PTR gp_register : 4;
-    ULONG_PTR reserved3 : 20;
-    ULONG_PTR reserved4 : 32;
+    ULONG_PTR debugl_register : 3;  ///< [0:2]
+    ULONG_PTR reserved1 : 1;        ///< [3]
+    ULONG_PTR direction : 1;        ///< [4]
+    ULONG_PTR reserved2 : 3;        ///< [5:7]
+    ULONG_PTR gp_register : 4;      ///< [8:11]
+    ULONG_PTR reserved3 : 20;       ///<
+    ULONG_PTR reserved4 : 32;       ///< [12:63]
   } fields;
 };
 static_assert(sizeof(MovDrQualification) == 8, "Size check");
@@ -1164,14 +1183,14 @@ enum class MovCrAccessType {
 union MovCrQualification {
   ULONG_PTR all;
   struct {
-    ULONG_PTR control_register : 4;
-    ULONG_PTR access_type : 2;
-    ULONG_PTR lmsw_operand_type : 1;
-    ULONG_PTR reserved1 : 1;
-    ULONG_PTR gp_register : 4;
-    ULONG_PTR reserved2 : 4;
-    ULONG_PTR lmsw_source_data : 16;
-    ULONG_PTR reserved3 : 32;
+    ULONG_PTR control_register : 4;   ///< [0:3]
+    ULONG_PTR access_type : 2;        ///< [4:5]
+    ULONG_PTR lmsw_operand_type : 1;  ///< [6]
+    ULONG_PTR reserved1 : 1;          ///< [7]
+    ULONG_PTR gp_register : 4;        ///< [8:11]
+    ULONG_PTR reserved2 : 4;          ///< [12:15]
+    ULONG_PTR lmsw_source_data : 16;  ///< [16:31]
+    ULONG_PTR reserved3 : 32;         ///< [32:63]
   } fields;
 };
 static_assert(sizeof(MovCrQualification) == 8, "Size check");

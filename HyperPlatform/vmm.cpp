@@ -551,18 +551,17 @@ _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
     const auto register_used = VmmpSelectRegister(
         exit_qualification.fields.index_register, guest_context);
     index_value = *register_used;
-    switch (
-        static_cast<GdtrOrIdtrScaling>(exit_qualification.fields.scalling)) {
-      case GdtrOrIdtrScaling::kNoScaling:
+    switch (static_cast<Scaling>(exit_qualification.fields.scalling)) {
+      case Scaling::kNoScaling:
         index_value = index_value;
         break;
-      case GdtrOrIdtrScaling::kScaleBy2:
+      case Scaling::kScaleBy2:
         index_value = index_value * 2;
         break;
-      case GdtrOrIdtrScaling::kScaleBy4:
+      case Scaling::kScaleBy4:
         index_value = index_value * 4;
         break;
-      case GdtrOrIdtrScaling::kScaleBy8:
+      case Scaling::kScaleBy8:
         index_value = index_value * 8;
         break;
       default:
@@ -571,9 +570,8 @@ _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
   }
 
   auto operation_address = base_value + index_value + displacement;
-  if (static_cast<GdtrOrIdtrAaddressSize>(
-          exit_qualification.fields.address_size) ==
-      GdtrOrIdtrAaddressSize::k32bit) {
+  if (static_cast<AddressSize>(exit_qualification.fields.address_size) ==
+      AddressSize::k32bit) {
     operation_address &= MAXULONG;
   }
 
@@ -642,18 +640,17 @@ _Use_decl_annotations_ static void VmmpHandleLdtrOrTrAccess(
       const auto register_used = VmmpSelectRegister(
           exit_qualification.fields.index_register, guest_context);
       index_value = *register_used;
-      switch (
-          static_cast<GdtrOrIdtrScaling>(exit_qualification.fields.scalling)) {
-        case GdtrOrIdtrScaling::kNoScaling:
+      switch (static_cast<Scaling>(exit_qualification.fields.scalling)) {
+        case Scaling::kNoScaling:
           index_value = index_value;
           break;
-        case GdtrOrIdtrScaling::kScaleBy2:
+        case Scaling::kScaleBy2:
           index_value = index_value * 2;
           break;
-        case GdtrOrIdtrScaling::kScaleBy4:
+        case Scaling::kScaleBy4:
           index_value = index_value * 4;
           break;
-        case GdtrOrIdtrScaling::kScaleBy8:
+        case Scaling::kScaleBy8:
           index_value = index_value * 8;
           break;
         default:
@@ -662,9 +659,8 @@ _Use_decl_annotations_ static void VmmpHandleLdtrOrTrAccess(
     }
 
     operation_address = base_value + index_value + displacement;
-    if (static_cast<GdtrOrIdtrAaddressSize>(
-            exit_qualification.fields.address_size) ==
-        GdtrOrIdtrAaddressSize::k32bit) {
+    if (static_cast<AddressSize>(exit_qualification.fields.address_size) ==
+        AddressSize::k32bit) {
       operation_address &= MAXULONG;
     }
   }
