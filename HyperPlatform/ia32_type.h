@@ -1045,9 +1045,23 @@ union VmExitInformation {
 };
 static_assert(sizeof(VmExitInformation) == 4, "Size check");
 
+/// See: Format of the VM-Exit Instruction-Information Field as Used for INS and
+/// OUTS
+union InsOrOutsInstInformation {
+  ULONG32 all;
+  struct {
+    ULONG32 reserved1 : 7;         ///< [0:6]
+    ULONG32 address_size : 3;      ///< [7:9]
+    ULONG32 reserved2 : 5;         ///< [10:14]
+    ULONG32 segment_register : 3;  ///< [15:17]
+    ULONG32 reserved3 : 14;        ///< [18:31]
+  } fields;
+};
+static_assert(sizeof(InsOrOutsInstInformation) == 4, "Size check");
+
 /// See: Format of the VM-Exit Instruction-Information Field as Used for INVEPT,
 /// INVPCID, and INVVPID
-union InvEptOrPcidOrVpidQualification {
+union InvEptOrPcidOrVpidInstInformation {
   ULONG32 all;
   struct {
     ULONG32 scalling : 2;                ///< [0:1]
@@ -1063,44 +1077,11 @@ union InvEptOrPcidOrVpidQualification {
     ULONG32 index_register2 : 4;         ///< [28:31]
   } fields;
 };
-static_assert(sizeof(InvEptOrPcidOrVpidQualification) == 4, "Size check");
+static_assert(sizeof(InvEptOrPcidOrVpidInstInformation) == 4, "Size check");
 
 /// See: Format of the VM-Exit Instruction-Information Field as Used for
 /// LIDT, LGDT, SIDT, or SGDT
-enum class Scaling {
-  kNoScaling = 0,
-  kScaleBy2,
-  kScaleBy4,
-  kScaleBy8,
-};
-
-/// @copydoc Scaling
-enum class AddressSize {
-  k16bit = 0,
-  k32bit,
-  k64bit,
-};
-
-/// @copydoc Scaling
-enum class SegmentRegisters {
-  kEs = 0,
-  kCs,
-  kSs,
-  kDs,
-  kFs,
-  kGs,
-};
-
-/// @copydoc Scaling
-enum class GdtrOrIdtrInstructionIdentity {
-  kSgdt = 0,
-  kSidt,
-  kLgdt,
-  kLidt,
-};
-
-/// @copydoc Scaling
-union GdtrOrIdtrAccessQualification {
+union GdtrOrIdtrInstInformation {
   ULONG32 all;
   struct {
     ULONG32 scalling : 2;                ///< [0:1]
@@ -1118,19 +1099,44 @@ union GdtrOrIdtrAccessQualification {
     ULONG32 reserved4 : 2;               ///< [30:31]
   } fields;
 };
-static_assert(sizeof(GdtrOrIdtrAccessQualification) == 4, "Size check");
+static_assert(sizeof(GdtrOrIdtrInstInformation) == 4, "Size check");
+
+/// @copydoc GdtrOrIdtrInstInformation
+enum class Scaling {
+  kNoScaling = 0,
+  kScaleBy2,
+  kScaleBy4,
+  kScaleBy8,
+};
+
+/// @copydoc GdtrOrIdtrInstInformation
+enum class AddressSize {
+  k16bit = 0,
+  k32bit,
+  k64bit,
+};
+
+/// @copydoc GdtrOrIdtrInstInformation
+enum class SegmentRegisters {
+  kEs = 0,
+  kCs,
+  kSs,
+  kDs,
+  kFs,
+  kGs,
+};
+
+/// @copydoc GdtrOrIdtrInstInformation
+enum class GdtrOrIdtrInstructionIdentity {
+  kSgdt = 0,
+  kSidt,
+  kLgdt,
+  kLidt,
+};
 
 /// See: Format of the VM-Exit Instruction-Information Field as Used for
 /// LLDT, LTR, SLDT, and STR
-enum class LdtrOrTrInstructionIdentity {
-  kSldt = 0,
-  kStr,
-  kLldt,
-  kLtr,
-};
-
-/// @copydoc LdtrOrTrInstructionIdentity
-union LdtrOrTrAccessQualification {
+union LdtrOrTrInstInformation {
   ULONG32 all;
   struct {
     ULONG32 scalling : 2;                ///< [0:1]
@@ -1148,7 +1154,15 @@ union LdtrOrTrAccessQualification {
     ULONG32 reserved4 : 2;               ///< [30:31]
   } fields;
 };
-static_assert(sizeof(LdtrOrTrAccessQualification) == 4, "Size check");
+static_assert(sizeof(LdtrOrTrInstInformation) == 4, "Size check");
+
+/// @copydoc LdtrOrTrInstInformation
+enum class LdtrOrTrInstructionIdentity {
+  kSldt = 0,
+  kStr,
+  kLldt,
+  kLtr,
+};
 
 /// See: Exit Qualification for MOV DR
 enum class MovDrDirection {
@@ -1170,6 +1184,28 @@ union MovDrQualification {
   } fields;
 };
 static_assert(sizeof(MovDrQualification) == 8, "Size check");
+
+/// See: Exit Qualification for I/O Instructions
+union IoInstQualification {
+  ULONG_PTR all;
+  struct {
+    ULONG_PTR size_of_access : 3;      ///< [0:2]
+    ULONG_PTR direction : 1;           ///< [3]
+    ULONG_PTR string_instruction : 1;  ///< [4]
+    ULONG_PTR rep_prefixed : 1;        ///< [5]
+    ULONG_PTR operand_encoding : 1;    ///< [6]
+    ULONG_PTR reserved1 : 9;           ///< [7:15]
+    ULONG_PTR port_number : 16;        ///< [16:31]
+  } fields;
+};
+static_assert(sizeof(IoInstQualification) == sizeof(void*), "Size check");
+
+/// @copydoc IoInstQualification
+enum class IoInstSizeOfAccess {
+  k1Byte = 0,
+  k2Byte = 1,
+  k4Byte = 3,
+};
 
 /// See: Exit Qualification for Control-Register Accesses
 enum class MovCrAccessType {

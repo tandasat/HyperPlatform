@@ -43,6 +43,10 @@ _IRQL_requires_(DISPATCH_LEVEL) static NTSTATUS
 _IRQL_requires_max_(
     PASSIVE_LEVEL) static SharedProcessorData *VmpInitializeSharedData();
 
+_IRQL_requires_max_(PASSIVE_LEVEL) static void *VmpBuildMsrBitmap();
+
+_IRQL_requires_max_(PASSIVE_LEVEL) static UCHAR *VmpBuildIoBitmaps();
+
 _IRQL_requires_(DISPATCH_LEVEL) static NTSTATUS
     VmpStartVm(_In_opt_ void *context);
 
@@ -78,6 +82,8 @@ static NTSTATUS VmpStopVm(_In_opt_ void *context);
 
 static void VmpFreeProcessorData(_In_opt_ ProcessorData *processor_data);
 
+static void VmpFreeSharedData(_In_ ProcessorData *processor_data);
+
 static bool VmpIsVmmInstalled();
 
 #if defined(ALLOC_PRAGMA)
@@ -85,6 +91,8 @@ static bool VmpIsVmmInstalled();
 #pragma alloc_text(INIT, VmpIsVmxAvailable)
 #pragma alloc_text(INIT, VmpSetLockBitCallback)
 #pragma alloc_text(INIT, VmpInitializeSharedData)
+#pragma alloc_text(INIT, VmpBuildMsrBitmap)
+#pragma alloc_text(INIT, VmpBuildIoBitmaps)
 #pragma alloc_text(INIT, VmpStartVm)
 #pragma alloc_text(INIT, VmpInitializeVm)
 #pragma alloc_text(INIT, VmpEnterVmxMode)
@@ -218,25 +226,36 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
   RtlZeroMemory(shared_data, sizeof(SharedProcessorData));
   HYPERPLATFORM_LOG_DEBUG("SharedData=        %p", shared_data);
 
-  // Set up the MSR bitmap
-  const auto msr_bitmap = ExAllocatePoolWithTag(NonPagedPoolNx, PAGE_SIZE,
-                                                kHyperPlatformCommonPoolTag);
+  // Setup MSR bitmap
+  const auto msr_bitmap = VmpBuildMsrBitmap();
   if (!msr_bitmap) {
     ExFreePoolWithTag(shared_data, kHyperPlatformCommonPoolTag);
     return nullptr;
   }
-  RtlZeroMemory(msr_bitmap, PAGE_SIZE);
   shared_data->msr_bitmap = msr_bitmap;
 
-  // Checks MSRs causing #GP and should not cause VM-exit from 0 to 0xfff.
-  bool unsafe_msr_map[0x1000] = {};
-  for (auto msr = 0ul; msr < RTL_NUMBER_OF(unsafe_msr_map); ++msr) {
-    __try {
-      UtilReadMsr(static_cast<Msr>(msr));
-    } __except (EXCEPTION_EXECUTE_HANDLER) {
-      unsafe_msr_map[msr] = true;
-    }
+  // Setup IO bitmaps
+  const auto io_bitmaps = VmpBuildIoBitmaps();
+  if (!io_bitmaps) {
+    ExFreePoolWithTag(shared_data->msr_bitmap, kHyperPlatformCommonPoolTag);
+    ExFreePoolWithTag(shared_data, kHyperPlatformCommonPoolTag);
+    return nullptr;
   }
+  shared_data->io_bitmap_a = io_bitmaps;
+  shared_data->io_bitmap_b = io_bitmaps + PAGE_SIZE;
+  return shared_data;
+}
+
+// Build MSR bitmap
+_Use_decl_annotations_ static void *VmpBuildMsrBitmap() {
+  PAGED_CODE();
+
+  const auto msr_bitmap = ExAllocatePoolWithTag(NonPagedPoolNx, PAGE_SIZE,
+                                                kHyperPlatformCommonPoolTag);
+  if (!msr_bitmap) {
+    return nullptr;
+  }
+  RtlZeroMemory(msr_bitmap, PAGE_SIZE);
 
   // Activate VM-exit for RDMSR against all MSRs
   const auto bitmap_read_low = reinterpret_cast<UCHAR *>(msr_bitmap);
@@ -244,27 +263,58 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
   RtlFillMemory(bitmap_read_low, 1024, 0xff);   // read        0 -     1fff
   RtlFillMemory(bitmap_read_high, 1024, 0xff);  // read c0000000 - c0001fff
 
-  // But ignore IA32_MPERF (000000e7) and IA32_APERF (000000e8)
+  // Ignore IA32_MPERF (000000e7) and IA32_APERF (000000e8)
   RTL_BITMAP bitmap_read_low_header = {};
   RtlInitializeBitMap(&bitmap_read_low_header,
                       reinterpret_cast<PULONG>(bitmap_read_low), 1024 * 8);
   RtlClearBits(&bitmap_read_low_header, 0xe7, 2);
 
-  // Also ignore the unsage MSRs
-  for (auto msr = 0ul; msr < RTL_NUMBER_OF(unsafe_msr_map); ++msr) {
-    const auto ignore = unsafe_msr_map[msr];
-    if (ignore) {
+  // Checks MSRs that cause #GP from 0 to 0xfff, and ignore all of them
+  for (auto msr = 0ul; msr < 0x1000; ++msr) {
+    __try {
+      UtilReadMsr(static_cast<Msr>(msr));
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
       RtlClearBits(&bitmap_read_low_header, msr, 1);
     }
   }
 
-  // But ignore IA32_GS_BASE (c0000101) and IA32_KERNEL_GS_BASE (c0000102)
+  // Ignore IA32_GS_BASE (c0000101) and IA32_KERNEL_GS_BASE (c0000102)
   RTL_BITMAP bitmap_read_high_header = {};
   RtlInitializeBitMap(&bitmap_read_high_header,
-                      reinterpret_cast<PULONG>(bitmap_read_high), 1024 * 8);
+                      reinterpret_cast<PULONG>(bitmap_read_high),
+                      1024 * CHAR_BIT);
   RtlClearBits(&bitmap_read_high_header, 0x101, 2);
 
-  return shared_data;
+  return msr_bitmap;
+}
+
+// Build IO bitmaps
+_Use_decl_annotations_ static UCHAR *VmpBuildIoBitmaps() {
+  PAGED_CODE();
+
+  // Allocate two IO bitmaps as one contigunouse 4K+4K page
+  const auto io_bitmaps = reinterpret_cast<UCHAR *>(ExAllocatePoolWithTag(
+      NonPagedPoolNx, PAGE_SIZE * 2, kHyperPlatformCommonPoolTag));
+  if (!io_bitmaps) {
+    return nullptr;
+  }
+
+  const auto io_bitmap_a = io_bitmaps;              // for    0x0 - 0x7fff
+  const auto io_bitmap_b = io_bitmaps + PAGE_SIZE;  // for 0x8000 - 0xffff
+  RtlFillMemory(io_bitmap_a, PAGE_SIZE, 0);
+  RtlFillMemory(io_bitmap_b, PAGE_SIZE, 0);
+
+  // Activate VM-exit for IO port 0x10 - 0x2010 as an example
+  RTL_BITMAP bitmap_a_header = {};
+  RtlInitializeBitMap(&bitmap_a_header, reinterpret_cast<PULONG>(io_bitmap_a),
+                      PAGE_SIZE * CHAR_BIT);
+  // RtlSetBits(&bitmap_a_header, 0x10, 0x2000);
+
+  RTL_BITMAP bitmap_b_header = {};
+  RtlInitializeBitMap(&bitmap_b_header, reinterpret_cast<PULONG>(io_bitmap_b),
+                      PAGE_SIZE * CHAR_BIT);
+  // RtlSetBits(&bitmap_b_header, 0, 0x8000);
+  return io_bitmaps;
 }
 
 // Virtualize the current processor
@@ -473,6 +523,7 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   vm_procctl_requested.fields.cr3_load_exiting = true;
   vm_procctl_requested.fields.cr8_load_exiting = false;  // NB: very frequent
   vm_procctl_requested.fields.mov_dr_exiting = true;
+  vm_procctl_requested.fields.use_io_bitmaps = true;
   vm_procctl_requested.fields.use_msr_bitmaps = true;
   vm_procctl_requested.fields.activate_secondary_control = true;
   VmxProcessorBasedControls vm_procctl = {
@@ -511,6 +562,7 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
     cr4_mask.fields.smep = true;
   }
 
+  // NOTE: Comment in any of those as needed
   const auto exception_bitmap =
       // 1 << InterruptionVector::kBreakpointException |
       // 1 << InterruptionVector::kGeneralProtectionException |
@@ -542,8 +594,8 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   error |= UtilVmWrite(VmcsField::kHostTrSelector, AsmReadTR() & 0xf8);
 
   /* 64-Bit Control Fields */
-  error |= UtilVmWrite64(VmcsField::kIoBitmapA, 0);
-  error |= UtilVmWrite64(VmcsField::kIoBitmapB, 0);
+  error |= UtilVmWrite64(VmcsField::kIoBitmapA, UtilPaFromVa(processor_data->shared_data->io_bitmap_a));
+  error |= UtilVmWrite64(VmcsField::kIoBitmapB, UtilPaFromVa(processor_data->shared_data->io_bitmap_b));
   error |= UtilVmWrite64(VmcsField::kMsrBitmap, UtilPaFromVa(processor_data->shared_data->msr_bitmap));
   error |= UtilVmWrite64(VmcsField::kEptPointer, EptGetEptPointer(processor_data->ept_data));
 
@@ -805,19 +857,33 @@ _Use_decl_annotations_ static void VmpFreeProcessorData(
     EptTermination(processor_data->ept_data);
   }
 
-  // Free shared data if this is the last reference
-  if (processor_data->shared_data &&
-      InterlockedDecrement(&processor_data->shared_data->reference_count) ==
-          0) {
-    HYPERPLATFORM_LOG_DEBUG("Freeing shared data...");
-    if (processor_data->shared_data->msr_bitmap) {
-      ExFreePoolWithTag(processor_data->shared_data->msr_bitmap,
-                        kHyperPlatformCommonPoolTag);
-    }
-    ExFreePoolWithTag(processor_data->shared_data, kHyperPlatformCommonPoolTag);
-  }
+  VmpFreeSharedData(processor_data);
 
   ExFreePoolWithTag(processor_data, kHyperPlatformCommonPoolTag);
+}
+
+// Decredement reference count of shared data and free it if no refernece
+_Use_decl_annotations_ static void VmpFreeSharedData(
+    ProcessorData *processor_data) {
+  if (!processor_data->shared_data) {
+    return;
+  }
+
+  if (InterlockedDecrement(&processor_data->shared_data->reference_count) !=
+      0) {
+    return;
+  }
+
+  HYPERPLATFORM_LOG_DEBUG("Freeing shared data...");
+  if (processor_data->shared_data->io_bitmap_a) {
+    ExFreePoolWithTag(processor_data->shared_data->io_bitmap_a,
+                      kHyperPlatformCommonPoolTag);
+  }
+  if (processor_data->shared_data->msr_bitmap) {
+    ExFreePoolWithTag(processor_data->shared_data->msr_bitmap,
+                      kHyperPlatformCommonPoolTag);
+  }
+  ExFreePoolWithTag(processor_data->shared_data, kHyperPlatformCommonPoolTag);
 }
 
 // Tests if the VMM is already installed using a backdoor command

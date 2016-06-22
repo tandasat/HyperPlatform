@@ -119,6 +119,8 @@ static void VmmpHandleLdtrOrTrAccess(_Inout_ GuestContext *guest_context);
 
 static void VmmpHandleDrAccess(_Inout_ GuestContext *guest_context);
 
+static void VmmpHandleIoPort(_Inout_ GuestContext *guest_context);
+
 static void VmmpHandleCrAccess(_Inout_ GuestContext *guest_context);
 
 static void VmmpHandleVmx(_Inout_ GuestContext *guest_context);
@@ -140,6 +142,10 @@ static ULONG_PTR *VmmpSelectRegister(_In_ ULONG index,
 static void VmmpDumpGuestSelectors();
 
 static void VmmpAdjustGuestInstructionPointer(_In_ ULONG_PTR guest_ip);
+
+static void VmmpIoWrapper(_In_ bool to_memory, _In_ bool is_string,
+                          _In_ SIZE_T size_of_access, _In_ unsigned short port,
+                          _Inout_ void *address, _In_ unsigned long count);
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -242,6 +248,9 @@ _Use_decl_annotations_ static void VmmpHandleVmExit(
       break;
     case VmxExitReason::kDrAccess:
       VmmpHandleDrAccess(guest_context);
+      break;
+    case VmxExitReason::kIoInstruction:
+      VmmpHandleIoPort(guest_context);
       break;
     case VmxExitReason::kMsrRead:
       VmmpHandleMsrReadAccess(guest_context);
@@ -531,7 +540,7 @@ _Use_decl_annotations_ static void VmmpHandleMsrAccess(
 _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
     GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
-  const GdtrOrIdtrAccessQualification exit_qualification = {
+  const GdtrOrIdtrInstInformation exit_qualification = {
       static_cast<ULONG32>(UtilVmRead(VmcsField::kVmxInstructionInfo))};
 
   // Calculate an address to be used for the instruction
@@ -613,7 +622,7 @@ _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
 _Use_decl_annotations_ static void VmmpHandleLdtrOrTrAccess(
     GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
-  const LdtrOrTrAccessQualification exit_qualification = {
+  const LdtrOrTrInstInformation exit_qualification = {
       static_cast<ULONG32>(UtilVmRead(VmcsField::kVmxInstructionInfo))};
 
   // Calculate an address or a register to be used for the instruction
@@ -742,6 +751,101 @@ _Use_decl_annotations_ static void VmmpHandleDrAccess(
   }
 
   VmmpAdjustGuestInstructionPointer(guest_context->ip);
+}
+
+// IN, INS, OUT, OUTS
+_Use_decl_annotations_ static void VmmpHandleIoPort(
+    GuestContext *guest_context) {
+  const IoInstQualification exit_qualification = {
+      UtilVmRead(VmcsField::kExitQualification)};
+
+  const auto is_in = exit_qualification.fields.direction == 1;  // to memory?
+  const auto is_string = exit_qualification.fields.string_instruction == 1;
+  const auto is_rep = exit_qualification.fields.rep_prefixed == 1;
+  const auto port = static_cast<USHORT>(exit_qualification.fields.port_number);
+  const auto string_address = reinterpret_cast<void *>(
+      (is_in) ? guest_context->gp_regs->di : guest_context->gp_regs->si);
+  const auto count =
+      static_cast<unsigned long>((is_rep) ? guest_context->gp_regs->cx : 1);
+  const auto address =
+      (is_string) ? string_address : &guest_context->gp_regs->ax;
+
+  SIZE_T size_of_access = 0;
+  switch (static_cast<IoInstSizeOfAccess>(
+      exit_qualification.fields.size_of_access)) {
+    case IoInstSizeOfAccess::k1Byte:
+      size_of_access = 1;
+      break;
+    case IoInstSizeOfAccess::k2Byte:
+      size_of_access = 2;
+      break;
+    case IoInstSizeOfAccess::k4Byte:
+      size_of_access = 4;
+      break;
+  }
+
+  HYPERPLATFORM_LOG_DEBUG_SAFE("GuestIp= %p, Port= %04x, %s%s",
+                               guest_context->ip, port, (is_in ? "IN" : "OUT"),
+                               (is_string ? "S" : ""));
+
+  VmmpIoWrapper(is_in, is_string, size_of_access, port, address, count);
+  // FIXME; Guest's ECX should be changed on is_rep == 1
+  // FIXME: EDI and ESI need to be changed on is_string == 1
+
+  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+}
+
+// Perform IO instruction according with parameters
+_Use_decl_annotations_ static void VmmpIoWrapper(bool to_memory, bool is_string,
+                                                 SIZE_T size_of_access,
+                                                 unsigned short port,
+                                                 void *address,
+                                                 unsigned long count) {
+  NT_ASSERT(size_of_access == 1 || size_of_access == 2 || size_of_access == 4);
+
+  // Update CR3 with that of the guest since below code is going to access
+  // memory.
+  const auto guest_cr3 = UtilVmRead(VmcsField::kGuestCr3);
+  const auto vmm_cr3 = __readcr3();
+  __writecr3(guest_cr3);
+
+  // clang-format off
+  if (to_memory) {
+    if (is_string) {
+      // IN
+      switch (size_of_access) {
+      case 1: *reinterpret_cast<UCHAR*>(address) = __inbyte(port); break;
+      case 2: *reinterpret_cast<USHORT*>(address) = __inword(port); break;
+      case 4: *reinterpret_cast<ULONG*>(address) = __indword(port); break;
+      }
+    } else {
+      // INS
+      switch (size_of_access) {
+      case 1: __inbytestring(port, reinterpret_cast<UCHAR*>(address), count); break;
+      case 2: __inwordstring(port, reinterpret_cast<USHORT*>(address), count); break;
+      case 4: __indwordstring(port, reinterpret_cast<ULONG*>(address), count); break;
+      }
+    }
+  } else {
+    if (is_string) {
+      // OUT
+      switch (size_of_access) {
+      case 1: __outbyte(port, *reinterpret_cast<UCHAR*>(address)); break;
+      case 2: __outword(port, *reinterpret_cast<USHORT*>(address)); break;
+      case 4: __outdword(port, *reinterpret_cast<ULONG*>(address)); break;
+      }
+    } else {
+      // OUTS
+      switch (size_of_access) {
+      case 1: __outbytestring(port, reinterpret_cast<UCHAR*>(address), count); break;
+      case 2: __outwordstring(port, reinterpret_cast<USHORT*>(address), count); break;
+      case 4: __outdwordstring(port, reinterpret_cast<ULONG*>(address), count); break;
+      }
+    }
+  }
+  // clang-format on
+
+  __writecr3(vmm_cr3);
 }
 
 // MOV to / from CRx
