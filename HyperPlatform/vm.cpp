@@ -355,6 +355,29 @@ _Use_decl_annotations_ static void VmpInitializeVm(
     goto ReturnFalse;
   }
 
+  // Check if XSAVE/XRSTOR are available and save an instruction mask for all
+  // supported user state components
+  ULONG64 RtlGetEnabledExtendedFeatures(_In_ ULONG64 FeatureMask);
+
+  processor_data->xsave_inst_mask =
+      RtlGetEnabledExtendedFeatures(static_cast<ULONG64>(-1));
+  if (!processor_data->xsave_inst_mask) {
+    goto ReturnFalse;
+  }
+
+  // Allocate a large enough XSAVE area to store all supported user state
+  // components. A size is round-up to multiple of the page size so that the
+  // address fullfills a requirement of 64K alignment.
+  //
+  // See: ENUMERATION OF CPU SUPPORT FOR XSAVE INSTRUCTIONS AND XSAVESUPPORTED
+  // FEATURES
+  int registers[4] = {};
+  __cpuidex(registers, 0xd, 0);
+  const auto xsave_area_size = ROUND_TO_PAGES(registers[2]);  // ecx
+  const auto xsave_area = ExAllocatePoolWithTag(NonPagedPoolNx, xsave_area_size,
+                                                kHyperPlatformCommonPoolTag);
+
+  // Allocated other processor data fields
   const auto vmm_stack_limit = UtilAllocateContiguousMemory(KERNEL_STACK_SIZE);
   const auto vmcs_region =
       reinterpret_cast<VmControlStructure *>(ExAllocatePoolWithTag(
@@ -367,13 +390,15 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   processor_data->vmm_stack_limit = vmm_stack_limit;
   processor_data->vmcs_region = vmcs_region;
   processor_data->vmxon_region = vmxon_region;
+  processor_data->xsave_area = xsave_area;
 
-  if (!vmm_stack_limit || !vmcs_region || !vmxon_region) {
+  if (!vmm_stack_limit || !vmcs_region || !vmxon_region || !xsave_area) {
     goto ReturnFalse;
   }
   RtlZeroMemory(vmm_stack_limit, KERNEL_STACK_SIZE);
   RtlZeroMemory(vmcs_region, kVmxMaxVmcsSize);
   RtlZeroMemory(vmxon_region, kVmxMaxVmcsSize);
+  RtlZeroMemory(xsave_area, xsave_area_size);
 
   // Initialize stack memory for VMM like this:
   //
@@ -855,6 +880,9 @@ _Use_decl_annotations_ static void VmpFreeProcessorData(
   }
   if (processor_data->ept_data) {
     EptTermination(processor_data->ept_data);
+  }
+  if (processor_data->xsave_area) {
+    ExFreePoolWithTag(processor_data->xsave_area, kHyperPlatformCommonPoolTag);
   }
 
   VmpFreeSharedData(processor_data);

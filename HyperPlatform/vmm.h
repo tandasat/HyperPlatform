@@ -43,6 +43,8 @@ struct ProcessorData {
   struct VmControlStructure* vmxon_region;  ///< VA of a VMXON region
   struct VmControlStructure* vmcs_region;   ///< VA of a VMCS region
   struct EptData* ept_data;                 ///< A pointer to EPT related data
+  void* xsave_area;                         ///< VA to store state components
+  ULONG64 xsave_inst_mask;                  ///< A mask to save state components
 };
 
 ////////////////////////////////////////////////////////////////////////////////
