@@ -6,7 +6,7 @@ Introduction
 HyperPlatform is an Intel VT-x based hypervisor (a.k.a. virtual machine monitor)
 aiming to provide a thin platform for research on Windows. HyperPlatform is
 capable of monitoring a wide range of events, including but not limited to,
-access to virtual/physical memory and system registers, occurrence of interrupts
+access to virtual/physical memory and system registers, occurrences of interrupts
 and execution of certain instructions.
 
 Researchers are free to selectively enable and/or disable any of those event
@@ -48,7 +48,7 @@ For more details, see the HyperPlatform User Document and Programmer's Reference
 Build
 ------
 To build HyperPlatform, the following are required.
-- Visual Studio Community 2015 Update 1 or 2
+- Visual Studio Community 2015 Update 3
  - https://www.visualstudio.com/en-us/news/vs2015-update1-vs.aspx
 - Windows Software Development Kit (SDK) for Windows 10
  - https://dev.windows.com/en-us/downloads/windows-10-sdk
@@ -99,8 +99,8 @@ Related Project(s)
 --------------------
 SimpleVisor is a very (very) simple and readable Windows-specific hypervisor. If
 HyperPlatform is still too large and complicated to learn VT-x for you, I would
-recommend to take a look at the project. It should give you a clearer
-view of how a hypervisor is initialized and executed.
+recommend taking a look at the project. It should give you a clearer view of how
+a hypervisor is initialized and executed.
 - http://ionescu007.github.io/SimpleVisor/
 
 
