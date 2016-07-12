@@ -69,6 +69,10 @@ enum class HypercallNumber : unsigned __int32 {
   kTerminateVmm,            //!< Terminates VMM
   kPingVmm,                 //!< Sends ping to the VMM
   kGetSharedProcessorData,  //!< Terminates VMM
+  kApiMonCreateConcealment = 0x11223300,
+  kApiMonEnableConcealment,
+  kApiMonDisableConcealment,
+  kApiMonDeleteConcealment,
 };
 
 ////////////////////////////////////////////////////////////////////////////////

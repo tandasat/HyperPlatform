@@ -14,6 +14,7 @@
 #include "log.h"
 #include "util.h"
 #include "vmm.h"
+#include "../../FU_Hypervisor/fake_page.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -262,6 +263,17 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
   }
   shared_data->io_bitmap_a = io_bitmaps;
   shared_data->io_bitmap_b = io_bitmaps + PAGE_SIZE;
+
+  // Set up shared fake page data
+  const auto shared_fp_data = FpAllocateSharedProcessorData();
+  if (!shared_fp_data) {
+    ExFreePoolWithTag(shared_data->io_bitmap_a, kHyperPlatformCommonPoolTag);
+    ExFreePoolWithTag(shared_data->msr_bitmap, kHyperPlatformCommonPoolTag);
+    ExFreePoolWithTag(shared_data, kHyperPlatformCommonPoolTag);
+    return nullptr;
+  }
+  shared_data->shared_fp_data = shared_fp_data;
+
   return shared_data;
 }
 
@@ -377,6 +389,12 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   // Set up EPT
   processor_data->ept_data = EptInitialization();
   if (!processor_data->ept_data) {
+    goto ReturnFalse;
+  }
+
+  // Set up processor data for FU components
+  processor_data->fp_data = FpAllocateProcessorData();
+  if (!processor_data->fp_data) {
     goto ReturnFalse;
   }
 
@@ -944,6 +962,9 @@ _Use_decl_annotations_ static void VmpFreeProcessorData(
   if (processor_data->ept_data) {
     EptTermination(processor_data->ept_data);
   }
+  if (processor_data->fp_data) {
+    FpFreeProcessorData(processor_data->fp_data);
+  }
 
   VmpFreeSharedData(processor_data);
 
@@ -965,6 +986,9 @@ _Use_decl_annotations_ static void VmpFreeSharedData(
   }
 
   HYPERPLATFORM_LOG_DEBUG("Freeing shared data...");
+  if (processor_data->shared_data->shared_fp_data) {
+    FpFreeSharedProcessorData(processor_data->shared_data->shared_fp_data);
+  }
   if (processor_data->shared_data->io_bitmap_a) {
     ExFreePoolWithTag(processor_data->shared_data->io_bitmap_a,
                       kHyperPlatformCommonPoolTag);

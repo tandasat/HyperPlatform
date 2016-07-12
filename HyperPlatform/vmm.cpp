@@ -13,6 +13,7 @@
 #include "log.h"
 #include "util.h"
 #include "performance.h"
+#include "../../FU_Hypervisor/fake_page.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -339,10 +340,11 @@ _Use_decl_annotations_ static void VmmpHandleUnexpectedExit(
 // MTF VM-exit
 _Use_decl_annotations_ static void VmmpHandleMonitorTrap(
     GuestContext *guest_context) {
-  VmmpDumpGuestState();
-  HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kUnexpectedVmExit,
-                                 reinterpret_cast<ULONG_PTR>(guest_context),
-                                 guest_context->ip, 0);
+  HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+  auto processor_data = guest_context->stack->processor_data;
+  FpHandleMonitorTrapFlag(processor_data->fp_data,
+                          processor_data->shared_data->shared_fp_data,
+                          processor_data->ept_data);
 }
 
 // Interrupt
@@ -1045,6 +1047,29 @@ _Use_decl_annotations_ static void VmmpHandleVmCall(
           guest_context->stack->processor_data->shared_data;
       VmmpIndicateSuccessfulVmcall(guest_context);
       break;
+    case HypercallNumber::kApiMonCreateConcealment:
+      FpVmCallCreateFakePage(
+          guest_context->stack->processor_data->shared_data->shared_fp_data,
+          context);
+      VmmpIndicateSuccessfulVmcall(guest_context);
+      break;
+    case HypercallNumber::kApiMonEnableConcealment:
+      FpVmCallEnableFakePages(
+          guest_context->stack->processor_data->ept_data,
+          guest_context->stack->processor_data->shared_data->shared_fp_data);
+      VmmpIndicateSuccessfulVmcall(guest_context);
+      break;
+    case HypercallNumber::kApiMonDisableConcealment:
+      FpVmCallDisableFakePages(
+          guest_context->stack->processor_data->ept_data,
+          guest_context->stack->processor_data->shared_data->shared_fp_data);
+      VmmpIndicateSuccessfulVmcall(guest_context);
+      break;
+    case HypercallNumber::kApiMonDeleteConcealment:
+      FpVmCallDeleteFakePages(
+          guest_context->stack->processor_data->shared_data->shared_fp_data);
+      VmmpIndicateSuccessfulVmcall(guest_context);
+      break;
     default:
       // Unsupported hypercall
       VmmpIndicateUnsuccessfulVmcall(guest_context);
@@ -1077,7 +1102,8 @@ _Use_decl_annotations_ static void VmmpHandleEptViolation(
     GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
   auto processor_data = guest_context->stack->processor_data;
-  EptHandleEptViolation(processor_data->ept_data);
+  EptHandleEptViolation(processor_data->ept_data, processor_data->fp_data,
+                        processor_data->shared_data->shared_fp_data);
 }
 
 // EXIT_REASON_EPT_MISCONFIG

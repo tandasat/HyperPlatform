@@ -11,6 +11,7 @@
 #include "log.h"
 #include "util.h"
 #include "performance.h"
+#include "../../FU_Hypervisor/fake_page.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -168,6 +169,7 @@ _Use_decl_annotations_ bool EptIsEptAvailable() {
   // - INVVPID instruction with all possible types is supported
   Ia32VmxEptVpidCapMsr capability = {UtilReadMsr64(Msr::kIa32VmxEptVpidCap)};
   if (!capability.fields.support_page_walk_length4 ||
+      !capability.fields.support_execute_only_pages ||
       !capability.fields.support_write_back_memory_type ||
       !capability.fields.support_invept ||
       !capability.fields.support_single_context_invept ||
@@ -202,7 +204,8 @@ _Use_decl_annotations_ void EptInitializeMtrrEntries() {
   Ia32MtrrCapabilitiesMsr mtrr_capabilities = {
       UtilReadMsr64(Msr::kIa32MtrrCap)};
   HYPERPLATFORM_LOG_DEBUG(
-      "MTRR Default=%lld, VariableCount=%lld, FixedSupported=%lld, FixedEnabled=%lld",
+      "MTRR Default=%lld, VariableCount=%lld, FixedSupported=%lld, "
+      "FixedEnabled=%lld",
       default_type.fields.default_mtemory_type,
       mtrr_capabilities.fields.variable_range_count,
       mtrr_capabilities.fields.fixed_range_supported,
@@ -641,7 +644,9 @@ _Use_decl_annotations_ static ULONG64 EptpAddressToPteIndex(
 }
 
 // Deal with EPT violation VM-exit.
-_Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
+_Use_decl_annotations_ void EptHandleEptViolation(
+    EptData *ept_data, ProcessorFakePageData *fp_data,
+    SharedFakePageData *shared_fp_data) {
   const EptViolationQualification exit_qualification = {
       UtilVmRead(VmcsField::kExitQualification)};
 
@@ -654,9 +659,19 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
   if (exit_qualification.fields.ept_readable ||
       exit_qualification.fields.ept_writeable ||
       exit_qualification.fields.ept_executable) {
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-    HYPERPLATFORM_LOG_ERROR_SAFE("[UNK1] VA = %p, PA = %016llx", fault_va,
-                                 fault_pa);
+    if (exit_qualification.fields.caused_by_translation) {
+      // Tell EPT violation when it is caused due to read or write violation.
+      const auto read_failure = exit_qualification.fields.read_access &&
+                                !exit_qualification.fields.ept_readable;
+      const auto write_failure = exit_qualification.fields.write_access &&
+                                 !exit_qualification.fields.ept_writeable;
+      if (read_failure || write_failure) {
+        FpHandleEptViolation(fp_data, shared_fp_data, ept_data, fault_va);
+      } else {
+        HYPERPLATFORM_LOG_DEBUG_SAFE("[IGNR] OTH VA = %p, PA = %016llx",
+                                     fault_va, fault_pa);
+      }
+    }
     return;
   }
 

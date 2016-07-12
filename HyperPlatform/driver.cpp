@@ -17,6 +17,7 @@
 #include "util.h"
 #include "vm.h"
 #include "performance.h"
+#include "../../FU_Hypervisor/FU_Hypervisor.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -67,7 +68,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   UNREFERENCED_PARAMETER(registry_path);
   PAGED_CODE();
 
-  static const wchar_t kLogFilePath[] = L"\\SystemRoot\\HyperPlatform.log";
+  static const wchar_t kLogFilePath[] = L"\\SystemRoot\\FU_Hypervisor.log";
   static const auto kLogLevel =
       (IsReleaseBuild()) ? kLogPutLevelInfo | kLogOptDisableFunctionName
                          : kLogPutLevelDebug | kLogOptDisableFunctionName;
@@ -151,6 +152,17 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     return status;
   }
 
+  // Initialize FU components
+  status = FuInitialization();
+  if (!NT_SUCCESS(status)) {
+    VmTermination();
+    UtilTermination();
+    PerfTermination();
+    GlobalObjectTermination();
+    LogTermination();
+    return status;
+  }
+
   // Register re-initialization for the log functions if needed
   if (need_reinitialization) {
     LogRegisterReinitialization(driver_object);
@@ -168,6 +180,7 @@ _Use_decl_annotations_ static void DriverpDriverUnload(
 
   HYPERPLATFORM_COMMON_DBG_BREAK();
 
+  FuTermination();
   VmTermination();
   HotplugCallbackTermination();
   PowerCallbackTermination();
