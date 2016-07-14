@@ -97,11 +97,30 @@ Supported Platforms
 
 Related Project(s)
 --------------------
-SimpleVisor is a very (very) simple and readable Windows-specific hypervisor. If
-HyperPlatform is still too large and complicated to learn VT-x for you, I would
-recommend taking a look at the project. It should give you a clearer view of how
-a hypervisor is initialized and executed.
-- http://ionescu007.github.io/SimpleVisor/
+- SimpleVisor
+ - http://ionescu007.github.io/SimpleVisor/
+
+SimpleVisor is a very (very) simple and readable Windows-specific hypervisor made
+up of only 1700 lines of code. I would recommend taking a look at the project to 
+learn VT-x if you are new to hypervisor development. It should give you a clearer 
+view of how a hypervisor is initialized and executed.
+
+- ksm
+ - https://github.com/asamy/ksm
+
+ksm is other simple and lightweight x64 hypervisor written in C for Windows for 
+Intel processors. It is just a half size of HyperPlatform in lines of code while
+demonstrating usage of EPT, as well as #VE and VMFUNC where HyperPlatform does
+not include.
+
+- Bareflank Hypervisor
+ - http://bareflank.github.io/hypervisor/
+
+Bareflank Hypervisor is an actively developed open source, lightweight hypervisor. 
+It comes with rich documents, tests, and comments, supports Linux on Intel 64bit, 
+and also aims to support Windows, OS X, and UEFI as well as ARM and AMD platforms.
+While a size of code is larger than that of HyperPlatform, ones look for a more 
+complihensive yet still lightweight hypervisor will find it interesting.
 
 
 License
