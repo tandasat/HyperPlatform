@@ -151,6 +151,8 @@ static void VmmpSaveExtendedProcessorState(_Inout_ GuestContext *guest_context);
 
 static void VmmpRestoreExtendedProcessorState(_In_ GuestContext *guest_context);
 
+static void VmmpHandleVmCallTermination(_In_ GuestContext *guest_context);
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // variables
@@ -970,60 +972,15 @@ _Use_decl_annotations_ static void VmmpHandleVmCall(
   // address of a context parameter optionally
   const auto hypercall_number =
       static_cast<HypercallNumber>(guest_context->gp_regs->cx);
-  const auto context = reinterpret_cast<void *>(guest_context->gp_regs->dx);
 
-  if (hypercall_number == HypercallNumber::kTerminateVmm) {
-    // Unloading requested
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-
-    // The processor sets ffff to limits of IDT and GDT when VM-exit occurred.
-    // It is not correct value but fine to ignore since vmresume loads correct
-    // values from VMCS. But here, we are going to skip vmresume and simply
-    // return to where VMCALL is executed. It results in keeping those broken
-    // values and ends up with bug check 109, so we should fix them manually.
-    const auto gdt_limit = UtilVmRead(VmcsField::kGuestGdtrLimit);
-    const auto gdt_base = UtilVmRead(VmcsField::kGuestGdtrBase);
-    const auto idt_limit = UtilVmRead(VmcsField::kGuestIdtrLimit);
-    const auto idt_base = UtilVmRead(VmcsField::kGuestIdtrBase);
-    Gdtr gdtr = {static_cast<USHORT>(gdt_limit), gdt_base};
-    Idtr idtr = {static_cast<USHORT>(idt_limit), idt_base};
-    __lgdt(&gdtr);
-    __lidt(&idtr);
-
-    // Store an address of the management structure to the context parameter
-    const auto result_ptr = reinterpret_cast<ProcessorData **>(context);
-    *result_ptr = guest_context->stack->processor_data;
-    HYPERPLATFORM_LOG_DEBUG_SAFE("Context at %p %p", context,
-                                 guest_context->stack->processor_data);
-
-    // Set rip to the next instruction of VMCALL
-    const auto exit_instruction_length =
-        UtilVmRead(VmcsField::kVmExitInstructionLen);
-    const auto return_address = guest_context->ip + exit_instruction_length;
-
-    // Since rflags is overwritten after VMXOFF, we should manually indicates
-    // that VMCALL was successful by clearing those flags.
-    // See "CONVENTIONS"
-    guest_context->flag_reg.fields.cf = false;
-    guest_context->flag_reg.fields.pf = false;
-    guest_context->flag_reg.fields.af = false;
-    guest_context->flag_reg.fields.zf = false;
-    guest_context->flag_reg.fields.sf = false;
-    guest_context->flag_reg.fields.of = false;
-    guest_context->flag_reg.fields.cf = false;
-    guest_context->flag_reg.fields.zf = false;
-
-    // Set registers used after VMXOFF to recover the context. Volatile
-    // registers must be used because those changes are reflected to the
-    // guest's context after VMXOFF.
-    guest_context->gp_regs->cx = return_address;
-    guest_context->gp_regs->dx = guest_context->gp_regs->sp;
-    guest_context->gp_regs->ax = guest_context->flag_reg.all;
-    guest_context->vm_continue = false;
-
-  } else {
-    // Unsupported hypercall. Handle like other VMX instructions
-    VmmpHandleVmx(guest_context);
+  switch (hypercall_number) {
+    case HypercallNumber::kTerminateVmm:
+      // Unloading requested
+      VmmpHandleVmCallTermination(guest_context);
+      break;
+    default:
+      // Unsupported hypercall. Handle like other VMX instructions
+      VmmpHandleVmx(guest_context);
   }
 }
 
@@ -1179,6 +1136,59 @@ _Use_decl_annotations_ static void VmmpRestoreExtendedProcessorState(
           guest_context->stack->processor_data->xsave_inst_mask);
 
   __writecr0(old_cr0.all);
+}
+
+// Handles an unloading request
+_Use_decl_annotations_ static void VmmpHandleVmCallTermination(
+    GuestContext *guest_context) {
+  const auto context = reinterpret_cast<void *>(guest_context->gp_regs->dx);
+
+  // HYPERPLATFORM_COMMON_DBG_BREAK();
+
+  // The processor sets ffff to limits of IDT and GDT when VM-exit occurred.
+  // It is not correct value but fine to ignore since vmresume loads correct
+  // values from VMCS. But here, we are going to skip vmresume and simply
+  // return to where VMCALL is executed. It results in keeping those broken
+  // values and ends up with bug check 109, so we should fix them manually.
+  const auto gdt_limit = UtilVmRead(VmcsField::kGuestGdtrLimit);
+  const auto gdt_base = UtilVmRead(VmcsField::kGuestGdtrBase);
+  const auto idt_limit = UtilVmRead(VmcsField::kGuestIdtrLimit);
+  const auto idt_base = UtilVmRead(VmcsField::kGuestIdtrBase);
+  Gdtr gdtr = {static_cast<USHORT>(gdt_limit), gdt_base};
+  Idtr idtr = {static_cast<USHORT>(idt_limit), idt_base};
+  __lgdt(&gdtr);
+  __lidt(&idtr);
+
+  // Store an address of the management structure to the context parameter
+  const auto result_ptr = reinterpret_cast<ProcessorData **>(context);
+  *result_ptr = guest_context->stack->processor_data;
+  HYPERPLATFORM_LOG_DEBUG_SAFE("Context at %p %p", context,
+                               guest_context->stack->processor_data);
+
+  // Set rip to the next instruction of VMCALL
+  const auto exit_instruction_length =
+      UtilVmRead(VmcsField::kVmExitInstructionLen);
+  const auto return_address = guest_context->ip + exit_instruction_length;
+
+  // Since rflags is overwritten after VMXOFF, we should manually indicates
+  // that VMCALL was successful by clearing those flags.
+  // See "CONVENTIONS"
+  guest_context->flag_reg.fields.cf = false;
+  guest_context->flag_reg.fields.pf = false;
+  guest_context->flag_reg.fields.af = false;
+  guest_context->flag_reg.fields.zf = false;
+  guest_context->flag_reg.fields.sf = false;
+  guest_context->flag_reg.fields.of = false;
+  guest_context->flag_reg.fields.cf = false;
+  guest_context->flag_reg.fields.zf = false;
+
+  // Set registers used after VMXOFF to recover the context. Volatile
+  // registers must be used because those changes are reflected to the
+  // guest's context after VMXOFF.
+  guest_context->gp_regs->cx = return_address;
+  guest_context->gp_regs->dx = guest_context->gp_regs->sp;
+  guest_context->gp_regs->ax = guest_context->flag_reg.all;
+  guest_context->vm_continue = false;
 }
 
 }  // extern "C"
