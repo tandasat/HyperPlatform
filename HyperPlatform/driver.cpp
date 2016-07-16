@@ -11,6 +11,7 @@
 #include "driver.h"
 #include "common.h"
 #include "log.h"
+#include "powercallback.h"
 #include "util.h"
 #include "vm.h"
 #ifndef HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
@@ -109,9 +110,19 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     return status;
   }
 
+  // Initialize power callback
+  status = PowerCallbackInitialization();
+  if (!NT_SUCCESS(status)) {
+    UtilTermination();
+    PerfTermination();
+    LogTermination();
+    return status;
+  }
+
   // Virtualize all processors
   status = VmInitialization();
   if (!NT_SUCCESS(status)) {
+    PowerCallbackTermination();
     UtilTermination();
     PerfTermination();
     LogTermination();
@@ -136,6 +147,7 @@ _Use_decl_annotations_ static void DriverpDriverUnload(
   HYPERPLATFORM_COMMON_DBG_BREAK();
 
   VmTermination();
+  PowerCallbackTermination();
   UtilTermination();
   PerfTermination();
   LogTermination();

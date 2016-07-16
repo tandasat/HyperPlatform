@@ -37,7 +37,7 @@ extern "C" {
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static bool VmpIsVmxAvailable();
 
-_IRQL_requires_(DISPATCH_LEVEL) static NTSTATUS
+_IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     VmpSetLockBitCallback(_In_opt_ void *context);
 
 _IRQL_requires_max_(
@@ -47,64 +47,77 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static void *VmpBuildMsrBitmap();
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static UCHAR *VmpBuildIoBitmaps();
 
-_IRQL_requires_(DISPATCH_LEVEL) static NTSTATUS
+_IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     VmpStartVm(_In_opt_ void *context);
 
-static void VmpInitializeVm(_In_ ULONG_PTR guest_stack_pointer,
-                            _In_ ULONG_PTR guest_instruction_pointer,
-                            _In_opt_ void *context);
+_IRQL_requires_max_(PASSIVE_LEVEL) static void VmpInitializeVm(
+    _In_ ULONG_PTR guest_stack_pointer,
+    _In_ ULONG_PTR guest_instruction_pointer, _In_opt_ void *context);
 
-static bool VmpEnterVmxMode(_Inout_ ProcessorData *processor_data);
+_IRQL_requires_max_(PASSIVE_LEVEL) static bool VmpEnterVmxMode(
+    _Inout_ ProcessorData *processor_data);
 
-static bool VmpInitializeVmcs(_Inout_ ProcessorData *processor_data);
+_IRQL_requires_max_(PASSIVE_LEVEL) static bool VmpInitializeVmcs(
+    _Inout_ ProcessorData *processor_data);
 
-static bool VmpSetupVmcs(_In_ const ProcessorData *processor_data,
-                         _In_ ULONG_PTR guest_stack_pointer,
-                         _In_ ULONG_PTR guest_instruction_pointer,
-                         _In_ ULONG_PTR vmm_stack_pointer);
+_IRQL_requires_max_(PASSIVE_LEVEL) static bool VmpSetupVmcs(
+    _In_ const ProcessorData *processor_data,
+    _In_ ULONG_PTR guest_stack_pointer,
+    _In_ ULONG_PTR guest_instruction_pointer, _In_ ULONG_PTR vmm_stack_pointer);
 
-static void VmpLaunchVm();
+_IRQL_requires_max_(PASSIVE_LEVEL) static void VmpLaunchVm();
 
-static ULONG VmpGetSegmentAccessRight(_In_ USHORT segment_selector);
+_IRQL_requires_max_(PASSIVE_LEVEL) static ULONG
+    VmpGetSegmentAccessRight(_In_ USHORT segment_selector);
 
-static SegmentDesctiptor *VmpGetSegmentDescriptor(
-    _In_ ULONG_PTR descriptor_table_base, _In_ USHORT segment_selector);
+_IRQL_requires_max_(PASSIVE_LEVEL) static ULONG_PTR
+    VmpGetSegmentBase(_In_ ULONG_PTR gdt_base, _In_ USHORT segment_selector);
 
-static ULONG_PTR VmpGetSegmentBaseByDescriptor(
-    _In_ const SegmentDesctiptor *segment_descriptor);
+_IRQL_requires_max_(PASSIVE_LEVEL) static SegmentDesctiptor
+    *VmpGetSegmentDescriptor(_In_ ULONG_PTR descriptor_table_base,
+                             _In_ USHORT segment_selector);
 
-static ULONG_PTR VmpGetSegmentBase(_In_ ULONG_PTR gdt_base,
-                                   _In_ USHORT segment_selector);
+_IRQL_requires_max_(PASSIVE_LEVEL) static ULONG_PTR
+    VmpGetSegmentBaseByDescriptor(
+        _In_ const SegmentDesctiptor *segment_descriptor);
 
-static ULONG VmpAdjustControlValue(_In_ Msr msr, _In_ ULONG requested_value);
+_IRQL_requires_max_(PASSIVE_LEVEL) static ULONG
+    VmpAdjustControlValue(_In_ Msr msr, _In_ ULONG requested_value);
 
-static NTSTATUS VmpStopVm(_In_opt_ void *context);
+_IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
+    VmpStopVm(_In_opt_ void *context);
 
-static void VmpFreeProcessorData(_In_opt_ ProcessorData *processor_data);
+_IRQL_requires_max_(PASSIVE_LEVEL) static void VmpFreeProcessorData(
+    _In_opt_ ProcessorData *processor_data);
 
-static void VmpFreeSharedData(_In_ ProcessorData *processor_data);
+_IRQL_requires_max_(PASSIVE_LEVEL) static void VmpFreeSharedData(
+    _In_ ProcessorData *processor_data);
 
-static bool VmpIsVmmInstalled();
+_IRQL_requires_max_(PASSIVE_LEVEL) static bool VmpIsVmmInstalled();
 
 #if defined(ALLOC_PRAGMA)
-#pragma alloc_text(INIT, VmInitialization)
-#pragma alloc_text(INIT, VmpIsVmxAvailable)
-#pragma alloc_text(INIT, VmpSetLockBitCallback)
-#pragma alloc_text(INIT, VmpInitializeSharedData)
-#pragma alloc_text(INIT, VmpBuildMsrBitmap)
-#pragma alloc_text(INIT, VmpBuildIoBitmaps)
-#pragma alloc_text(INIT, VmpStartVm)
-#pragma alloc_text(INIT, VmpInitializeVm)
-#pragma alloc_text(INIT, VmpEnterVmxMode)
-#pragma alloc_text(INIT, VmpInitializeVmcs)
-#pragma alloc_text(INIT, VmpSetupVmcs)
-#pragma alloc_text(INIT, VmpLaunchVm)
-#pragma alloc_text(INIT, VmpGetSegmentAccessRight)
-#pragma alloc_text(INIT, VmpGetSegmentBase)
-#pragma alloc_text(INIT, VmpGetSegmentDescriptor)
-#pragma alloc_text(INIT, VmpGetSegmentBaseByDescriptor)
-#pragma alloc_text(INIT, VmpAdjustControlValue)
+#pragma alloc_text(PAGE, VmInitialization)
 #pragma alloc_text(PAGE, VmTermination)
+#pragma alloc_text(PAGE, VmpIsVmxAvailable)
+#pragma alloc_text(PAGE, VmpSetLockBitCallback)
+#pragma alloc_text(PAGE, VmpInitializeSharedData)
+#pragma alloc_text(PAGE, VmpBuildMsrBitmap)
+#pragma alloc_text(PAGE, VmpBuildIoBitmaps)
+#pragma alloc_text(PAGE, VmpStartVm)
+#pragma alloc_text(PAGE, VmpInitializeVm)
+#pragma alloc_text(PAGE, VmpEnterVmxMode)
+#pragma alloc_text(PAGE, VmpInitializeVmcs)
+#pragma alloc_text(PAGE, VmpSetupVmcs)
+#pragma alloc_text(PAGE, VmpLaunchVm)
+#pragma alloc_text(PAGE, VmpGetSegmentAccessRight)
+#pragma alloc_text(PAGE, VmpGetSegmentBase)
+#pragma alloc_text(PAGE, VmpGetSegmentDescriptor)
+#pragma alloc_text(PAGE, VmpGetSegmentBaseByDescriptor)
+#pragma alloc_text(PAGE, VmpAdjustControlValue)
+#pragma alloc_text(PAGE, VmpStopVm)
+#pragma alloc_text(PAGE, VmpFreeProcessorData)
+#pragma alloc_text(PAGE, VmpFreeSharedData)
+#pragma alloc_text(PAGE, VmpIsVmmInstalled)
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -127,6 +140,7 @@ inline ULONG GetSegmentLimit(_In_ ULONG selector) {
 // Checks if a VMM can be installed, and so, installs it
 _Use_decl_annotations_ NTSTATUS VmInitialization() {
   PAGED_CODE();
+
   if (VmpIsVmmInstalled()) {
     return STATUS_CANCELLED;
   }
@@ -197,6 +211,7 @@ _Use_decl_annotations_ static bool VmpIsVmxAvailable() {
 // Sets 1 to the lock bit of the IA32_FEATURE_CONTROL MSR
 _Use_decl_annotations_ static NTSTATUS VmpSetLockBitCallback(void *context) {
   UNREFERENCED_PARAMETER(context);
+  PAGED_CODE();
 
   Ia32FeatureControlMsr vmx_feature_control = {
       UtilReadMsr64(Msr::kIa32FeatureControl)};
@@ -319,6 +334,8 @@ _Use_decl_annotations_ static UCHAR *VmpBuildIoBitmaps() {
 
 // Virtualize the current processor
 _Use_decl_annotations_ static NTSTATUS VmpStartVm(void *context) {
+  PAGED_CODE();
+
   HYPERPLATFORM_LOG_INFO("Initializing VMX for the processor %d.",
                          KeGetCurrentProcessorNumberEx(nullptr));
   const auto ok = AsmInitializeVm(VmpInitializeVm, context);
@@ -335,6 +352,8 @@ _Use_decl_annotations_ static NTSTATUS VmpStartVm(void *context) {
 _Use_decl_annotations_ static void VmpInitializeVm(
     ULONG_PTR guest_stack_pointer, ULONG_PTR guest_instruction_pointer,
     void *context) {
+  PAGED_CODE();
+
   const auto shared_data = reinterpret_cast<SharedProcessorData *>(context);
   if (!shared_data) {
     return;
@@ -459,6 +478,8 @@ ReturnFalse:;
 // See: VMM SETUP & TEAR DOWN
 _Use_decl_annotations_ static bool VmpEnterVmxMode(
     ProcessorData *processor_data) {
+  PAGED_CODE();
+
   // Apply FIXED bits
   const Cr0 cr0_fixed0 = {UtilReadMsr(Msr::kIa32VmxCr0Fixed0)};
   const Cr0 cr0_fixed1 = {UtilReadMsr(Msr::kIa32VmxCr0Fixed1)};
@@ -491,6 +512,8 @@ _Use_decl_annotations_ static bool VmpEnterVmxMode(
 // See: VMM SETUP & TEAR DOWN
 _Use_decl_annotations_ static bool VmpInitializeVmcs(
     ProcessorData *processor_data) {
+  PAGED_CODE();
+
   // Write a VMCS revision identifier
   const Ia32VmxBasicMsr vmx_basic_msr = {UtilReadMsr64(Msr::kIa32VmxBasic)};
   processor_data->vmcs_region->revision_identifier =
@@ -512,6 +535,8 @@ _Use_decl_annotations_ static bool VmpInitializeVmcs(
 _Use_decl_annotations_ static bool VmpSetupVmcs(
     const ProcessorData *processor_data, ULONG_PTR guest_stack_pointer,
     ULONG_PTR guest_instruction_pointer, ULONG_PTR vmm_stack_pointer) {
+  PAGED_CODE();
+
   Gdtr gdtr = {};
   __sgdt(&gdtr);
 
@@ -733,7 +758,9 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
 }
 
 // Executes vmlaunch
-/*_Use_decl_annotations_*/ static void VmpLaunchVm() {
+_Use_decl_annotations_ static void VmpLaunchVm() {
+  PAGED_CODE();
+
   auto error_code = UtilVmRead(VmcsField::kVmInstructionError);
   if (error_code) {
     HYPERPLATFORM_LOG_WARN("VM_INSTRUCTION_ERROR = %d", error_code);
@@ -752,6 +779,8 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
 // Returns access right of the segment specified by the SegmentSelector for VMX
 _Use_decl_annotations_ static ULONG VmpGetSegmentAccessRight(
     USHORT segment_selector) {
+  PAGED_CODE();
+
   VmxRegmentDescriptorAccessRight access_right = {};
   const SegmentSelector ss = {segment_selector};
   if (segment_selector) {
@@ -770,6 +799,8 @@ _Use_decl_annotations_ static ULONG VmpGetSegmentAccessRight(
 // Returns a base address of the segment specified by SegmentSelector
 _Use_decl_annotations_ static ULONG_PTR VmpGetSegmentBase(
     ULONG_PTR gdt_base, USHORT segment_selector) {
+  PAGED_CODE();
+
   const SegmentSelector ss = {segment_selector};
   if (!ss.all) {
     return 0;
@@ -793,6 +824,8 @@ _Use_decl_annotations_ static ULONG_PTR VmpGetSegmentBase(
 // Returns the segment descriptor corresponds to the SegmentSelector
 _Use_decl_annotations_ static SegmentDesctiptor *VmpGetSegmentDescriptor(
     ULONG_PTR descriptor_table_base, USHORT segment_selector) {
+  PAGED_CODE();
+
   const SegmentSelector ss = {segment_selector};
   return reinterpret_cast<SegmentDesctiptor *>(
       descriptor_table_base + ss.fields.index * sizeof(SegmentDesctiptor));
@@ -801,6 +834,8 @@ _Use_decl_annotations_ static SegmentDesctiptor *VmpGetSegmentDescriptor(
 // Returns a base address of segment_descriptor
 _Use_decl_annotations_ static ULONG_PTR VmpGetSegmentBaseByDescriptor(
     const SegmentDesctiptor *segment_descriptor) {
+  PAGED_CODE();
+
   // Caluculate a 32bit base address
   const auto base_high = segment_descriptor->fields.base_high << (6 * 4);
   const auto base_middle = segment_descriptor->fields.base_mid << (4 * 4);
@@ -819,6 +854,8 @@ _Use_decl_annotations_ static ULONG_PTR VmpGetSegmentBaseByDescriptor(
 // Adjust the requested control value with consulting a value of related MSR
 _Use_decl_annotations_ static ULONG VmpAdjustControlValue(
     Msr msr, ULONG requested_value) {
+  PAGED_CODE();
+
   LARGE_INTEGER msr_value = {};
   msr_value.QuadPart = UtilReadMsr64(msr);
   auto adjusted_value = requested_value;
@@ -847,6 +884,7 @@ _Use_decl_annotations_ void VmTermination() {
 // Stops virtualization through a hypercall and frees all related memory
 _Use_decl_annotations_ static NTSTATUS VmpStopVm(void *context) {
   UNREFERENCED_PARAMETER(context);
+  PAGED_CODE();
 
   HYPERPLATFORM_LOG_INFO("Terminating VMX for the processor %d.",
                          KeGetCurrentProcessorNumberEx(nullptr));
@@ -865,6 +903,8 @@ _Use_decl_annotations_ static NTSTATUS VmpStopVm(void *context) {
 // Frees all related memory
 _Use_decl_annotations_ static void VmpFreeProcessorData(
     ProcessorData *processor_data) {
+  PAGED_CODE();
+
   if (!processor_data) {
     return;
   }
@@ -893,6 +933,8 @@ _Use_decl_annotations_ static void VmpFreeProcessorData(
 // Decredement reference count of shared data and free it if no refernece
 _Use_decl_annotations_ static void VmpFreeSharedData(
     ProcessorData *processor_data) {
+  PAGED_CODE();
+
   if (!processor_data->shared_data) {
     return;
   }
@@ -915,7 +957,9 @@ _Use_decl_annotations_ static void VmpFreeSharedData(
 }
 
 // Tests if the VMM is already installed using a backdoor command
-/*_Use_decl_annotations_*/ static bool VmpIsVmmInstalled() {
+_Use_decl_annotations_ static bool VmpIsVmmInstalled() {
+  PAGED_CODE();
+
   int cpu_info[4] = {};
   __cpuidex(cpu_info, 0, kHyperPlatformVmmBackdoorCode);
   char vendor_id[13] = {};

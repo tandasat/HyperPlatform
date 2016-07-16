@@ -90,7 +90,7 @@ ENDM
 ;
 ; implementations
 ;
-.CODE INIT
+.CODE
 
 ; bool __stdcall AsmInitializeVm(
 ;     _In_ void (*vm_initialization_routine)(_In_ ULONG_PTR, _In_ ULONG_PTR,
@@ -131,9 +131,6 @@ asmResumeVm:
     inc rax             ; return true
     ret
 AsmInitializeVm ENDP
-
-
-.CODE
 
 ; void __stdcall AsmVmmEntryPoint();
 AsmVmmEntryPoint PROC

@@ -115,9 +115,8 @@ static void EptpFreeUnusedPreAllocatedEntries(
     _In_ long used_count);
 
 #if defined(ALLOC_PRAGMA)
-#pragma alloc_text(INIT, EptIsEptAvailable)
-#pragma alloc_text(INIT, EptGetEptPointer)
-#pragma alloc_text(INIT, EptInitialization)
+#pragma alloc_text(PAGE, EptIsEptAvailable)
+#pragma alloc_text(PAGE, EptInitialization)
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////

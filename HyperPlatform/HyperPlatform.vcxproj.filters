@@ -48,6 +48,9 @@
     <ClCompile Include="kernel_stl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="powercallback.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="asm.h">
@@ -87,6 +90,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util_page_constants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="powercallback.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
