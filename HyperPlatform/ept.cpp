@@ -15,6 +15,7 @@
 #endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
 #include "../../MemoryMon/memorymon_ept.h"
+#include "../../MemoryMon/rwe.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -436,8 +437,8 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
   const auto fault_pa = UtilVmRead64(VmcsField::kGuestPhysicalAddress);
   const auto fault_va =
       exit_qualification.fields.valid_guest_linear_address
-          ? reinterpret_cast<void *>(UtilVmRead(VmcsField::kGuestLinearAddress))
-          : nullptr;
+          ? UtilVmRead(VmcsField::kGuestLinearAddress)
+          : 0;
 
   if (!exit_qualification.fields.ept_readable &&
       !exit_qualification.fields.ept_writeable &&
@@ -451,13 +452,20 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
     EptpConstructTables(ept_data->ept_pml4, 4, fault_pa, ept_data);
 
     UtilInveptAll();
-  } else if (exit_qualification.fields.caused_by_translation &&
-             exit_qualification.fields.execute_access &&
-             !exit_qualification.fields.ept_executable) {
-    const auto ept_pt_entry = EptGetEptPtEntry(ept_data, fault_pa);
+  } else if (exit_qualification.fields.caused_by_translation) {
 
-    MmoneptHandleDodgyRegionExecution(ept_data->mmon_ept_data, ept_pt_entry,
-                                      fault_pa, fault_va);
+    const auto read_violation = exit_qualification.fields.read_access &&
+      !exit_qualification.fields.ept_readable;
+    const auto write_violation = exit_qualification.fields.write_access &&
+      !exit_qualification.fields.ept_writeable;
+    const auto execute_violation = exit_qualification.fields.execute_access&&
+      !exit_qualification.fields.ept_executable;
+
+    //MmoneptHandleDodgyRegionExecution(ept_data->mmon_ept_data, ept_pt_entry,
+    //                                  fault_pa, fault_va);
+    RweHandleEptViolation(ept_data, UtilVmRead(VmcsField::kGuestRip), fault_va,
+      read_violation, write_violation, execute_violation);
+
   } else {
     HYPERPLATFORM_LOG_DEBUG_SAFE("[IGNR] OTH VA = %p, PA = %016llx", fault_va,
                                  fault_pa);

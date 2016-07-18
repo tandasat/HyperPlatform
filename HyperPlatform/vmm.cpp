@@ -16,6 +16,7 @@
 #define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
 #endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
+#include "../../MemoryMon/rwe.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -330,10 +331,9 @@ _Use_decl_annotations_ static void VmmpHandleUnexpectedExit(
 // MTF VM-exit
 _Use_decl_annotations_ static void VmmpHandleMonitorTrap(
     GuestContext *guest_context) {
-  VmmpDumpGuestSelectors();
-  HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kUnexpectedVmExit,
-                                 reinterpret_cast<ULONG_PTR>(guest_context), 0,
-                                 0);
+  UNREFERENCED_PARAMETER(guest_context);
+
+  RweHandleMonitorTrapFlag();
 }
 
 // Interrupt

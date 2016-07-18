@@ -6,6 +6,7 @@
 /// Implements VMM initialization functions.
 
 #include "vm.h"
+#include <limits.h>
 #include <intrin.h>
 #include "asm.h"
 #include "common.h"
