@@ -68,7 +68,7 @@ struct EptData {
   EptCommonEntry **preallocated_entries;  // An array of pre-allocated entries
   volatile long preallocated_entries_count;  // # of used pre-allocated entries
 
-  MmonEptData *mmon_ept_data;
+  // MmonEptData *mmon_ept_data;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -170,7 +170,8 @@ _Use_decl_annotations_ ULONG64 EptGetEptPointer(EptData *ept_data) {
 
 // Returns a EPT pointer from ept_data
 _Use_decl_annotations_ void EptHandleTlbFlush(EptData *ept_data) {
-  MmoneptResetDisabledEntries(ept_data->mmon_ept_data);
+  UNREFERENCED_PARAMETER(ept_data);
+  // MmoneptResetDisabledEntries(ept_data->mmon_ept_data);
 }
 
 // Builds EPT, allocates pre-allocated enties, initializes and returns EptData
@@ -272,14 +273,14 @@ _Use_decl_annotations_ EptData *EptInitialization() {
   ept_data->ept_pml4 = ept_pml4;
   ept_data->preallocated_entries = preallocated_entries;
   ept_data->preallocated_entries_count = 0;
-  ept_data->mmon_ept_data = MmoneptInitialization(ept_data);
-  if (!ept_data->mmon_ept_data) {
-    EptpFreeUnusedPreAllocatedEntries(preallocated_entries, 0);
-    EptpDestructTables(ept_pml4, 4);
-    ExFreePoolWithTag(ept_poiner, kHyperPlatformCommonPoolTag);
-    ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
-    return nullptr;
-  }
+  // ept_data->mmon_ept_data = MmoneptInitialization(ept_data);
+  // if (!ept_data->mmon_ept_data) {
+  //  EptpFreeUnusedPreAllocatedEntries(preallocated_entries, 0);
+  //  EptpDestructTables(ept_pml4, 4);
+  //  ExFreePoolWithTag(ept_poiner, kHyperPlatformCommonPoolTag);
+  //  ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
+  //  return nullptr;
+  //}
 
   // Initialization completed
   return ept_data;
@@ -430,19 +431,20 @@ _Use_decl_annotations_ static ULONG64 EptpAddressToPteIndex(
 }
 
 // Deal with EPT violation VM-exit.
-_Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
+_Use_decl_annotations_ void EptHandleEptViolation(
+    EptData *ept_data, ProcessorData *processor_data) {
   const EptViolationQualification exit_qualification = {
       UtilVmRead(VmcsField::kExitQualification)};
 
   const auto fault_pa = UtilVmRead64(VmcsField::kGuestPhysicalAddress);
-  const auto fault_va =
-      exit_qualification.fields.valid_guest_linear_address
-          ? UtilVmRead(VmcsField::kGuestLinearAddress)
-          : 0;
+  const auto fault_va = exit_qualification.fields.valid_guest_linear_address
+                            ? UtilVmRead(VmcsField::kGuestLinearAddress)
+                            : 0;
 
   if (!exit_qualification.fields.ept_readable &&
       !exit_qualification.fields.ept_writeable &&
-      !exit_qualification.fields.ept_executable) {
+      !exit_qualification.fields.ept_executable &&
+      !EptGetEptPtEntry(ept_data, fault_pa)) {
     // EPT entry miss. It should be device memory.
     HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
 
@@ -453,18 +455,18 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
 
     UtilInveptAll();
   } else if (exit_qualification.fields.caused_by_translation) {
-
     const auto read_violation = exit_qualification.fields.read_access &&
-      !exit_qualification.fields.ept_readable;
+                                !exit_qualification.fields.ept_readable;
     const auto write_violation = exit_qualification.fields.write_access &&
-      !exit_qualification.fields.ept_writeable;
-    const auto execute_violation = exit_qualification.fields.execute_access&&
-      !exit_qualification.fields.ept_executable;
+                                 !exit_qualification.fields.ept_writeable;
+    const auto execute_violation = exit_qualification.fields.execute_access &&
+                                   !exit_qualification.fields.ept_executable;
 
-    //MmoneptHandleDodgyRegionExecution(ept_data->mmon_ept_data, ept_pt_entry,
+    // MmoneptHandleDodgyRegionExecution(ept_data->mmon_ept_data, ept_pt_entry,
     //                                  fault_pa, fault_va);
-    RweHandleEptViolation(ept_data, UtilVmRead(VmcsField::kGuestRip), fault_va,
-      read_violation, write_violation, execute_violation);
+    RweHandleEptViolation(processor_data, UtilVmRead(VmcsField::kGuestRip),
+                          fault_va, read_violation, write_violation,
+                          execute_violation);
 
   } else {
     HYPERPLATFORM_LOG_DEBUG_SAFE("[IGNR] OTH VA = %p, PA = %016llx", fault_va,
@@ -498,6 +500,9 @@ _Use_decl_annotations_ EptCommonEntry *EptGetEptPtEntry(
 // Returns an EPT entry corresponds to the physical_address
 _Use_decl_annotations_ static EptCommonEntry *EptpGetEptPtEntry(
     EptCommonEntry *table, ULONG table_level, ULONG64 physical_address) {
+  if (!table) {
+    return nullptr;
+  }
   switch (table_level) {
     case 4: {
       // table == PML4
@@ -541,7 +546,7 @@ _Use_decl_annotations_ void EptTermination(EptData *ept_data) {
                           ept_data->preallocated_entries_count,
                           kVmxpNumberOfPreallocatedEntries);
 
-  MmoneptTermination(ept_data->mmon_ept_data);
+  // MmoneptTermination(ept_data->mmon_ept_data);
   EptpFreeUnusedPreAllocatedEntries(ept_data->preallocated_entries,
                                     ept_data->preallocated_entries_count);
   EptpDestructTables(ept_data->ept_pml4, 4);

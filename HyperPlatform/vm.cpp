@@ -14,6 +14,7 @@
 #include "log.h"
 #include "util.h"
 #include "vmm.h"
+#include "../../MemoryMon/rwe.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -370,10 +371,13 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   RtlZeroMemory(processor_data, sizeof(ProcessorData));
 
   // Set up EPT
-  processor_data->ept_data = EptInitialization();
-  if (!processor_data->ept_data) {
+  processor_data->ept_data_normal = EptInitialization();
+  processor_data->ept_data_monitor = EptInitialization();
+  processor_data->ept_data = processor_data->ept_data_normal;
+  if (!processor_data->ept_data_normal || !processor_data->ept_data_monitor) {
     goto ReturnFalse;
   }
+  RweSetDefaultEptAttributes(processor_data);
 
   // Check if XSAVE/XRSTOR are available and save an instruction mask for all
   // supported user state components
@@ -919,8 +923,12 @@ _Use_decl_annotations_ static void VmpFreeProcessorData(
     ExFreePoolWithTag(processor_data->vmxon_region,
                       kHyperPlatformCommonPoolTag);
   }
-  if (processor_data->ept_data) {
-    EptTermination(processor_data->ept_data);
+  if (processor_data->ept_data_normal) {
+    EptTermination(processor_data->ept_data_normal);
+  }
+  if (processor_data->ept_data_monitor)
+  {
+    EptTermination(processor_data->ept_data_monitor);
   }
   if (processor_data->xsave_area) {
     ExFreePoolWithTag(processor_data->xsave_area, kHyperPlatformCommonPoolTag);

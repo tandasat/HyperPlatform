@@ -27,6 +27,7 @@ extern "C" {
 //
 
 struct EptData;
+struct ProcessorData;
 
 /// A structure made up of mutual fields across all EPT entry types
 union EptCommonEntry {
@@ -71,7 +72,7 @@ void EptTermination(_In_ EptData* ept_data);
 /// Handles VM-exit triggered by EPT violation
 /// @param ept_data   EptData to get an EPT pointer
 _IRQL_requires_min_(DISPATCH_LEVEL) void EptHandleEptViolation(
-    _In_ EptData* ept_data);
+    _In_ EptData* ept_data, ProcessorData* processor_data);
 
 /// Returns an EPT entry corresponds to \a physical_address
 /// @param ept_data   EptData to get an EPT entry

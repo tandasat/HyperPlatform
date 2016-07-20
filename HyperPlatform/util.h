@@ -67,6 +67,8 @@ constexpr VmxStatus operator|=(_In_ VmxStatus lhs, _In_ VmxStatus rhs) {
 /// Avaialable command numbers for VMCALL
 enum class HypercallNumber {
   kTerminateVmm,  ///< Terminates VMM
+  kPingVmm,       ///< Sends ping to the VMM
+  kRweApplyRanges,
 };
 
 ////////////////////////////////////////////////////////////////////////////////

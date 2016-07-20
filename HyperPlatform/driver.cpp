@@ -19,6 +19,7 @@
 #endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
 #include "../../MemoryMon/memorymon.h"
+#include "../../MemoryMon/rwe.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -119,7 +120,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     LogTermination();
     return status;
   }
-  
+
   // Initialize MemoryMon
   status = MmonInitialization();
   if (!NT_SUCCESS(status)) {
@@ -130,9 +131,20 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     return status;
   }
 
+  status = RweInitialization();
+  if (!NT_SUCCESS(status)) {
+    MmonTermination();
+    PowerCallbackTermination();
+    UtilTermination();
+    PerfTermination();
+    LogTermination();
+    return status;
+  }
+
   // Virtualize all processors
   status = VmInitialization();
   if (!NT_SUCCESS(status)) {
+    RweTermination();
     MmonTermination();
     PowerCallbackTermination();
     UtilTermination();
@@ -147,6 +159,17 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   }
 
   HYPERPLATFORM_LOG_INFO("The VMM has been installed.");
+
+  RweAddSrcRange((ULONG_PTR)&RwepTestCode, PAGE_SIZE);
+  RweAddDstRange((ULONG_PTR)&DbgPrintEx, 1);
+  RweAddDstRange((ULONG_PTR)KdDebuggerNotPresent, 1);
+  RweApplyRanges();
+
+  RwepTestCode();
+  HYPERPLATFORM_LOG_DEBUG("Cool");
+  HYPERPLATFORM_COMMON_DBG_BREAK();
+  RwepTestCode();
+
   return status;
 }
 
@@ -159,6 +182,7 @@ _Use_decl_annotations_ static void DriverpDriverUnload(
   HYPERPLATFORM_COMMON_DBG_BREAK();
 
   VmTermination();
+  RweTermination();
   MmonTermination();
   PowerCallbackTermination();
   UtilTermination();
