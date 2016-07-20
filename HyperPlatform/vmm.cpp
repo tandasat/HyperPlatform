@@ -151,6 +151,8 @@ static void VmmpSaveExtendedProcessorState(_Inout_ GuestContext *guest_context);
 
 static void VmmpRestoreExtendedProcessorState(_In_ GuestContext *guest_context);
 
+static void VmmpIndicateSuccessfulVmcall(_In_ GuestContext *guest_context);
+
 static void VmmpHandleVmCallTermination(_In_ GuestContext *guest_context);
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -978,6 +980,11 @@ _Use_decl_annotations_ static void VmmpHandleVmCall(
       // Unloading requested
       VmmpHandleVmCallTermination(guest_context);
       break;
+    case HypercallNumber::kPingVmm:
+      HYPERPLATFORM_LOG_INFO_SAFE("Pong by VMM! (context = %p)",
+                                  guest_context->gp_regs->dx);
+      VmmpIndicateSuccessfulVmcall(guest_context);
+      break;
     default:
       // Unsupported hypercall. Handle like other VMX instructions
       VmmpHandleVmx(guest_context);
@@ -1136,6 +1143,22 @@ _Use_decl_annotations_ static void VmmpRestoreExtendedProcessorState(
           guest_context->stack->processor_data->xsave_inst_mask);
 
   __writecr0(old_cr0.all);
+}
+
+// Indicates successful VMCALL
+_Use_decl_annotations_ static void VmmpIndicateSuccessfulVmcall(
+    GuestContext *guest_context) {
+  // See "CONVENTIONS"
+  guest_context->flag_reg.fields.cf = false;
+  guest_context->flag_reg.fields.pf = false;
+  guest_context->flag_reg.fields.af = false;
+  guest_context->flag_reg.fields.zf = false;
+  guest_context->flag_reg.fields.sf = false;
+  guest_context->flag_reg.fields.of = false;
+  guest_context->flag_reg.fields.cf = false;
+  guest_context->flag_reg.fields.zf = false;
+  UtilVmWrite(VmcsField::kGuestRflags, guest_context->flag_reg.all);
+  VmmpAdjustGuestInstructionPointer(guest_context->ip);
 }
 
 // Handles an unloading request

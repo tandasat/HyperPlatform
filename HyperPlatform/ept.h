@@ -76,7 +76,7 @@ _IRQL_requires_min_(DISPATCH_LEVEL) void EptHandleEptViolation(
 /// Returns an EPT entry corresponds to \a physical_address
 /// @param ept_data   EptData to get an EPT entry
 /// @param physical_address   Physical address to get an EPT entry
-/// @return An EPT entry
+/// @return An EPT entry, or nullptr if not allocated yet
 EptCommonEntry* EptGetEptPtEntry(_In_ EptData* ept_data,
                                  _In_ ULONG64 physical_address);
 

@@ -401,6 +401,7 @@ _Use_decl_annotations_ NTSTATUS LogpPrint(ULONG level,
                                 args);
   va_end(args);
   if (!NT_SUCCESS(status)) {
+    NT_ASSERT(false);
     return status;
   }
   if (log_message[0] == '\0') {
@@ -418,10 +419,13 @@ _Use_decl_annotations_ NTSTATUS LogpPrint(ULONG level,
   status = LogpMakePrefix(pure_level, function_name, log_message, message,
                           RTL_NUMBER_OF(message));
   if (!NT_SUCCESS(status)) {
+    NT_ASSERT(false);
     return status;
   }
 
-  return LogpPut(message, attribute);
+  status = LogpPut(message, attribute);
+  NT_ASSERT(NT_SUCCESS(status));
+  return status;
 }
 
 // Concatenates meta information such as the current time and a process ID to

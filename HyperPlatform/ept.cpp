@@ -417,14 +417,14 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
       UtilVmRead(VmcsField::kExitQualification)};
 
   const auto fault_pa = UtilVmRead64(VmcsField::kGuestPhysicalAddress);
-  const auto fault_va =
-      exit_qualification.fields.valid_guest_linear_address
-          ? reinterpret_cast<void *>(UtilVmRead(VmcsField::kGuestLinearAddress))
-          : nullptr;
+  const auto fault_va = exit_qualification.fields.valid_guest_linear_address
+                            ? UtilVmRead(VmcsField::kGuestLinearAddress)
+                            : 0;
 
   if (!exit_qualification.fields.ept_readable &&
       !exit_qualification.fields.ept_writeable &&
-      !exit_qualification.fields.ept_executable) {
+      !exit_qualification.fields.ept_executable &&
+      !EptGetEptPtEntry(ept_data, fault_pa)) {
     // EPT entry miss. It should be device memory.
     HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
 
@@ -467,6 +467,9 @@ _Use_decl_annotations_ EptCommonEntry *EptGetEptPtEntry(
 // Returns an EPT entry corresponds to the physical_address
 _Use_decl_annotations_ static EptCommonEntry *EptpGetEptPtEntry(
     EptCommonEntry *table, ULONG table_level, ULONG64 physical_address) {
+  if (!table) {
+    return nullptr;
+  }
   switch (table_level) {
     case 4: {
       // table == PML4
