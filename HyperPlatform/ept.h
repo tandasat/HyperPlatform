@@ -81,7 +81,8 @@ _IRQL_requires_min_(DISPATCH_LEVEL) void EptHandleEptViolation(
 EptCommonEntry* EptGetEptPtEntry(_In_ EptData* ept_data,
                                  _In_ ULONG64 physical_address);
 
-void EptHandleTlbFlush(_In_ EptData* ept_data);
+_IRQL_requires_min_(DISPATCH_LEVEL) void EptHandleTlbFlush(
+    _In_ ProcessorData* processor_data);
 
 ////////////////////////////////////////////////////////////////////////////////
 //

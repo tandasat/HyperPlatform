@@ -159,17 +159,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   }
 
   HYPERPLATFORM_LOG_INFO("The VMM has been installed.");
-
-  RweAddSrcRange((ULONG_PTR)&RwepTestCode, PAGE_SIZE);
-  RweAddDstRange((ULONG_PTR)&DbgPrintEx, 1);
-  RweAddDstRange((ULONG_PTR)KdDebuggerNotPresent, 1);
-  RweApplyRanges();
-
-  RwepTestCode();
-  HYPERPLATFORM_LOG_DEBUG("Cool");
-  HYPERPLATFORM_COMMON_DBG_BREAK();
-  RwepTestCode();
-
+  RweTestCode();
   return status;
 }
 

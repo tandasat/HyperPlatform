@@ -169,9 +169,8 @@ _Use_decl_annotations_ ULONG64 EptGetEptPointer(EptData *ept_data) {
 }
 
 // Returns a EPT pointer from ept_data
-_Use_decl_annotations_ void EptHandleTlbFlush(EptData *ept_data) {
-  UNREFERENCED_PARAMETER(ept_data);
-  // MmoneptResetDisabledEntries(ept_data->mmon_ept_data);
+_Use_decl_annotations_ void EptHandleTlbFlush(ProcessorData *processor_data) {
+  RweHandleTlbFlush(processor_data);
 }
 
 // Builds EPT, allocates pre-allocated enties, initializes and returns EptData
@@ -443,18 +442,23 @@ _Use_decl_annotations_ void EptHandleEptViolation(
 
   if (!exit_qualification.fields.ept_readable &&
       !exit_qualification.fields.ept_writeable &&
-      !exit_qualification.fields.ept_executable &&
-      !EptGetEptPtEntry(ept_data, fault_pa)) {
-    // EPT entry miss. It should be device memory.
-    HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+      !exit_qualification.fields.ept_executable) {
+    const auto ept_entry = EptGetEptPtEntry(ept_data, fault_pa);
+    if (!ept_entry || !ept_entry->all) {
+      // EPT entry miss. It should be device memory.
+      HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
 
-    if (!IsReleaseBuild()) {
-      NT_VERIFY(EptpIsDeviceMemory(fault_pa));
+      if (!IsReleaseBuild()) {
+        NT_VERIFY(EptpIsDeviceMemory(fault_pa));
+      }
+      EptpConstructTables(ept_data->ept_pml4, 4, fault_pa, ept_data);
+
+      UtilInveptAll();
+      return;
     }
-    EptpConstructTables(ept_data->ept_pml4, 4, fault_pa, ept_data);
+  }
 
-    UtilInveptAll();
-  } else if (exit_qualification.fields.caused_by_translation) {
+  if (exit_qualification.fields.caused_by_translation) {
     const auto read_violation = exit_qualification.fields.read_access &&
                                 !exit_qualification.fields.ept_readable;
     const auto write_violation = exit_qualification.fields.write_access &&
