@@ -354,6 +354,10 @@ _Use_decl_annotations_ static void VmmpHandleException(
       const PageFaultErrorCode fault_code = {
           static_cast<ULONG32>(UtilVmRead(VmcsField::kVmExitIntrErrorCode))};
       const auto fault_address = UtilVmRead(VmcsField::kExitQualification);
+      if (!fault_code.fields.present) {
+        PageFaultpHanlePageFault(reinterpret_cast<void *>(guest_context->ip),
+                                 fault_address);
+      }
 
       VmEntryInterruptionInformationField inject = {};
       inject.fields.interruption_type = exception.fields.interruption_type;
@@ -363,8 +367,9 @@ _Use_decl_annotations_ static void VmmpHandleException(
       AsmWriteCR2(fault_address);
       UtilVmWrite(VmcsField::kVmEntryExceptionErrorCode, fault_code.all);
       UtilVmWrite(VmcsField::kVmEntryIntrInfoField, inject.all);
-      HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %p, #PF Fault= %p Code= 0x%2x",
-                                  guest_context->ip, fault_address, fault_code);
+      // HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %p, #PF Fault= %p Code= 0x%2x",
+      //                            guest_context->ip, fault_address,
+      //                            fault_code);
 
     } else if (static_cast<InterruptionVector>(exception.fields.vector) ==
                InterruptionVector::kGeneralProtectionException) {
@@ -394,6 +399,12 @@ _Use_decl_annotations_ static void VmmpHandleException(
     if (static_cast<InterruptionVector>(exception.fields.vector) ==
         InterruptionVector::kBreakpointException) {
       // #BP
+      if (PageFaultpHandleBreakpoint(
+              reinterpret_cast<void *>(guest_context->ip),
+              guest_context->stack->processor_data)) {
+        return;
+      }
+
       VmEntryInterruptionInformationField inject = {};
       inject.fields.interruption_type = exception.fields.interruption_type;
       inject.fields.vector = exception.fields.vector;
@@ -1180,8 +1191,6 @@ _Use_decl_annotations_ static void VmmpIndicateSuccessfulVmcall(
 _Use_decl_annotations_ static void VmmpHandleVmCallTermination(
     GuestContext *guest_context) {
   const auto context = reinterpret_cast<void *>(guest_context->gp_regs->dx);
-
-  // HYPERPLATFORM_COMMON_DBG_BREAK();
 
   // The processor sets ffff to limits of IDT and GDT when VM-exit occurred.
   // It is not correct value but fine to ignore since vmresume loads correct

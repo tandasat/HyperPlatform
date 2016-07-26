@@ -347,25 +347,57 @@ struct HardwarePteX64 {
 };
 static_assert(sizeof(HardwarePteX64) == 8, "Size check");
 
-/// nt!_HARDWARE_PTE on ARM Windows
-struct HardwarePteARM {
-  ULONG no_execute : 1;
-  ULONG present : 1;
-  ULONG unknown1 : 5;
-  ULONG writable : 1;
-  ULONG unknown2 : 4;
-  ULONG page_frame_number : 20;
-};
-static_assert(sizeof(HardwarePteARM) == 4, "Size check");
-
 /// nt!_HARDWARE_PTE on the current platform
 #if defined(_X86_)
 using HardwarePte = HardwarePteX86;
 #elif defined(_AMD64_)
 using HardwarePte = HardwarePteX64;
-#elif defined(_ARM_)
-using HardwarePte = HardwarePteARM;
 #endif
+
+struct MMPTE_TRANSITION {
+  ULONGLONG Valid : 1;
+  ULONGLONG Write : 1;
+  ULONGLONG Owner : 1;
+  ULONGLONG WriteThrough : 1;
+  ULONGLONG CacheDisable : 1;
+  ULONGLONG Protection : 5;
+  ULONGLONG Prototype : 1;
+  ULONGLONG Transition : 1;
+  ULONGLONG PageFrameNumber : 28;
+  ULONGLONG Unused : 24;
+};
+
+struct MMPTE_PROTOTYPE {
+  ULONGLONG Valid : 1;
+  ULONGLONG Unused0 : 7;
+  ULONGLONG ReadOnly : 1;
+  ULONGLONG Unused1 : 1;
+  ULONGLONG Prototype : 1;
+  ULONGLONG Protection : 5;
+  LONGLONG ProtoAddress : 48;
+};
+
+struct MMPTE_SOFTWARE {
+  ULONGLONG Valid : 1;
+  ULONGLONG PageFileLow : 4;
+  ULONGLONG Protection : 5;
+  ULONGLONG Prototype : 1;
+  ULONGLONG Transition : 1;
+  ULONGLONG PageFileReserved : 1;
+  ULONGLONG PageFileAllocated : 1;
+  ULONGLONG UsedPageTableEntries : 10;
+  ULONGLONG LocalPartition : 1;
+  ULONGLONG Unused : 7;
+  ULONGLONG PageFileHigh : 32;
+};
+
+union MmPte {
+  HardwarePte Hard;
+  MMPTE_PROTOTYPE Proto;
+  MMPTE_SOFTWARE Soft;
+  MMPTE_TRANSITION Trans;
+};
+static_assert(sizeof(MmPte) == 8, "Size check");
 
 /// See: Use of CR3 with PAE Paging
 union PaeCr3 {

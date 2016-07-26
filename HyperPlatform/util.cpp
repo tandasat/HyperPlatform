@@ -629,7 +629,73 @@ _Use_decl_annotations_ static HardwarePte *UtilpAddressToPte(
 // VA -> PA
 _Use_decl_annotations_ ULONG64 UtilPaFromVa(void *va) {
   const auto pa = MmGetPhysicalAddress(va);
-  return pa.QuadPart;
+  if (pa.QuadPart) {
+    return pa.QuadPart;
+  }
+
+  if (!UtilpIsCanonicalFormAddress(va)) {
+    return 0;
+  }
+
+  if (IsX64()) {
+    const auto pxe = UtilpAddressToPxe(va);
+    const auto ppe = UtilpAddressToPpe(va);
+    if (!pxe->valid || !ppe->valid) {
+      return 0;
+    }
+  }
+
+  const auto pde = UtilpAddressToPde(va);
+  const auto pte = UtilpAddressToPte(va);
+  if (!pde->valid) {
+    return 0;
+  }
+  if (!pte) {
+    return 0;
+  }
+
+  const auto mmpte = reinterpret_cast<MmPte *>(pte);
+  if (!mmpte->Proto.Prototype) {
+    if (mmpte->Trans.Transition) {
+      // Transition PTE
+      const auto pa_base = mmpte->Hard.page_frame_number << PAGE_SHIFT;
+      return pa_base + BYTE_OFFSET(va);
+    }
+    if (mmpte->Soft.PageFileHigh) {
+      // PageFile PTE
+    } else {
+      // VAD PTE
+      HYPERPLATFORM_COMMON_DBG_BREAK();
+    }
+    return 0;
+
+  } else if (mmpte->Proto.ProtoAddress != 0xFFFFFFFF0000) {
+    // Prototype PTE
+    const auto prototype_pte = reinterpret_cast<MmPte *>(
+        mmpte->Proto.ProtoAddress | 0xFFFF000000000000);
+
+    if (prototype_pte->Hard.valid) {
+      // Valid PTE
+      const auto pa_base = prototype_pte->Hard.page_frame_number << PAGE_SHIFT;
+      return pa_base + BYTE_OFFSET(va);
+    }
+    if (prototype_pte->Proto.Prototype) {
+      // File mapping PTE
+      return 0;
+    }
+    if (!prototype_pte->Trans.Transition) {
+      // Pagefile PTE
+      return 0;
+    }
+    // Transition PTE
+    const auto pa_base = prototype_pte->Hard.page_frame_number << PAGE_SHIFT;
+    return pa_base + BYTE_OFFSET(va);
+
+  } else {
+    // VAD PTE
+    HYPERPLATFORM_COMMON_DBG_BREAK();
+    return 0;
+  }
 }
 
 // VA -> PFN

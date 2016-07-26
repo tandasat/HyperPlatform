@@ -588,12 +588,17 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
 
   VmxSecondaryProcessorBasedControls vm_procctl2_requested = {};
   vm_procctl2_requested.fields.enable_ept = true;
-  vm_procctl2_requested.fields.enable_rdtscp = true;  // required for Win10
+  vm_procctl2_requested.fields.enable_rdtscp = true;  // for Win10
   vm_procctl2_requested.fields.descriptor_table_exiting = true;
-  // required for Win10
-  vm_procctl2_requested.fields.enable_xsaves_xstors = true;
+  vm_procctl2_requested.fields.enable_xsaves_xstors = true;  // for Win10
   VmxSecondaryProcessorBasedControls vm_procctl2 = {VmpAdjustControlValue(
       Msr::kIa32VmxProcBasedCtls2, vm_procctl2_requested.all)};
+
+  // NOTE: Comment in any of those as needed
+  const auto exception_bitmap =
+      1 << InterruptionVector::kBreakpointException |
+      // 1 << InterruptionVector::kGeneralProtectionException |
+      1 << InterruptionVector::kPageFaultException | 0;
 
   // Set up CR0 and CR4 bitmaps
   // - Where a bit is     masked, the shadow bit appears
@@ -616,13 +621,6 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
     cr4_mask.fields.pse = true;
     cr4_mask.fields.smep = true;
   }
-
-  // NOTE: Comment in any of those as needed
-  const auto exception_bitmap =
-      // 1 << InterruptionVector::kBreakpointException |
-      // 1 << InterruptionVector::kGeneralProtectionException |
-      // 1 << InterruptionVector::kPageFaultException |
-      0;
 
   // clang-format off
   /* 16-Bit Control Field */
@@ -926,8 +924,7 @@ _Use_decl_annotations_ static void VmpFreeProcessorData(
   if (processor_data->ept_data_normal) {
     EptTermination(processor_data->ept_data_normal);
   }
-  if (processor_data->ept_data_monitor)
-  {
+  if (processor_data->ept_data_monitor) {
     EptTermination(processor_data->ept_data_monitor);
   }
   if (processor_data->xsave_area) {
