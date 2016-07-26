@@ -6,6 +6,7 @@
 /// Implements code to use STL in a driver project
 
 #include "kernel_stl.h"
+#include <stack>
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -25,24 +26,87 @@ static const ULONG kKstlpPoolTag = 'LTSK';
 // types
 //
 
+using Destructor = void(__cdecl *)();
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // prototypes
 //
+
+_IRQL_requires_max_(PASSIVE_LEVEL) EXTERN_C
+    int __cdecl atexit(_In_ Destructor dtor);
+
+#if defined(ALLOC_PRAGMA)
+#pragma alloc_text(INIT, KernelStlInitialization)
+#pragma alloc_text(INIT, atexit)
+#pragma alloc_text(PAGE, KerenlStlTermination)
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 //
 // variables
 //
 
+// .CRT section is required to invoke ctors and dtors. This pragma embeds a .CRT
+// section into the .rdata section. Or else, a LNK warning would be raised.
+#pragma comment(linker, "/merge:.CRT=.rdata")
+
+// Create two sections that are used by MSVC to place an array of ctors at a
+// compile time. It is important to be ordered in alphabetical order.
+#pragma section(".CRT$XCA", read)
+#pragma section(".CRT$XCZ", read)
+
+// Place markers pointing to the beginning and end of the ctors arrays embeded
+// by MSVC.
+__declspec(allocate(".CRT$XCA")) Destructor g_kstlp_ctors_begin[1] = {};
+__declspec(allocate(".CRT$XCZ")) Destructor g_kstlp_ctors_end[1] = {};
+
+// Stores pointers to dtors to be called at the exit.
+static std::stack<Destructor> *g_kstlp_dtors;
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // implementations
 //
 
+// Calls all constructors and register all destructor to \a g_kstlp_dtors
+_Use_decl_annotations_ EXTERN_C NTSTATUS KernelStlInitialization() {
+  PAGED_CODE();
+
+  g_kstlp_dtors = new std::stack<Destructor>();
+
+  // Call all constructors
+  for (auto ctor = g_kstlp_ctors_begin + 1; ctor < g_kstlp_ctors_end; ++ctor) {
+    (*ctor)();
+  }
+  return STATUS_SUCCESS;
+}
+
+// Calls all destructors registered to \a g_kstlp_dtors
+_Use_decl_annotations_ EXTERN_C void KerenlStlTermination() {
+  PAGED_CODE();
+
+  for (auto &dump = *g_kstlp_dtors; !dump.empty(); dump.pop()) {
+    auto dtor = dump.top();
+    dtor();
+  }
+
+  delete g_kstlp_dtors;
+}
+
+// Registers destructor; this is called through a call to constructor
+_Use_decl_annotations_ EXTERN_C int __cdecl atexit(Destructor dtor) {
+  PAGED_CODE();
+
+  g_kstlp_dtors->push(dtor);
+  return 1;
+}
+
+// Followings are definitions of functions needed to link successfully.
+
 // An alternative implmentation of a C++ exception handler. Issues a bug check.
-_Use_decl_annotations_ DECLSPEC_NORETURN void KernelStlRaiseException(
-    ULONG bug_check_code) {
+DECLSPEC_NORETURN static void KernelStlpRaiseException(
+    _In_ ULONG bug_check_code) {
   KdBreakPoint();
 #pragma warning(push)
 #pragma warning(disable : 28159)
@@ -50,36 +114,29 @@ _Use_decl_annotations_ DECLSPEC_NORETURN void KernelStlRaiseException(
 #pragma warning(pop)
 }
 
-// Followings are definitions of functions needed to link successfully.
-
-/*_Use_decl_annotations_*/ DECLSPEC_NORETURN void __cdecl _invalid_parameter_noinfo_noreturn() {
-  KernelStlRaiseException(KMODE_EXCEPTION_NOT_HANDLED);
+DECLSPEC_NORETURN void __cdecl _invalid_parameter_noinfo_noreturn() {
+  KernelStlpRaiseException(KMODE_EXCEPTION_NOT_HANDLED);
 }
 
 namespace std {
 
-/*_Use_decl_annotations_*/ DECLSPEC_NORETURN void __cdecl _Xbad_alloc() {
-  KernelStlRaiseException(KMODE_EXCEPTION_NOT_HANDLED);
+DECLSPEC_NORETURN void __cdecl _Xbad_alloc() {
+  KernelStlpRaiseException(KMODE_EXCEPTION_NOT_HANDLED);
 }
-_Use_decl_annotations_ DECLSPEC_NORETURN void __cdecl _Xinvalid_argument(
-    _In_z_ const char *) {
-  KernelStlRaiseException(KMODE_EXCEPTION_NOT_HANDLED);
+DECLSPEC_NORETURN void __cdecl _Xinvalid_argument(_In_z_ const char *) {
+  KernelStlpRaiseException(KMODE_EXCEPTION_NOT_HANDLED);
 }
-_Use_decl_annotations_ DECLSPEC_NORETURN void __cdecl _Xlength_error(
-    _In_z_ const char *) {
-  KernelStlRaiseException(KMODE_EXCEPTION_NOT_HANDLED);
+DECLSPEC_NORETURN void __cdecl _Xlength_error(_In_z_ const char *) {
+  KernelStlpRaiseException(KMODE_EXCEPTION_NOT_HANDLED);
 }
-_Use_decl_annotations_ DECLSPEC_NORETURN void __cdecl _Xout_of_range(
-    _In_z_ const char *) {
-  KernelStlRaiseException(KMODE_EXCEPTION_NOT_HANDLED);
+DECLSPEC_NORETURN void __cdecl _Xout_of_range(_In_z_ const char *) {
+  KernelStlpRaiseException(KMODE_EXCEPTION_NOT_HANDLED);
 }
-_Use_decl_annotations_ DECLSPEC_NORETURN void __cdecl _Xoverflow_error(
-    _In_z_ const char *) {
-  KernelStlRaiseException(KMODE_EXCEPTION_NOT_HANDLED);
+DECLSPEC_NORETURN void __cdecl _Xoverflow_error(_In_z_ const char *) {
+  KernelStlpRaiseException(KMODE_EXCEPTION_NOT_HANDLED);
 }
-_Use_decl_annotations_ DECLSPEC_NORETURN void __cdecl _Xruntime_error(
-    _In_z_ const char *) {
-  KernelStlRaiseException(KMODE_EXCEPTION_NOT_HANDLED);
+DECLSPEC_NORETURN void __cdecl _Xruntime_error(_In_z_ const char *) {
+  KernelStlpRaiseException(KMODE_EXCEPTION_NOT_HANDLED);
 }
 
 }  // namespace std
@@ -92,20 +149,20 @@ _Use_decl_annotations_ void *__cdecl operator new(size_t size) {
 
   void *p = ExAllocatePoolWithTag(NonPagedPool, size, kKstlpPoolTag);
   if (!p) {
-    KernelStlRaiseException(MUST_SUCCEED_POOL_EMPTY);
+    KernelStlpRaiseException(MUST_SUCCEED_POOL_EMPTY);
   }
   return p;
 }
 
 // An alternative implmentation of the new operator
-_Use_decl_annotations_ void __cdecl operator delete(void *p) {
+void __cdecl operator delete(void *p) {
   if (p) {
     ExFreePoolWithTag(p, kKstlpPoolTag);
   }
 }
 
 // An alternative implmentation of the new operator
-/*_Use_decl_annotations_*/ void __cdecl operator delete(void *p, size_t size) {
+void __cdecl operator delete(void *p, size_t size) {
   UNREFERENCED_PARAMETER(size);
   if (p) {
     ExFreePoolWithTag(p, kKstlpPoolTag);
