@@ -405,6 +405,7 @@ _Use_decl_annotations_ NTSTATUS LogpPrint(ULONG level,
     return status;
   }
   if (log_message[0] == '\0') {
+    NT_ASSERT(false);
     return STATUS_INVALID_PARAMETER;
   }
 

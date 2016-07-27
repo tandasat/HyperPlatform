@@ -98,6 +98,7 @@ static HardwarePte *UtilpAddressToPte(_In_ const void *address);
 #pragma alloc_text(INIT, UtilpInitializeRtlPcToFileHeader)
 #pragma alloc_text(INIT, UtilpInitializePhysicalMemoryRanges)
 #pragma alloc_text(INIT, UtilpBuildPhysicalMemoryRanges)
+#pragma alloc_text(PAGE, UtilForEachProcessor)
 #pragma alloc_text(PAGE, UtilSleep)
 #pragma alloc_text(PAGE, UtilGetSystemProcAddress)
 #endif
@@ -417,6 +418,8 @@ UtilGetPhysicalMemoryRanges() {
 // to call remaining callbacks and returns the value.
 _Use_decl_annotations_ NTSTATUS
 UtilForEachProcessor(NTSTATUS (*callback_routine)(void *), void *context) {
+  PAGED_CODE();
+
   const auto number_of_processors =
       KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
   for (ULONG processor_index = 0; processor_index < number_of_processors;

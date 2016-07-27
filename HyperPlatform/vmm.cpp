@@ -130,7 +130,7 @@ static void VmmpHandleVmCall(_Inout_ GuestContext *guest_context);
 static void VmmpHandleInvalidateInternalCaches(
     _Inout_ GuestContext *guest_context);
 
-static void VmmpHandleInvalidateTLBEntry(_Inout_ GuestContext *guest_context);
+static void VmmpHandleInvalidateTlbEntry(_Inout_ GuestContext *guest_context);
 
 static void VmmpHandleEptViolation(_Inout_ GuestContext *guest_context);
 
@@ -250,7 +250,7 @@ _Use_decl_annotations_ static void VmmpHandleVmExit(
       VmmpHandleInvalidateInternalCaches(guest_context);
       break;
     case VmxExitReason::kInvlpg:
-      VmmpHandleInvalidateTLBEntry(guest_context);
+      VmmpHandleInvalidateTlbEntry(guest_context);
       break;
     case VmxExitReason::kRdtsc:
       VmmpHandleRdtsc(guest_context);
@@ -736,7 +736,7 @@ _Use_decl_annotations_ static void VmmpHandleDrAccess(
         case 4: __writedr(4, *register_used); break;
         case 5: __writedr(5, *register_used); break;
         case 6: __writedr(6, *register_used); break;
-        case 7: __writedr(7, *register_used); break;
+        case 7: UtilVmWrite(VmcsField::kGuestDr7, *register_used); break;
         default: break;
       }
       // clang-format on
@@ -751,7 +751,7 @@ _Use_decl_annotations_ static void VmmpHandleDrAccess(
         case 4: *register_used = __readdr(4); break;
         case 5: *register_used = __readdr(5); break;
         case 6: *register_used = __readdr(6); break;
-        case 7: *register_used = __readdr(7); break;
+        case 7: *register_used = UtilVmRead(VmcsField::kGuestDr7); break;
         default: break;
       }
       // clang-format on
@@ -1000,7 +1000,7 @@ _Use_decl_annotations_ static void VmmpHandleInvalidateInternalCaches(
 }
 
 // INVLPG
-_Use_decl_annotations_ static void VmmpHandleInvalidateTLBEntry(
+_Use_decl_annotations_ static void VmmpHandleInvalidateTlbEntry(
     GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
   const auto invalidate_address =
@@ -1165,8 +1165,6 @@ _Use_decl_annotations_ static void VmmpIndicateSuccessfulVmcall(
 _Use_decl_annotations_ static void VmmpHandleVmCallTermination(
     GuestContext *guest_context) {
   const auto context = reinterpret_cast<void *>(guest_context->gp_regs->dx);
-
-  // HYPERPLATFORM_COMMON_DBG_BREAK();
 
   // The processor sets ffff to limits of IDT and GDT when VM-exit occurred.
   // It is not correct value but fine to ignore since vmresume loads correct

@@ -423,22 +423,23 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
 
   if (!exit_qualification.fields.ept_readable &&
       !exit_qualification.fields.ept_writeable &&
-      !exit_qualification.fields.ept_executable &&
-      !EptGetEptPtEntry(ept_data, fault_pa)) {
-    // EPT entry miss. It should be device memory.
-    HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+      !exit_qualification.fields.ept_executable) {
+    const auto ept_entry = EptGetEptPtEntry(ept_data, fault_pa);
+    if (!ept_entry || !ept_entry->all) {
+      // EPT entry miss. It should be device memory.
+      HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
 
-    if (!IsReleaseBuild()) {
-      NT_VERIFY(EptpIsDeviceMemory(fault_pa));
+      if (!IsReleaseBuild()) {
+        NT_VERIFY(EptpIsDeviceMemory(fault_pa));
+      }
+      EptpConstructTables(ept_data->ept_pml4, 4, fault_pa, ept_data);
+
+      UtilInveptAll();
+      return;
     }
-    EptpConstructTables(ept_data->ept_pml4, 4, fault_pa, ept_data);
-
-    UtilInveptAll();
-
-  } else {
-    HYPERPLATFORM_LOG_DEBUG_SAFE("[IGNR] OTH VA = %p, PA = %016llx", fault_va,
-                                 fault_pa);
   }
+  HYPERPLATFORM_LOG_DEBUG_SAFE("[IGNR] OTH VA = %p, PA = %016llx", fault_va,
+                               fault_pa);
 }
 
 // Returns if the physical_address is device memory (which could not have a
