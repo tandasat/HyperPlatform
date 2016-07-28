@@ -39,7 +39,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) EXTERN_C
 #if defined(ALLOC_PRAGMA)
 #pragma alloc_text(INIT, KernelStlInitialization)
 #pragma alloc_text(INIT, atexit)
-#pragma alloc_text(PAGE, KerenlStlTermination)
+#pragma alloc_text(PAGE, KernelStlTermination)
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -83,7 +83,7 @@ _Use_decl_annotations_ EXTERN_C NTSTATUS KernelStlInitialization() {
 }
 
 // Calls all destructors registered to \a g_kstlp_dtors
-_Use_decl_annotations_ EXTERN_C void KerenlStlTermination() {
+_Use_decl_annotations_ EXTERN_C void KernelStlTermination() {
   PAGED_CODE();
 
   for (auto &dump = *g_kstlp_dtors; !dump.empty(); dump.pop()) {

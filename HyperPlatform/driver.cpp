@@ -18,8 +18,10 @@
 #define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
 #endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
+#include "kernel_stl.h"
 #include "../../MemoryMon/memorymon.h"
 #include "../../MemoryMon/rwe.h"
+#include "../../MemoryMon/test.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -97,9 +99,17 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     return STATUS_CANCELLED;
   }
 
+  // Initialize global variables
+  status = KernelStlInitialization();
+  if (!NT_SUCCESS(status)) {
+    LogTermination();
+    return status;
+  }
+
   // Initialize perf functions
   status = PerfInitialization();
   if (!NT_SUCCESS(status)) {
+    KernelStlTermination();
     LogTermination();
     return status;
   }
@@ -108,6 +118,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   status = UtilInitialization(driver_object);
   if (!NT_SUCCESS(status)) {
     PerfTermination();
+    KernelStlTermination();
     LogTermination();
     return status;
   }
@@ -117,6 +128,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   if (!NT_SUCCESS(status)) {
     UtilTermination();
     PerfTermination();
+    KernelStlTermination();
     LogTermination();
     return status;
   }
@@ -127,6 +139,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     PowerCallbackTermination();
     UtilTermination();
     PerfTermination();
+    KernelStlTermination();
     LogTermination();
     return status;
   }
@@ -137,6 +150,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     PowerCallbackTermination();
     UtilTermination();
     PerfTermination();
+    KernelStlTermination();
     LogTermination();
     return status;
   }
@@ -149,6 +163,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     PowerCallbackTermination();
     UtilTermination();
     PerfTermination();
+    KernelStlTermination();
     LogTermination();
     return status;
   }
@@ -159,7 +174,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   }
 
   HYPERPLATFORM_LOG_INFO("The VMM has been installed.");
-  RweTestCode();
+  TestRwe();
   return status;
 }
 
@@ -177,6 +192,7 @@ _Use_decl_annotations_ static void DriverpDriverUnload(
   PowerCallbackTermination();
   UtilTermination();
   PerfTermination();
+  KernelStlTermination();
   LogTermination();
 }
 

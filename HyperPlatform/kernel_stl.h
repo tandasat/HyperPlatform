@@ -41,7 +41,7 @@
 _IRQL_requires_max_(PASSIVE_LEVEL) EXTERN_C NTSTATUS KernelStlInitialization();
 
 /// Calls all destructors
-_IRQL_requires_max_(PASSIVE_LEVEL) EXTERN_C void KerenlStlTermination();
+_IRQL_requires_max_(PASSIVE_LEVEL) EXTERN_C void KernelStlTermination();
 
 ////////////////////////////////////////////////////////////////////////////////
 //
