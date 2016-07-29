@@ -10,6 +10,7 @@
 #endif
 #include "driver.h"
 #include "common.h"
+#include "global_object.h"
 #include "log.h"
 #include "powercallback.h"
 #include "util.h"
@@ -18,7 +19,6 @@
 #define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
 #endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
-#include "kernel_stl.h"
 #include "../../MemoryMon/memorymon.h"
 #include "../../MemoryMon/rwe.h"
 #include "../../MemoryMon/test.h"
@@ -100,7 +100,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   }
 
   // Initialize global variables
-  status = KernelStlInitialization();
+  status = GlobalObjectInitialization();
   if (!NT_SUCCESS(status)) {
     LogTermination();
     return status;
@@ -109,7 +109,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   // Initialize perf functions
   status = PerfInitialization();
   if (!NT_SUCCESS(status)) {
-    KernelStlTermination();
+    GlobalObjectTermination();
     LogTermination();
     return status;
   }
@@ -118,7 +118,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   status = UtilInitialization(driver_object);
   if (!NT_SUCCESS(status)) {
     PerfTermination();
-    KernelStlTermination();
+    GlobalObjectTermination();
     LogTermination();
     return status;
   }
@@ -128,7 +128,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   if (!NT_SUCCESS(status)) {
     UtilTermination();
     PerfTermination();
-    KernelStlTermination();
+    GlobalObjectTermination();
     LogTermination();
     return status;
   }
@@ -139,7 +139,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     PowerCallbackTermination();
     UtilTermination();
     PerfTermination();
-    KernelStlTermination();
+    GlobalObjectTermination();
     LogTermination();
     return status;
   }
@@ -150,7 +150,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     PowerCallbackTermination();
     UtilTermination();
     PerfTermination();
-    KernelStlTermination();
+    GlobalObjectTermination();
     LogTermination();
     return status;
   }
@@ -163,7 +163,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     PowerCallbackTermination();
     UtilTermination();
     PerfTermination();
-    KernelStlTermination();
+    GlobalObjectTermination();
     LogTermination();
     return status;
   }
@@ -192,7 +192,7 @@ _Use_decl_annotations_ static void DriverpDriverUnload(
   PowerCallbackTermination();
   UtilTermination();
   PerfTermination();
-  KernelStlTermination();
+  GlobalObjectTermination();
   LogTermination();
 }
 

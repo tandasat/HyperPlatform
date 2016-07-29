@@ -3,13 +3,14 @@
 // found in the LICENSE file.
 
 /// @file
-/// Sets _HAS_EXCEPTIONS to 0 to avoid compile errors
+/// Declares interfaces to global object functions.
 
-#ifndef HYPERPLATFORM_KERNEL_STL_H_
-#define HYPERPLATFORM_KERNEL_STL_H_
+#ifndef HYPERPLATFORM_GLOBAL_OBJECT_H_
+#define HYPERPLATFORM_GLOBAL_OBJECT_H_
 
 #include <fltKernel.h>
 
+extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
 //
 // macro utilities
@@ -19,12 +20,6 @@
 //
 // constants and macros
 //
-
-/// Disabling exception in headers included after this file
-#ifdef _HAS_EXCEPTIONS
-#undef _HAS_EXCEPTIONS
-#endif
-#define _HAS_EXCEPTIONS 0
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -36,6 +31,13 @@
 // prototypes
 //
 
+/// Calls all constructors and register all destructor
+/// @return STATUS_SUCCESS on success
+_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS GlobalObjectInitialization();
+
+/// Calls all destructors
+_IRQL_requires_max_(PASSIVE_LEVEL) void GlobalObjectTermination();
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // variables
@@ -46,4 +48,6 @@
 // implementations
 //
 
-#endif  // HYPERPLATFORM_KERNEL_STL_H_
+}  // extern "C"
+
+#endif  // HYPERPLATFORM_GLOBAL_OBJECT_H_
