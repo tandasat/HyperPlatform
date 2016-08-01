@@ -14,7 +14,6 @@
 #define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
 #endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
-#include "../../MemoryMon/memorymon_ept.h"
 #include "../../MemoryMon/rwe.h"
 
 extern "C" {
@@ -67,8 +66,6 @@ struct EptData {
 
   EptCommonEntry **preallocated_entries;  // An array of pre-allocated entries
   volatile long preallocated_entries_count;  // # of used pre-allocated entries
-
-  // MmonEptData *mmon_ept_data;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -272,14 +269,6 @@ _Use_decl_annotations_ EptData *EptInitialization() {
   ept_data->ept_pml4 = ept_pml4;
   ept_data->preallocated_entries = preallocated_entries;
   ept_data->preallocated_entries_count = 0;
-  // ept_data->mmon_ept_data = MmoneptInitialization(ept_data);
-  // if (!ept_data->mmon_ept_data) {
-  //  EptpFreeUnusedPreAllocatedEntries(preallocated_entries, 0);
-  //  EptpDestructTables(ept_pml4, 4);
-  //  ExFreePoolWithTag(ept_poiner, kHyperPlatformCommonPoolTag);
-  //  ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
-  //  return nullptr;
-  //}
 
   // Initialization completed
   return ept_data;
@@ -466,12 +455,10 @@ _Use_decl_annotations_ void EptHandleEptViolation(
     const auto execute_violation = exit_qualification.fields.execute_access &&
                                    !exit_qualification.fields.ept_executable;
 
-    // MmoneptHandleDodgyRegionExecution(ept_data->mmon_ept_data, ept_pt_entry,
-    //                                  fault_pa, fault_va);
-    RweHandleEptViolation(processor_data, reinterpret_cast<void*>(
-      UtilVmRead(VmcsField::kGuestRip)),
-      reinterpret_cast<void*>(fault_va), read_violation, write_violation,
-                          execute_violation);
+    RweHandleEptViolation(processor_data, reinterpret_cast<void *>(
+                                              UtilVmRead(VmcsField::kGuestRip)),
+                          reinterpret_cast<void *>(fault_va), read_violation,
+                          write_violation, execute_violation);
 
   } else {
     HYPERPLATFORM_LOG_DEBUG_SAFE("[IGNR] OTH VA = %p, PA = %016llx", fault_va,
@@ -551,7 +538,6 @@ _Use_decl_annotations_ void EptTermination(EptData *ept_data) {
                           ept_data->preallocated_entries_count,
                           kVmxpNumberOfPreallocatedEntries);
 
-  // MmoneptTermination(ept_data->mmon_ept_data);
   EptpFreeUnusedPreAllocatedEntries(ept_data->preallocated_entries,
                                     ept_data->preallocated_entries_count);
   EptpDestructTables(ept_data->ept_pml4, 4);
