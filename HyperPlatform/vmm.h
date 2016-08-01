@@ -45,8 +45,7 @@ struct ProcessorData {
   struct EptData* ept_data;                 ///< A pointer to EPT related data
   struct EptData* ept_data_normal;          ///< A pointer to EPT related data
   struct EptData* ept_data_monitor;         ///< A pointer to EPT related data
-  struct RweData* rwe_data;
-  struct PageFaultData* page_fault_data;
+  struct RweData* rwe_data;                 ///< TBD
   void* xsave_area;                         ///< VA to store state components
   ULONG64 xsave_inst_mask;                  ///< A mask to save state components
 };

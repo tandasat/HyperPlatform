@@ -386,12 +386,6 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   }
   RweSetDefaultEptAttributes(processor_data);
 
-  // Set up PageFault
-  processor_data->page_fault_data = PageFaultAllocData();
-  if (!processor_data->page_fault_data) {
-    goto ReturnFalse;
-  }
-
   // Check if XSAVE/XRSTOR are available and save an instruction mask for all
   // supported user state components
   ULONG64 RtlGetEnabledExtendedFeatures(_In_ ULONG64 FeatureMask);
@@ -942,10 +936,6 @@ _Use_decl_annotations_ static void VmpFreeProcessorData(
   }
   if (processor_data->rwe_data) {
     RweFreeData(processor_data->rwe_data);
-  }
-  if (processor_data->page_fault_data)
-  {
-    PageFaultFreeData(processor_data->page_fault_data);
   }
   if (processor_data->xsave_area) {
     ExFreePoolWithTag(processor_data->xsave_area, kHyperPlatformCommonPoolTag);

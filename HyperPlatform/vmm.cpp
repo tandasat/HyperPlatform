@@ -354,9 +354,7 @@ _Use_decl_annotations_ static void VmmpHandleException(
           static_cast<ULONG32>(UtilVmRead(VmcsField::kVmExitIntrErrorCode))};
       const auto fault_address = UtilVmRead(VmcsField::kExitQualification);
       if (!fault_code.fields.present) {
-        PageFaultHanlePageFault(
-          guest_context->stack->processor_data->page_fault_data,
-          reinterpret_cast<void *>(guest_context->ip));
+        PageFaultHanlePageFault(reinterpret_cast<void *>(guest_context->ip));
       }
 
       VmEntryInterruptionInformationField inject = {};
@@ -400,7 +398,6 @@ _Use_decl_annotations_ static void VmmpHandleException(
         InterruptionVector::kBreakpointException) {
       // #BP
       if (PageFaultHandleBreakpoint(
-        guest_context->stack->processor_data->page_fault_data,
               reinterpret_cast<void *>(guest_context->ip))) {
         RweHandleTlbFlush(guest_context->stack->processor_data);
         return;
