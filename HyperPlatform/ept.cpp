@@ -468,8 +468,9 @@ _Use_decl_annotations_ void EptHandleEptViolation(
 
     // MmoneptHandleDodgyRegionExecution(ept_data->mmon_ept_data, ept_pt_entry,
     //                                  fault_pa, fault_va);
-    RweHandleEptViolation(processor_data, UtilVmRead(VmcsField::kGuestRip),
-                          fault_va, read_violation, write_violation,
+    RweHandleEptViolation(processor_data, reinterpret_cast<void*>(
+      UtilVmRead(VmcsField::kGuestRip)),
+      reinterpret_cast<void*>(fault_va), read_violation, write_violation,
                           execute_violation);
 
   } else {

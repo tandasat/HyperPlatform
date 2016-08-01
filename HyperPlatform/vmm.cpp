@@ -17,7 +17,7 @@
 #endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
 #include "../../MemoryMon/rwe.h"
-#include "../../MemoryMon/pagefault.h"
+#include "../../MemoryMon/page_fault.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
