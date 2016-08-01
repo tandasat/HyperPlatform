@@ -15,6 +15,7 @@
 #include "util.h"
 #include "vmm.h"
 #include "../../MemoryMon/rwe.h"
+#include "../../MemoryMon/pagefault.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -377,7 +378,19 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   if (!processor_data->ept_data_normal || !processor_data->ept_data_monitor) {
     goto ReturnFalse;
   }
+
+  // Set up Rwe
+  processor_data->rwe_data = RweAllocData();
+  if (!processor_data->rwe_data) {
+    goto ReturnFalse;
+  }
   RweSetDefaultEptAttributes(processor_data);
+
+  // Set up PageFault
+  processor_data->page_fault_data = PageFaultAllocData();
+  if (!processor_data->page_fault_data) {
+    goto ReturnFalse;
+  }
 
   // Check if XSAVE/XRSTOR are available and save an instruction mask for all
   // supported user state components
@@ -926,6 +939,13 @@ _Use_decl_annotations_ static void VmpFreeProcessorData(
   }
   if (processor_data->ept_data_monitor) {
     EptTermination(processor_data->ept_data_monitor);
+  }
+  if (processor_data->rwe_data) {
+    RweFreeData(processor_data->rwe_data);
+  }
+  if (processor_data->page_fault_data)
+  {
+    PageFaultFreeData(processor_data->page_fault_data);
   }
   if (processor_data->xsave_area) {
     ExFreePoolWithTag(processor_data->xsave_area, kHyperPlatformCommonPoolTag);

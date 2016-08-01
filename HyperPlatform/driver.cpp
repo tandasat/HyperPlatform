@@ -144,21 +144,9 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     return status;
   }
 
-  status = RweInitialization();
-  if (!NT_SUCCESS(status)) {
-    MmonTermination();
-    PowerCallbackTermination();
-    UtilTermination();
-    PerfTermination();
-    GlobalObjectTermination();
-    LogTermination();
-    return status;
-  }
-
   // Virtualize all processors
   status = VmInitialization();
   if (!NT_SUCCESS(status)) {
-    RweTermination();
     MmonTermination();
     PowerCallbackTermination();
     UtilTermination();
@@ -187,7 +175,6 @@ _Use_decl_annotations_ static void DriverpDriverUnload(
   HYPERPLATFORM_COMMON_DBG_BREAK();
 
   VmTermination();
-  RweTermination();
   MmonTermination();
   PowerCallbackTermination();
   UtilTermination();

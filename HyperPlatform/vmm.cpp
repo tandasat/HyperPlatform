@@ -17,6 +17,7 @@
 #endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
 #include "../../MemoryMon/rwe.h"
+#include "../../MemoryMon/pagefault.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -333,9 +334,7 @@ _Use_decl_annotations_ static void VmmpHandleUnexpectedExit(
 // MTF VM-exit
 _Use_decl_annotations_ static void VmmpHandleMonitorTrap(
     GuestContext *guest_context) {
-  UNREFERENCED_PARAMETER(guest_context);
-
-  RweHandleMonitorTrapFlag();
+  RweHandleMonitorTrapFlag(guest_context->stack->processor_data);
 }
 
 // Interrupt
@@ -355,8 +354,9 @@ _Use_decl_annotations_ static void VmmpHandleException(
           static_cast<ULONG32>(UtilVmRead(VmcsField::kVmExitIntrErrorCode))};
       const auto fault_address = UtilVmRead(VmcsField::kExitQualification);
       if (!fault_code.fields.present) {
-        PageFaultpHanlePageFault(reinterpret_cast<void *>(guest_context->ip),
-                                 fault_address);
+        PageFaultHanlePageFault(
+          guest_context->stack->processor_data->page_fault_data,
+          reinterpret_cast<void *>(guest_context->ip));
       }
 
       VmEntryInterruptionInformationField inject = {};
@@ -399,9 +399,10 @@ _Use_decl_annotations_ static void VmmpHandleException(
     if (static_cast<InterruptionVector>(exception.fields.vector) ==
         InterruptionVector::kBreakpointException) {
       // #BP
-      if (PageFaultpHandleBreakpoint(
-              reinterpret_cast<void *>(guest_context->ip),
-              guest_context->stack->processor_data)) {
+      if (PageFaultHandleBreakpoint(
+        guest_context->stack->processor_data->page_fault_data,
+              reinterpret_cast<void *>(guest_context->ip))) {
+        RweHandleTlbFlush(guest_context->stack->processor_data);
         return;
       }
 
