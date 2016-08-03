@@ -403,7 +403,7 @@ UtilpBuildPhysicalMemoryRanges() {
       sizeof(PhysicalMemoryRun) * (number_of_runs - 1);
   const auto pm_block =
       reinterpret_cast<PhysicalMemoryDescriptor *>(ExAllocatePoolWithTag(
-          NonPagedPoolNx, memory_block_size, kHyperPlatformCommonPoolTag));
+          NonPagedPool, memory_block_size, kHyperPlatformCommonPoolTag));
   if (!pm_block) {
     ExFreePoolWithTag(pm_ranges, 'hPmM');
     return nullptr;
