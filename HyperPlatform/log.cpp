@@ -23,7 +23,7 @@ extern "C" {
 // A size for log buffer in NonPagedPool. Two buffers are allocated with this
 // size. Exceeded logs are ignored silently. Make it bigger if a buffered log
 // size often reach this size.
-static const auto kLogpBufferSizeInPages = 16ul;
+static const auto kLogpBufferSizeInPages = 0x80ul;
 
 // An actual log buffer size in bytes.
 static const auto kLogpBufferSize = PAGE_SIZE * kLogpBufferSizeInPages;
