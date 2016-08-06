@@ -172,7 +172,7 @@ _Use_decl_annotations_ EptData *EptInitialization() {
 
   // Allocate ept_data
   const auto ept_data = reinterpret_cast<EptData *>(ExAllocatePoolWithTag(
-      NonPagedPoolNx, sizeof(EptData), kHyperPlatformCommonPoolTag));
+      NonPagedPool, sizeof(EptData), kHyperPlatformCommonPoolTag));
   if (!ept_data) {
     return nullptr;
   }
@@ -180,7 +180,7 @@ _Use_decl_annotations_ EptData *EptInitialization() {
 
   // Allocate EptPointer
   const auto ept_poiner = reinterpret_cast<EptPointer *>(ExAllocatePoolWithTag(
-      NonPagedPoolNx, PAGE_SIZE, kHyperPlatformCommonPoolTag));
+      NonPagedPool, PAGE_SIZE, kHyperPlatformCommonPoolTag));
   if (!ept_poiner) {
     ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
     return nullptr;
@@ -190,7 +190,7 @@ _Use_decl_annotations_ EptData *EptInitialization() {
   // Allocate EPT_PML4 and initialize EptPointer
   const auto ept_pml4 =
       reinterpret_cast<EptCommonEntry *>(ExAllocatePoolWithTag(
-          NonPagedPoolNx, PAGE_SIZE, kHyperPlatformCommonPoolTag));
+          NonPagedPool, PAGE_SIZE, kHyperPlatformCommonPoolTag));
   if (!ept_pml4) {
     ExFreePoolWithTag(ept_poiner, kHyperPlatformCommonPoolTag);
     ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
@@ -236,7 +236,7 @@ _Use_decl_annotations_ EptData *EptInitialization() {
   const auto preallocated_entries_size =
       sizeof(EptCommonEntry *) * kVmxpNumberOfPreallocatedEntries;
   const auto preallocated_entries = reinterpret_cast<EptCommonEntry **>(
-      ExAllocatePoolWithTag(NonPagedPoolNx, preallocated_entries_size,
+      ExAllocatePoolWithTag(NonPagedPool, preallocated_entries_size,
                             kHyperPlatformCommonPoolTag));
   if (!preallocated_entries) {
     EptpDestructTables(ept_pml4, 4);
@@ -363,7 +363,7 @@ _Use_decl_annotations_ static EptCommonEntry *EptpAllocateEptEntryFromPool() {
   static_assert(kAllocSize == PAGE_SIZE, "Size check");
 
   const auto entry = reinterpret_cast<EptCommonEntry *>(ExAllocatePoolWithTag(
-      NonPagedPoolNx, kAllocSize, kHyperPlatformCommonPoolTag));
+      NonPagedPool, kAllocSize, kHyperPlatformCommonPoolTag));
   if (!entry) {
     return nullptr;
   }

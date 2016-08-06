@@ -234,7 +234,7 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
   PAGED_CODE();
 
   const auto shared_data = reinterpret_cast<SharedProcessorData *>(
-      ExAllocatePoolWithTag(NonPagedPoolNx, sizeof(SharedProcessorData),
+      ExAllocatePoolWithTag(NonPagedPool, sizeof(SharedProcessorData),
                             kHyperPlatformCommonPoolTag));
   if (!shared_data) {
     return nullptr;
@@ -266,7 +266,7 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
 _Use_decl_annotations_ static void *VmpBuildMsrBitmap() {
   PAGED_CODE();
 
-  const auto msr_bitmap = ExAllocatePoolWithTag(NonPagedPoolNx, PAGE_SIZE,
+  const auto msr_bitmap = ExAllocatePoolWithTag(NonPagedPool, PAGE_SIZE,
                                                 kHyperPlatformCommonPoolTag);
   if (!msr_bitmap) {
     return nullptr;
@@ -310,7 +310,7 @@ _Use_decl_annotations_ static UCHAR *VmpBuildIoBitmaps() {
 
   // Allocate two IO bitmaps as one contigunouse 4K+4K page
   const auto io_bitmaps = reinterpret_cast<UCHAR *>(ExAllocatePoolWithTag(
-      NonPagedPoolNx, PAGE_SIZE * 2, kHyperPlatformCommonPoolTag));
+      NonPagedPool, PAGE_SIZE * 2, kHyperPlatformCommonPoolTag));
   if (!io_bitmaps) {
     return nullptr;
   }
@@ -363,7 +363,7 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   // Allocate related structures
   const auto processor_data =
       reinterpret_cast<ProcessorData *>(ExAllocatePoolWithTag(
-          NonPagedPoolNx, sizeof(ProcessorData), kHyperPlatformCommonPoolTag));
+          NonPagedPool, sizeof(ProcessorData), kHyperPlatformCommonPoolTag));
   if (!processor_data) {
     return;
   }
@@ -394,17 +394,17 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   int registers[4] = {};
   __cpuidex(registers, 0xd, 0);
   const auto xsave_area_size = ROUND_TO_PAGES(registers[2]);  // ecx
-  const auto xsave_area = ExAllocatePoolWithTag(NonPagedPoolNx, xsave_area_size,
+  const auto xsave_area = ExAllocatePoolWithTag(NonPagedPool, xsave_area_size,
                                                 kHyperPlatformCommonPoolTag);
 
   // Allocated other processor data fields
   const auto vmm_stack_limit = UtilAllocateContiguousMemory(KERNEL_STACK_SIZE);
   const auto vmcs_region =
       reinterpret_cast<VmControlStructure *>(ExAllocatePoolWithTag(
-          NonPagedPoolNx, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
+          NonPagedPool, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
   const auto vmxon_region =
       reinterpret_cast<VmControlStructure *>(ExAllocatePoolWithTag(
-          NonPagedPoolNx, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
+          NonPagedPool, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
 
   // Initialize the management structure
   processor_data->vmm_stack_limit = vmm_stack_limit;

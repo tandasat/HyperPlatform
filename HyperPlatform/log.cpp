@@ -212,14 +212,14 @@ _Use_decl_annotations_ static NTSTATUS LogpInitializeBufferInfo(
 
   // Allocate two log buffers on NonPagedPool.
   info->log_buffer1 = reinterpret_cast<char *>(
-      ExAllocatePoolWithTag(NonPagedPoolNx, kLogpBufferSize, kLogpPoolTag));
+      ExAllocatePoolWithTag(NonPagedPool, kLogpBufferSize, kLogpPoolTag));
   if (!info->log_buffer1) {
     LogpFinalizeBufferInfo(info);
     return STATUS_INSUFFICIENT_RESOURCES;
   }
 
   info->log_buffer2 = reinterpret_cast<char *>(
-      ExAllocatePoolWithTag(NonPagedPoolNx, kLogpBufferSize, kLogpPoolTag));
+      ExAllocatePoolWithTag(NonPagedPool, kLogpBufferSize, kLogpPoolTag));
   if (!info->log_buffer2) {
     LogpFinalizeBufferInfo(info);
     return STATUS_INSUFFICIENT_RESOURCES;
