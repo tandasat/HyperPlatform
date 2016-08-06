@@ -190,7 +190,10 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
   }
 
   // Win 10 build 14316 is the first version implements randomized page tables
-  if (os_version.dwMajorVersion < 10 || os_version.dwBuildNumber < 14316) {
+  // Use fixed values if a systems is either: x86, older than Windows 7, or
+  // older than build 14316.
+  if (!IsX64() || os_version.dwMajorVersion < 10 ||
+      os_version.dwBuildNumber < 14316) {
     if (IsX64()) {
       g_utilp_pxe_base = kUtilpPxeBase;
       g_utilp_ppe_base = kUtilpPpeBase;
@@ -215,17 +218,6 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
       g_utilp_pti_mask = kUtilpPtiMask;
     }
     return status;
-  }
-
-  if (!IsX64()) {
-    HYPERPLATFORM_LOG_ERROR(
-        "Unsupported OS version was detected. Detected version %d.%d.%d.",
-        os_version.dwMajorVersion, os_version.dwMinorVersion,
-        os_version.dwBuildNumber);
-    HYPERPLATFORM_LOG_ERROR(
-        "Reason: Need of page table address relacation on x86 Win10 RS is not "
-        "investigated.");
-    return STATUS_UNSUCCESSFUL;
   }
 
   // Get PTE_BASE from MmGetVirtualForPhysical
