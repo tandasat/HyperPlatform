@@ -196,9 +196,9 @@ class PerfCollector {
 
   /// Represents performance data for each location
   struct PerfDataEntry {
-    const char* key;                ///< Identifies a subject matter location
-    ULONG64 total_execution_count;  ///< How many times executed
-    ULONG64 total_elapsed_time;     ///< An accumrated elapsed time
+    const char* key;                //!< Identifies a subject matter location
+    ULONG64 total_execution_count;  //!< How many times executed
+    ULONG64 total_elapsed_time;     //!< An accumrated elapsed time
   };
 
   /// Scoped lock
