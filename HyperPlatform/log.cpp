@@ -401,11 +401,11 @@ _Use_decl_annotations_ NTSTATUS LogpPrint(ULONG level,
                                 args);
   va_end(args);
   if (!NT_SUCCESS(status)) {
-    NT_ASSERT(false);
+    LogpDbgBreak();
     return status;
   }
   if (log_message[0] == '\0') {
-    NT_ASSERT(false);
+    LogpDbgBreak();
     return STATUS_INVALID_PARAMETER;
   }
 
@@ -420,12 +420,14 @@ _Use_decl_annotations_ NTSTATUS LogpPrint(ULONG level,
   status = LogpMakePrefix(pure_level, function_name, log_message, message,
                           RTL_NUMBER_OF(message));
   if (!NT_SUCCESS(status)) {
-    NT_ASSERT(false);
+    LogpDbgBreak();
     return status;
   }
 
   status = LogpPut(message, attribute);
-  NT_ASSERT(NT_SUCCESS(status));
+  if (!NT_SUCCESS(status)) {
+    LogpDbgBreak();
+  }
   return status;
 }
 
