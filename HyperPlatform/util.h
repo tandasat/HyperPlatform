@@ -28,8 +28,8 @@ extern "C" {
 
 /// Represents ranges of addresses
 struct PhysicalMemoryRun {
-  ULONG_PTR base_page;   ///< A base addrress / PAGE_SIZE (ie, 0x1 for 0x1000)
-  ULONG_PTR page_count;  ///< A number of pages
+  ULONG_PTR base_page;   //!< A base addrress / PAGE_SIZE (ie, 0x1 for 0x1000)
+  ULONG_PTR page_count;  //!< A number of pages
 };
 #if defined(_AMD64_)
 static_assert(sizeof(PhysicalMemoryRun) == 0x10, "Size check");
@@ -39,9 +39,9 @@ static_assert(sizeof(PhysicalMemoryRun) == 0x8, "Size check");
 
 /// Represents a physical memory ranges of the system
 struct PhysicalMemoryDescriptor {
-  PFN_COUNT number_of_runs;    ///< A number of PhysicalMemoryDescriptor::run
-  PFN_NUMBER number_of_pages;  ///< A physical memory size in pages
-  PhysicalMemoryRun run[1];    ///< ranges of addresses
+  PFN_COUNT number_of_runs;    //!< A number of PhysicalMemoryDescriptor::run
+  PFN_NUMBER number_of_pages;  //!< A physical memory size in pages
+  PhysicalMemoryRun run[1];    //!< ranges of addresses
 };
 #if defined(_AMD64_)
 static_assert(sizeof(PhysicalMemoryDescriptor) == 0x20, "Size check");
@@ -53,9 +53,9 @@ static_assert(sizeof(PhysicalMemoryDescriptor) == 0x10, "Size check");
 ///
 /// This convention was taken from the VMX-intrinsic functions by Microsoft.
 enum class VmxStatus : unsigned __int8 {
-  kOk = 0,                  ///< Operation succeeded
-  kErrorWithStatus = 1,     ///< Operation failed with extended status available
-  kErrorWithoutStatus = 2,  ///< Operation failed without status available
+  kOk = 0,                  //!< Operation succeeded
+  kErrorWithStatus = 1,     //!< Operation failed with extended status available
+  kErrorWithoutStatus = 2,  //!< Operation failed without status available
 };
 
 /// Provides |= operator for VmxStatus
@@ -66,8 +66,8 @@ constexpr VmxStatus operator|=(_In_ VmxStatus lhs, _In_ VmxStatus rhs) {
 
 /// Avaialable command numbers for VMCALL
 enum class HypercallNumber {
-  kTerminateVmm,  ///< Terminates VMM
-  kPingVmm,       ///< Sends ping to the VMM
+  kTerminateVmm,  //!< Terminates VMM
+  kPingVmm,       //!< Sends ping to the VMM
   kRweApplyRanges,
 };
 
@@ -101,7 +101,7 @@ const PhysicalMemoryDescriptor *UtilGetPhysicalMemoryRanges();
 _IRQL_requires_max_(APC_LEVEL) NTSTATUS
     UtilForEachProcessor(_In_ NTSTATUS (*callback_routine)(void *),
                          _In_opt_ void *context);
-
+ 
 /// Queues \a deferred_routine on all processors
 /// @param deferred_routine   A DPC routine to be queued
 /// @param context  An arbitrary parameter for \a deferred_routine

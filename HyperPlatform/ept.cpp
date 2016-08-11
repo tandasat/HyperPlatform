@@ -265,12 +265,11 @@ _Use_decl_annotations_ EptData *EptInitialization() {
     preallocated_entries[i] = ept_entry;
   }
 
+  // Initialization completed
   ept_data->ept_pointer = ept_poiner;
   ept_data->ept_pml4 = ept_pml4;
   ept_data->preallocated_entries = preallocated_entries;
   ept_data->preallocated_entries_count = 0;
-
-  // Initialization completed
   return ept_data;
 }
 
