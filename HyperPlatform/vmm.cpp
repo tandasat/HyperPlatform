@@ -783,26 +783,48 @@ _Use_decl_annotations_ static void VmmpHandleIoPort(
       (is_string) ? string_address : &guest_context->gp_regs->ax;
 
   SIZE_T size_of_access = 0;
+  const char *suffix = "";
   switch (static_cast<IoInstSizeOfAccess>(
       exit_qualification.fields.size_of_access)) {
     case IoInstSizeOfAccess::k1Byte:
       size_of_access = 1;
+      suffix = "B";
       break;
     case IoInstSizeOfAccess::k2Byte:
       size_of_access = 2;
+      suffix = "W";
       break;
     case IoInstSizeOfAccess::k4Byte:
       size_of_access = 4;
+      suffix = "D";
       break;
   }
 
-  HYPERPLATFORM_LOG_DEBUG_SAFE("GuestIp= %p, Port= %04x, %s%s",
+  HYPERPLATFORM_LOG_DEBUG_SAFE("GuestIp= %p, Port= %04x, %s%s%s",
                                guest_context->ip, port, (is_in ? "IN" : "OUT"),
-                               (is_string ? "S" : ""));
+                               (is_string ? "S" : ""),
+                               (is_string ? suffix : ""));
 
   VmmpIoWrapper(is_in, is_string, size_of_access, port, address, count);
-  // FIXME; Guest's ECX should be changed on is_rep == 1
-  // FIXME: EDI and ESI need to be changed on is_string == 1
+
+  // Update RCX, RDI and RSI accodringly. Note that this code can handle only
+  // the REP prefix.
+  if (is_string) {
+    const auto update_count = (is_rep) ? guest_context->gp_regs->cx : 1;
+    const auto update_size = update_count * size_of_access;
+    const auto update_register =
+        (is_in) ? &guest_context->gp_regs->di : &guest_context->gp_regs->si;
+
+    if (guest_context->flag_reg.fields.df) {
+      *update_register = *update_register - update_size;
+    } else {
+      *update_register = *update_register + update_size;
+    }
+
+    if (is_rep) {
+      guest_context->gp_regs->cx = 0;
+    }
+  }
 
   VmmpAdjustGuestInstructionPointer(guest_context->ip);
 }
@@ -824,34 +846,34 @@ _Use_decl_annotations_ static void VmmpIoWrapper(bool to_memory, bool is_string,
   // clang-format off
   if (to_memory) {
     if (is_string) {
-      // IN
-      switch (size_of_access) {
-      case 1: *reinterpret_cast<UCHAR*>(address) = __inbyte(port); break;
-      case 2: *reinterpret_cast<USHORT*>(address) = __inword(port); break;
-      case 4: *reinterpret_cast<ULONG*>(address) = __indword(port); break;
-      }
-    } else {
       // INS
       switch (size_of_access) {
       case 1: __inbytestring(port, reinterpret_cast<UCHAR*>(address), count); break;
       case 2: __inwordstring(port, reinterpret_cast<USHORT*>(address), count); break;
       case 4: __indwordstring(port, reinterpret_cast<ULONG*>(address), count); break;
       }
+    } else {
+      // IN
+      switch (size_of_access) {
+      case 1: *reinterpret_cast<UCHAR*>(address) = __inbyte(port); break;
+      case 2: *reinterpret_cast<USHORT*>(address) = __inword(port); break;
+      case 4: *reinterpret_cast<ULONG*>(address) = __indword(port); break;
+      }
     }
   } else {
     if (is_string) {
-      // OUT
-      switch (size_of_access) {
-      case 1: __outbyte(port, *reinterpret_cast<UCHAR*>(address)); break;
-      case 2: __outword(port, *reinterpret_cast<USHORT*>(address)); break;
-      case 4: __outdword(port, *reinterpret_cast<ULONG*>(address)); break;
-      }
-    } else {
       // OUTS
       switch (size_of_access) {
       case 1: __outbytestring(port, reinterpret_cast<UCHAR*>(address), count); break;
       case 2: __outwordstring(port, reinterpret_cast<USHORT*>(address), count); break;
       case 4: __outdwordstring(port, reinterpret_cast<ULONG*>(address), count); break;
+      }
+    } else {
+      // OUT
+      switch (size_of_access) {
+      case 1: __outbyte(port, *reinterpret_cast<UCHAR*>(address)); break;
+      case 2: __outword(port, *reinterpret_cast<USHORT*>(address)); break;
+      case 4: __outdword(port, *reinterpret_cast<ULONG*>(address)); break;
       }
     }
   }
