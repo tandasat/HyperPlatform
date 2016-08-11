@@ -266,23 +266,23 @@ union CpuFeaturesEcx {
     ULONG_PTR tm2 : 1;        //!< Thermal monitor 2
     ULONG_PTR ssse3 : 1;      //!< SSSE3 extensions
     ULONG_PTR cid : 1;        //!< L1 context ID
-    ULONG_PTR reserved1 : 1;  ///<
+    ULONG_PTR reserved1 : 1;  //!<
     ULONG_PTR fma : 1;        //!< Fused Multiply Add
     ULONG_PTR cx16 : 1;       //!< CMPXCHG16B
     ULONG_PTR xtpr : 1;       //!< Update control
     ULONG_PTR pdcm : 1;       //!< Performance/Debug capability MSR
-    ULONG_PTR reserved2 : 2;  ///<
-    ULONG_PTR dca : 1;        ///<
-    ULONG_PTR sse4_1 : 1;     ///<
-    ULONG_PTR sse4_2 : 1;     ///<
-    ULONG_PTR x2_apic : 1;    ///<
-    ULONG_PTR movbe : 1;      ///<
-    ULONG_PTR popcnt : 1;     ///<
-    ULONG_PTR reserved3 : 1;  ///<
-    ULONG_PTR aes : 1;        ///<
-    ULONG_PTR xsave : 1;      ///<
-    ULONG_PTR osxsave : 1;    ///<
-    ULONG_PTR reserved4 : 2;  ///<
+    ULONG_PTR reserved2 : 2;  //!<
+    ULONG_PTR dca : 1;        //!<
+    ULONG_PTR sse4_1 : 1;     //!<
+    ULONG_PTR sse4_2 : 1;     //!<
+    ULONG_PTR x2_apic : 1;    //!<
+    ULONG_PTR movbe : 1;      //!<
+    ULONG_PTR popcnt : 1;     //!<
+    ULONG_PTR reserved3 : 1;  //!<
+    ULONG_PTR aes : 1;        //!<
+    ULONG_PTR xsave : 1;      //!<
+    ULONG_PTR osxsave : 1;    //!<
+    ULONG_PTR reserved4 : 2;  //!<
     ULONG_PTR reserved5 : 1;  //!< Always 0
   } fields;
 };
@@ -940,7 +940,7 @@ union Ia32FeatureControlMsr {
     unsigned reserved1 : 5;             //!< [3:7]
     unsigned enable_local_senter : 7;   //!< [8:14]
     unsigned enable_global_senter : 1;  //!< [15]
-    unsigned reserved2 : 16;            ///<
+    unsigned reserved2 : 16;            //!<
     unsigned reserved3 : 32;            //!< [16:63]
   } fields;
 };
@@ -993,7 +993,7 @@ union Ia32VmxVmcsEnumMsr {
   struct {
     unsigned reserved1 : 1;                        //!< [0]
     unsigned supported_highest_vmcs_encoding : 9;  //!< [1:9]
-    unsigned reserved2 : 22;                       ///<
+    unsigned reserved2 : 22;                       //!<
     unsigned reserved3 : 32;                       //!< [10:63]
   } fields;
 };
@@ -1179,7 +1179,7 @@ union MovDrQualification {
     ULONG_PTR direction : 1;        //!< [4]
     ULONG_PTR reserved2 : 3;        //!< [5:7]
     ULONG_PTR gp_register : 4;      //!< [8:11]
-    ULONG_PTR reserved3 : 20;       ///<
+    ULONG_PTR reserved3 : 20;       //!<
     ULONG_PTR reserved4 : 32;       //!< [12:63]
   } fields;
 };

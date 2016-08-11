@@ -404,7 +404,7 @@ UtilGetPhysicalMemoryRanges() {
   return g_utilp_physical_memory_ranges;
 }
 
-// Execute a given callback routine on all processors in DPC_LEVEL. Returns
+// Execute a given callback routine on all processors in PASSIVE_LEVEL. Returns
 // STATUS_SUCCESS when all callback returned STATUS_SUCCESS as well. When
 // one of callbacks returns anything but STATUS_SUCCESS, this function stops
 // to call remaining callbacks and returns the value.
@@ -437,6 +437,37 @@ UtilForEachProcessor(NTSTATUS (*callback_routine)(void *), void *context) {
     if (!NT_SUCCESS(status)) {
       return status;
     }
+  }
+  return STATUS_SUCCESS;
+}
+
+// Queues a given DPC routine on all processors. Returns STATUS_SUCCESS when DPC
+// is queued for all processors.
+_Use_decl_annotations_ NTSTATUS
+UtilForEachProcessorDpc(PKDEFERRED_ROUTINE deferred_routine, void *context) {
+  const auto number_of_processors =
+      KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
+  for (ULONG processor_index = 0; processor_index < number_of_processors;
+       processor_index++) {
+    PROCESSOR_NUMBER processor_number = {};
+    auto status =
+        KeGetProcessorNumberFromIndex(processor_index, &processor_number);
+    if (!NT_SUCCESS(status)) {
+      return status;
+    }
+
+    const auto dpc = reinterpret_cast<PRKDPC>(ExAllocatePoolWithTag(
+        NonPagedPool, sizeof(KDPC), kHyperPlatformCommonPoolTag));
+    if (!dpc) {
+      return STATUS_MEMORY_NOT_ALLOCATED;
+    }
+    KeInitializeDpc(dpc, deferred_routine, context);
+    status = KeSetTargetProcessorDpcEx(dpc, &processor_number);
+    if (!NT_SUCCESS(status)) {
+      ExFreePoolWithTag(dpc, kHyperPlatformCommonPoolTag);
+      return status;
+    }
+    KeInsertQueueDpc(dpc, nullptr, nullptr);
   }
   return STATUS_SUCCESS;
 }

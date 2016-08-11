@@ -101,6 +101,17 @@ _IRQL_requires_max_(APC_LEVEL) NTSTATUS
     UtilForEachProcessor(_In_ NTSTATUS (*callback_routine)(void *),
                          _In_opt_ void *context);
 
+/// Queues \a deferred_routine on all processors
+/// @param deferred_routine   A DPC routine to be queued
+/// @param context  An arbitrary parameter for \a deferred_routine
+/// @return STATUS_SUCCESS when DPC was queued to all processors
+///
+/// \a deferred_routine must free the pointer to a DPC structure like this:
+/// ExFreePoolWithTag(dpc, kHyperPlatformCommonPoolTag).
+_IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS
+    UtilForEachProcessorDpc(_In_ PKDEFERRED_ROUTINE deferred_routine,
+                            _In_opt_ void *context);
+
 /// Suspends the execution of the current thread
 /// @param millisecond  Time to suspend in milliseconds
 /// @return STATUS_SUCCESS on success
