@@ -425,9 +425,9 @@ _Use_decl_annotations_ NTSTATUS LogpPrint(ULONG level,
   }
 
   status = LogpPut(message, attribute);
-  if (!NT_SUCCESS(status)) {
-    LogpDbgBreak();
-  }
+  // if (!NT_SUCCESS(status)) {
+  //  LogpDbgBreak();
+  //}
   return status;
 }
 

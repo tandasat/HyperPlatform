@@ -353,8 +353,8 @@ _Use_decl_annotations_ static void VmmpHandleException(
       const PageFaultErrorCode fault_code = {
           static_cast<ULONG32>(UtilVmRead(VmcsField::kVmExitIntrErrorCode))};
       const auto fault_address = UtilVmRead(VmcsField::kExitQualification);
-      if (!fault_code.fields.present) {
-        PageFaultHanlePageFault(reinterpret_cast<void *>(guest_context->ip));
+      if (!fault_code.fields.present && fault_address) {
+        PfHanlePageFault(reinterpret_cast<void *>(guest_context->ip));
       }
 
       VmEntryInterruptionInformationField inject = {};
@@ -366,8 +366,8 @@ _Use_decl_annotations_ static void VmmpHandleException(
       UtilVmWrite(VmcsField::kVmEntryExceptionErrorCode, fault_code.all);
       UtilVmWrite(VmcsField::kVmEntryIntrInfoField, inject.all);
       // HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %p, #PF Fault= %p Code= 0x%2x",
-      //                            guest_context->ip, fault_address,
-      //                            fault_code);
+      //  guest_context->ip, fault_address,
+      //  fault_code);
 
     } else if (static_cast<InterruptionVector>(exception.fields.vector) ==
                InterruptionVector::kGeneralProtectionException) {
@@ -397,8 +397,7 @@ _Use_decl_annotations_ static void VmmpHandleException(
     if (static_cast<InterruptionVector>(exception.fields.vector) ==
         InterruptionVector::kBreakpointException) {
       // #BP
-      if (PageFaultHandleBreakpoint(
-              reinterpret_cast<void *>(guest_context->ip))) {
+      if (PfHandleBreakpoint(reinterpret_cast<void *>(guest_context->ip))) {
         RweHandleTlbFlush(guest_context->stack->processor_data);
         return;
       }

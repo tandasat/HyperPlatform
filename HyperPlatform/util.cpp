@@ -688,7 +688,6 @@ _Use_decl_annotations_ ULONG64 UtilPaFromVa(void *va) {
       // PageFile PTE
     } else {
       // VAD PTE
-      HYPERPLATFORM_COMMON_DBG_BREAK();
     }
     return 0;
 

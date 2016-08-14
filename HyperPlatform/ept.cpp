@@ -15,6 +15,7 @@
 #endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
 #include "../../MemoryMon/rwe.h"
+#include "vmm.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -424,9 +425,10 @@ _Use_decl_annotations_ void EptHandleEptViolation(
       UtilVmRead(VmcsField::kExitQualification)};
 
   const auto fault_pa = UtilVmRead64(VmcsField::kGuestPhysicalAddress);
-  const auto fault_va = exit_qualification.fields.valid_guest_linear_address
-                            ? UtilVmRead(VmcsField::kGuestLinearAddress)
-                            : 0;
+  const auto fault_va = reinterpret_cast<void *>(
+      exit_qualification.fields.valid_guest_linear_address
+          ? UtilVmRead(VmcsField::kGuestLinearAddress)
+          : 0);
 
   if (!exit_qualification.fields.ept_readable &&
       !exit_qualification.fields.ept_writeable &&
@@ -439,7 +441,15 @@ _Use_decl_annotations_ void EptHandleEptViolation(
       if (!IsReleaseBuild()) {
         NT_VERIFY(EptpIsDeviceMemory(fault_pa));
       }
-      EptpConstructTables(ept_data->ept_pml4, 4, fault_pa, ept_data);
+      EptpConstructTables(processor_data->ept_data_normal->ept_pml4, 4,
+                          fault_pa, processor_data->ept_data_normal);
+      EptpConstructTables(processor_data->ept_data_monitor->ept_pml4, 4,
+                          fault_pa, processor_data->ept_data_monitor);
+
+      if (PAGE_ALIGN(fault_pa) == (void *)0xfd5fa000) {
+        HYPERPLATFORM_COMMON_DBG_BREAK();
+        RweAddDstRange(PAGE_ALIGN(fault_va), PAGE_SIZE);
+      }
 
       UtilInveptAll();
       return;
@@ -454,10 +464,10 @@ _Use_decl_annotations_ void EptHandleEptViolation(
     const auto execute_violation = exit_qualification.fields.execute_access &&
                                    !exit_qualification.fields.ept_executable;
 
-    RweHandleEptViolation(processor_data, reinterpret_cast<void *>(
-                                              UtilVmRead(VmcsField::kGuestRip)),
-                          reinterpret_cast<void *>(fault_va), read_violation,
-                          write_violation, execute_violation);
+    RweHandleEptViolation(
+        processor_data,
+        reinterpret_cast<void *>(UtilVmRead(VmcsField::kGuestRip)), fault_va,
+        read_violation, write_violation, execute_violation);
 
   } else {
     HYPERPLATFORM_LOG_DEBUG_SAFE("[IGNR] OTH VA = %p, PA = %016llx", fault_va,
