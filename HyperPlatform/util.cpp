@@ -61,26 +61,6 @@ struct LdrDataTableEntry {
   // ...
 };
 
-// dt nt!_MMPFN
-struct MmPfnV6 {
-  union {
-    ULONG_PTR ws_index;
-  } u1;
-  ULONG_PTR u2;
-  ULONG_PTR pte_address;
-  ULONG_PTR unknown[3];
-};
-static_assert(sizeof(MmPfnV6) == sizeof(void *) * 6, "Size check");
-
-struct MmPfnV10 {
-  union {
-    ULONG_PTR ws_index;
-  } u1;
-  ULONG_PTR pte_address;
-  ULONG_PTR unknown[4];
-};
-static_assert(sizeof(MmPfnV10) == sizeof(void *) * 6, "Size check");
-
 ////////////////////////////////////////////////////////////////////////////////
 //
 // prototypes
@@ -593,49 +573,6 @@ _Use_decl_annotations_ bool UtilIsExecutableAddress(void *address) {
   }
 
   return pte->no_execute == false;
-}
-
-// Return if the address is non-pagable memory
-_Use_decl_annotations_ bool UtilIsNonPageableAddress(void *address,
-                                                     void *pfn_database,
-                                                     bool is_v6_kernel) {
-  if (!UtilpIsCanonicalFormAddress(address)) {
-    return false;
-  }
-
-  if (IsX64()) {
-    const auto pxe = UtilpAddressToPxe(address);
-    const auto ppe = UtilpAddressToPpe(address);
-    if (!pxe->valid || !ppe->valid) {
-      return false;
-    }
-  }
-
-  const auto pde = UtilpAddressToPde(address);
-  const auto pte = UtilpAddressToPte(address);
-  if (!pde->valid) {
-    return false;
-  }
-  if (pde->large_page) {
-    return true;  // A large page is always memory resident
-  }
-  if (!pte || !pte->valid) {
-    return false;
-  }
-
-  if (is_v6_kernel) {
-    if (reinterpret_cast<MmPfnV6 *>(pfn_database)[pte->page_frame_number]
-            .u1.ws_index) {
-      return false;
-    }
-  } else {
-    if (reinterpret_cast<MmPfnV10 *>(pfn_database)[pte->page_frame_number]
-            .u1.ws_index) {
-      return false;
-    }
-  }
-
-  return true;
 }
 
 // Checks whether the address is the canonical address

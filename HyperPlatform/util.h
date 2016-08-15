@@ -101,7 +101,7 @@ const PhysicalMemoryDescriptor *UtilGetPhysicalMemoryRanges();
 _IRQL_requires_max_(APC_LEVEL) NTSTATUS
     UtilForEachProcessor(_In_ NTSTATUS (*callback_routine)(void *),
                          _In_opt_ void *context);
- 
+
 /// Queues \a deferred_routine on all processors
 /// @param deferred_routine   A DPC routine to be queued
 /// @param context  An arbitrary parameter for \a deferred_routine
@@ -145,9 +145,6 @@ bool UtilIsAccessibleAddress(_In_ void *address);
 /// @param address  A virtual address to test
 /// @return true if the \a address is present on physical memory and executable
 bool UtilIsExecutableAddress(_In_ void *address);
-
-bool UtilIsNonPageableAddress(_In_ void *address, _In_ void *pfn_database,
-                              _In_ bool is_v6_kernel);
 
 /// VA -> PA
 /// @param va   A virtual address to get its physical address
