@@ -141,6 +141,8 @@ bool UtilIsX86Pae();
 /// @return true if the \a address is present on physical memory
 bool UtilIsAccessibleAddress(_In_ void *address);
 
+bool UtilIsExecutableAddress(_In_ void *address);
+
 bool UtilIsNonPageableAddress(_In_ void *address, _In_ void *pfn_database,
                               _In_ bool is_v6_kernel);
 

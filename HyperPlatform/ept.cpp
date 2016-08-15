@@ -445,11 +445,12 @@ _Use_decl_annotations_ void EptHandleEptViolation(
                           fault_pa, processor_data->ept_data_normal);
       EptpConstructTables(processor_data->ept_data_monitor->ept_pml4, 4,
                           fault_pa, processor_data->ept_data_monitor);
-
+#if 1
       if (PAGE_ALIGN(fault_pa) == (void *)0xfd5fa000) {
         HYPERPLATFORM_COMMON_DBG_BREAK();
         RweAddDstRange(PAGE_ALIGN(fault_va), PAGE_SIZE);
       }
+#endif
 
       UtilInveptAll();
       return;

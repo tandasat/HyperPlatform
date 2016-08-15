@@ -278,10 +278,10 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
   g_utilp_pdi_shift = kUtilpPdiShift;
   g_utilp_pti_shift = kUtilpPtiShift;
 
-  g_utilp_pdi_mask = kUtilpPdiMask;
-  g_utilp_pti_mask = kUtilpPtiMask;
   g_utilp_pxi_mask = kUtilpPxiMask;
   g_utilp_ppi_mask = kUtilpPpiMask;
+  g_utilp_pdi_mask = kUtilpPdiMask;
+  g_utilp_pti_mask = kUtilpPtiMask;
   return status;
 }
 
@@ -532,8 +532,7 @@ _Use_decl_annotations_ void *UtilGetSystemProcAddress(
   return (!IsX64() && Cr4{__readcr4()}.fields.pae);
 }
 
-// Return true if the given address is accessible. It does not prevent a race
-// condition.
+// Return true if the given address is accessible.
 _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
   if (!UtilpIsCanonicalFormAddress(address)) {
     return false;
@@ -559,6 +558,35 @@ _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
     return false;
   }
   return true;
+}
+
+// Return true if the given address is executable.
+_Use_decl_annotations_ bool UtilIsExecutableAddress(void *address) {
+  if (!UtilpIsCanonicalFormAddress(address)) {
+    return false;
+  }
+
+  if (IsX64()) {
+    const auto pxe = UtilpAddressToPxe(address);
+    const auto ppe = UtilpAddressToPpe(address);
+    if (!pxe->valid || !ppe->valid) {
+      return false;
+    }
+  }
+
+  const auto pde = UtilpAddressToPde(address);
+  const auto pte = UtilpAddressToPte(address);
+  if (!pde->valid) {
+    return false;
+  }
+  if (pde->large_page) {
+    return pde->no_execute == false;
+  }
+  if (!pte || !pte->valid) {
+    return false;
+  }
+
+  return pte->no_execute == false;
 }
 
 // Return if the address is non-pagable memory
