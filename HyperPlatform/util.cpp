@@ -566,10 +566,16 @@ _Use_decl_annotations_ bool UtilIsExecutableAddress(void *address) {
     return false;
   }
 
+  // Instruction fetch is prohibited if the XD flag is 1 in any paging-structure
+  // entry controlling the translation.
+  // See: Determination of Access Rights
   if (IsX64()) {
     const auto pxe = UtilpAddressToPxe(address);
     const auto ppe = UtilpAddressToPpe(address);
-    if (!pxe->valid || !ppe->valid) {
+    if (!pxe->valid || pxe->no_execute) {
+      return false;
+    }
+    if (!ppe->valid || ppe->no_execute) {
       return false;
     }
   }

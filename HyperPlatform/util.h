@@ -141,6 +141,9 @@ bool UtilIsX86Pae();
 /// @return true if the \a address is present on physical memory
 bool UtilIsAccessibleAddress(_In_ void *address);
 
+/// Checks is the address is present on physical memory and executable
+/// @param address  A virtual address to test
+/// @return true if the \a address is present on physical memory and executable
 bool UtilIsExecutableAddress(_In_ void *address);
 
 bool UtilIsNonPageableAddress(_In_ void *address, _In_ void *pfn_database,
