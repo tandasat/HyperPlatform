@@ -334,7 +334,8 @@ _Use_decl_annotations_ static void VmmpHandleUnexpectedExit(
 // MTF VM-exit
 _Use_decl_annotations_ static void VmmpHandleMonitorTrap(
     GuestContext *guest_context) {
-  RweHandleMonitorTrapFlag(guest_context->stack->processor_data);
+  RweHandleMonitorTrapFlag(guest_context->stack->processor_data,
+                           &guest_context->stack->gp_regs);
 }
 
 // Interrupt
@@ -353,7 +354,7 @@ _Use_decl_annotations_ static void VmmpHandleException(
       const PageFaultErrorCode fault_code = {
           static_cast<ULONG32>(UtilVmRead(VmcsField::kVmExitIntrErrorCode))};
       const auto fault_address = UtilVmRead(VmcsField::kExitQualification);
-      if (!fault_code.fields.present && fault_address) {
+      if (!fault_code.fields.present && PAGE_ALIGN(fault_address)) {
         PfHanlePageFault(reinterpret_cast<void *>(guest_context->ip));
       }
 

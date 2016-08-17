@@ -10,12 +10,12 @@
 #include "common.h"
 #include "log.h"
 #include "util.h"
+#include "vmm.h"
 #ifndef HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
 #endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
 #include "../../MemoryMon/rwe.h"
-#include "vmm.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -37,23 +37,23 @@ extern "C" {
 // EPT Byte within page                   12 bits
 
 // Get the highest 25 bits
-static const auto kVmxpPxiShift = 39ull;
+static const auto kEptpPxiShift = 39ull;
 
 // Get the highest 34 bits
-static const auto kVmxpPpiShift = 30ull;
+static const auto kEptpPpiShift = 30ull;
 
 // Get the highest 43 bits
-static const auto kVmxpPdiShift = 21ull;
+static const auto kEptpPdiShift = 21ull;
 
 // Get the highest 52 bits
-static const auto kVmxpPtiShift = 12ull;
+static const auto kEptpPtiShift = 12ull;
 
 // Use 9 bits; 0b0000_0000_0000_0000_0000_0000_0001_1111_1111
-static const auto kVmxpPtxMask = 0x1ffull;
+static const auto kEptpPtxMask = 0x1ffull;
 
 // How many EPT entries are preallocated. When the number exceeds it, the
 // hypervisor issues a bugcheck.
-static const auto kVmxpNumberOfPreallocatedEntries = 50;
+static const auto kEptpNumberOfPreallocatedEntries = 50;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -241,7 +241,7 @@ _Use_decl_annotations_ EptData *EptInitialization() {
 
   // Allocate preallocated_entries
   const auto preallocated_entries_size =
-      sizeof(EptCommonEntry *) * kVmxpNumberOfPreallocatedEntries;
+      sizeof(EptCommonEntry *) * kEptpNumberOfPreallocatedEntries;
   const auto preallocated_entries = reinterpret_cast<EptCommonEntry **>(
       ExAllocatePoolWithTag(NonPagedPool, preallocated_entries_size,
                             kHyperPlatformCommonPoolTag));
@@ -254,7 +254,7 @@ _Use_decl_annotations_ EptData *EptInitialization() {
   RtlZeroMemory(preallocated_entries, preallocated_entries_size);
 
   // And fill preallocated_entries with newly created entries
-  for (auto i = 0ul; i < kVmxpNumberOfPreallocatedEntries; ++i) {
+  for (auto i = 0ul; i < kEptpNumberOfPreallocatedEntries; ++i) {
     const auto ept_entry = EptpAllocateEptEntry(nullptr);
     if (!ept_entry) {
       EptpFreeUnusedPreAllocatedEntries(preallocated_entries, 0);
@@ -356,7 +356,7 @@ _Use_decl_annotations_ static EptCommonEntry *
 EptpAllocateEptEntryFromPreAllocated(EptData *ept_data) {
   const auto count =
       InterlockedIncrement(&ept_data->preallocated_entries_count);
-  if (count > kVmxpNumberOfPreallocatedEntries) {
+  if (count > kEptpNumberOfPreallocatedEntries) {
     HYPERPLATFORM_COMMON_BUG_CHECK(
         HyperPlatformBugCheck::kExhaustedPreallocatedEntries, count,
         reinterpret_cast<ULONG_PTR>(ept_data), 0);
@@ -393,28 +393,28 @@ _Use_decl_annotations_ static void EptpInitTableEntry(
 // Return an address of PXE
 _Use_decl_annotations_ static ULONG64 EptpAddressToPxeIndex(
     ULONG64 physical_address) {
-  const auto index = (physical_address >> kVmxpPxiShift) & kVmxpPtxMask;
+  const auto index = (physical_address >> kEptpPxiShift) & kEptpPtxMask;
   return index;
 }
 
 // Return an address of PPE
 _Use_decl_annotations_ static ULONG64 EptpAddressToPpeIndex(
     ULONG64 physical_address) {
-  const auto index = (physical_address >> kVmxpPpiShift) & kVmxpPtxMask;
+  const auto index = (physical_address >> kEptpPpiShift) & kEptpPtxMask;
   return index;
 }
 
 // Return an address of PDE
 _Use_decl_annotations_ static ULONG64 EptpAddressToPdeIndex(
     ULONG64 physical_address) {
-  const auto index = (physical_address >> kVmxpPdiShift) & kVmxpPtxMask;
+  const auto index = (physical_address >> kEptpPdiShift) & kEptpPtxMask;
   return index;
 }
 
 // Return an address of PTE
 _Use_decl_annotations_ static ULONG64 EptpAddressToPteIndex(
     ULONG64 physical_address) {
-  const auto index = (physical_address >> kVmxpPtiShift) & kVmxpPtxMask;
+  const auto index = (physical_address >> kEptpPtiShift) & kEptpPtxMask;
   return index;
 }
 
@@ -445,12 +445,9 @@ _Use_decl_annotations_ void EptHandleEptViolation(
                           fault_pa, processor_data->ept_data_normal);
       EptpConstructTables(processor_data->ept_data_monitor->ept_pml4, 4,
                           fault_pa, processor_data->ept_data_monitor);
-#if 1
-      if (PAGE_ALIGN(fault_pa) == (void *)0xfd5fa000) {
-        HYPERPLATFORM_COMMON_DBG_BREAK();
-        RweAddDstRange(PAGE_ALIGN(fault_va), PAGE_SIZE);
+      if (fault_va) {
+        RweHandleNewDeviceMemoryAccess(fault_pa, fault_va);
       }
-#endif
 
       UtilInveptAll();
       return;
@@ -546,7 +543,7 @@ _Use_decl_annotations_ static EptCommonEntry *EptpGetEptPtEntry(
 _Use_decl_annotations_ void EptTermination(EptData *ept_data) {
   HYPERPLATFORM_LOG_DEBUG("Used pre-allocated entries  = %2d / %2d",
                           ept_data->preallocated_entries_count,
-                          kVmxpNumberOfPreallocatedEntries);
+                          kEptpNumberOfPreallocatedEntries);
 
   EptpFreeUnusedPreAllocatedEntries(ept_data->preallocated_entries,
                                     ept_data->preallocated_entries_count);
@@ -559,7 +556,7 @@ _Use_decl_annotations_ void EptTermination(EptData *ept_data) {
 // freed with EptpDestructTables().
 _Use_decl_annotations_ static void EptpFreeUnusedPreAllocatedEntries(
     EptCommonEntry **preallocated_entries, long used_count) {
-  for (auto i = used_count; i < kVmxpNumberOfPreallocatedEntries; ++i) {
+  for (auto i = used_count; i < kEptpNumberOfPreallocatedEntries; ++i) {
     if (!preallocated_entries[i]) {
       break;
     }

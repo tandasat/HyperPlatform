@@ -28,7 +28,7 @@ extern "C" {
 //
 
 /// A pool tag for this module
-static const ULONG kGlobalObjectpPoolTag = 'JBOG';
+static const ULONG kGlobalObjectpPoolTag = 'jbOG';
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -58,7 +58,7 @@ struct DestructorEntry {
 // variables
 //
 
-// Place markers pointing to the beginning and end of the ctors arrays embeded
+// Place markers pointing to the beginning and end of the ctors arrays embedded
 // by MSVC.
 __declspec(allocate(".CRT$XCA")) static Destructor g_gop_ctors_begin[1] = {};
 __declspec(allocate(".CRT$XCZ")) static Destructor g_gop_ctors_end[1] = {};
