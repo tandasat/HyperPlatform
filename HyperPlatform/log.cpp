@@ -249,7 +249,7 @@ _Use_decl_annotations_ static NTSTATUS LogpInitializeBufferInfo(
   return status;
 }
 
-// Initializes a log file and startes a log buffer thread.
+// Initializes a log file and starts a log buffer thread.
 _Use_decl_annotations_ static NTSTATUS LogpInitializeLogFile(
     LogBufferInfo *info) {
   PAGED_CODE();
@@ -288,7 +288,7 @@ _Use_decl_annotations_ static NTSTATUS LogpInitializeLogFile(
     return status;
   }
 
-  // Wait until the thead has started
+  // Wait until the thread has started
   while (!info->buffer_flush_thread_started) {
     LogpSleep(100);
   }
@@ -553,7 +553,7 @@ _Use_decl_annotations_ static NTSTATUS LogpPut(char *message, ULONG attribute) {
       }
 #pragma warning(pop)
     } else {
-      // No, it cannot. Set the prited bit if needed, and then buffer it.
+      // No, it cannot. Set the printed bit if needed, and then buffer it.
       if (do_DbgPrint) {
         LogpSetPrintedBit(message, true);
       }
@@ -569,7 +569,7 @@ _Use_decl_annotations_ static NTSTATUS LogpPut(char *message, ULONG attribute) {
   return status;
 }
 
-// Switchs the current log buffer, saves the contents of old buffer to the log
+// Switches the current log buffer, saves the contents of old buffer to the log
 // file, and prints them out as necessary. This function does not flush the log
 // file, so code should call LogpWriteMessageToFile() or ZwFlushBuffersFile()
 // later.

@@ -58,7 +58,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) bool EptIsEptAvailable();
 /// @return An EPT pointer
 ULONG64 EptGetEptPointer(_In_ EptData* ept_data);
 
-/// Builds EPT, allocates pre-allocated enties, initializes and returns EptData
+/// Builds EPT, allocates pre-allocated entires, initializes and returns EptData
 /// @return An allocated EptData on success, or nullptr
 ///
 /// A driver must call EptTermination() with a returned value when this function

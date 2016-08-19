@@ -28,7 +28,8 @@ extern "C" {
 // constants and macros
 //
 
-// Followings are how 64bits of a pysical address is used to locate EPT entries:
+// Followings are how 64bits of a physical address is used to locate EPT
+// entries:
 //
 // EPT Page map level 4 selector           9 bits
 // EPT Page directory pointer selector     9 bits
@@ -171,7 +172,7 @@ _Use_decl_annotations_ void EptHandleTlbFlush(ProcessorData *processor_data) {
   RweHandleTlbFlush(processor_data);
 }
 
-// Builds EPT, allocates pre-allocated enties, initializes and returns EptData
+// Builds EPT, allocates pre-allocated entires, initializes and returns EptData
 _Use_decl_annotations_ EptData *EptInitialization() {
   PAGED_CODE();
 

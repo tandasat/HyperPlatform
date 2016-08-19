@@ -40,7 +40,7 @@ static const ULONG kKstlpPoolTag = 'LTSK';
 // implementations
 //
 
-// An alternative implmentation of a C++ exception handler. Issues a bug check.
+// An alternative implementation of a C++ exception handler. Issues a bug check.
 DECLSPEC_NORETURN static void KernelStlpRaiseException(
     _In_ ULONG bug_check_code) {
   KdBreakPoint();
@@ -77,7 +77,7 @@ DECLSPEC_NORETURN void __cdecl _Xruntime_error(_In_z_ const char *) {
 
 }  // namespace std
 
-// An alternative implmentation of the new operator
+// An alternative implementation of the new operator
 _IRQL_requires_max_(DISPATCH_LEVEL) void *__cdecl operator new(
     _In_ size_t size) {
   if (size == 0) {
@@ -91,14 +91,14 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void *__cdecl operator new(
   return p;
 }
 
-// An alternative implmentation of the new operator
+// An alternative implementation of the new operator
 _IRQL_requires_max_(DISPATCH_LEVEL) void __cdecl operator delete(_In_ void *p) {
   if (p) {
     ExFreePoolWithTag(p, kKstlpPoolTag);
   }
 }
 
-// An alternative implmentation of the new operator
+// An alternative implementation of the new operator
 _IRQL_requires_max_(DISPATCH_LEVEL) void __cdecl operator delete(
     _In_ void *p, _In_ size_t size) {
   UNREFERENCED_PARAMETER(size);
@@ -107,7 +107,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void __cdecl operator delete(
   }
 }
 
-// An alternative implmentation of __stdio_common_vsprintf_s
+// An alternative implementation of __stdio_common_vsprintf_s
 _Success_(return >= 0) EXTERN_C inline int __cdecl __stdio_common_vsprintf_s(
     _In_ unsigned __int64 _Options, _Out_writes_z_(_BufferCount) char *_Buffer,
     _In_ size_t _BufferCount,
@@ -129,7 +129,7 @@ _Success_(return >= 0) EXTERN_C inline int __cdecl __stdio_common_vsprintf_s(
   return local__vsnprintf(_Buffer, _BufferCount, _Format, _ArgList);
 }
 
-// An alternative implmentation of __stdio_common_vswprintf_s
+// An alternative implementation of __stdio_common_vswprintf_s
 _Success_(return >= 0) _Check_return_opt_ EXTERN_C
     inline int __cdecl __stdio_common_vswprintf_s(
         _In_ unsigned __int64 _Options,

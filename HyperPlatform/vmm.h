@@ -20,7 +20,7 @@
 // constants and macros
 //
 
-/// A backdoor code to tell the VMM that a caller knows about the VMM
+/// A back-door code to tell the VMM that a caller knows about the VMM
 static const ULONG kHyperPlatformVmmBackdoorCode = 'gniP';
 
 ////////////////////////////////////////////////////////////////////////////////

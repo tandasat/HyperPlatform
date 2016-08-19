@@ -29,7 +29,7 @@ extern "C" {
 ///      working properly.
 ///  @li ERROR: info about issues may stop the program working properly.
 ///
-/// A message should not exceede 512 bytes after all string construction is
+/// A message should not exceed 512 bytes after all string construction is
 /// done; otherwise this macro fails to log and returns non STATUS_SUCCESS.
 #define HYPERPLATFORM_LOG_DEBUG(format, ...) \
   LogpPrint(kLogpLevelDebug, __FUNCTION__, (format), __VA_ARGS__)
@@ -131,7 +131,7 @@ static const auto kLogOptDisableProcessorNumber = 0x400ul;
 ///
 /// Allocates internal log buffers, initializes related resources, starts a
 /// log flush thread and creates a log file if requested. This function returns
-/// STATUS_REINITIALIZATION_NEEDED if a file-syetem is not initialized yet. In
+/// STATUS_REINITIALIZATION_NEEDED if a file-system is not initialized yet. In
 /// that case, a driver must call LogRegisterReinitialization() for completing
 /// initialization.
 ///

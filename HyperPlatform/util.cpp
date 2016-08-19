@@ -24,7 +24,7 @@ extern "C" {
 
 // Use RtlPcToFileHeader if available. Using the API causes a broken font bug
 // on the 64 bit Windows 10 and should be avoided. This flag exist for only
-// futher investigation.
+// further investigation.
 static const auto kUtilpUseRtlPcToFileHeader = false;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -291,7 +291,7 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializeRtlPcToFileHeader(
   return STATUS_SUCCESS;
 }
 
-// A fake RtlPcToFileHeader without accquireing PsLoadedModuleSpinLock. Thus, it
+// A fake RtlPcToFileHeader without acquiring PsLoadedModuleSpinLock. Thus, it
 // is unsafe and should be updated if we can locate PsLoadedModuleSpinLock.
 _Use_decl_annotations_ static PVOID NTAPI
 UtilpUnsafePcToFileHeader(PVOID pc_value, PVOID *base_of_image) {
@@ -462,6 +462,7 @@ UtilForEachProcessorDpc(PKDEFERRED_ROUTINE deferred_routine, void *context) {
       return STATUS_MEMORY_NOT_ALLOCATED;
     }
     KeInitializeDpc(dpc, deferred_routine, context);
+    KeSetImportanceDpc(dpc, HighImportance);
     status = KeSetTargetProcessorDpcEx(dpc, &processor_number);
     if (!NT_SUCCESS(status)) {
       ExFreePoolWithTag(dpc, kHyperPlatformCommonPoolTag);
@@ -905,7 +906,7 @@ _Use_decl_annotations_ void UtilLoadPdptes(ULONG_PTR cr3_value) {
   // Have to load cr3 to make UtilPfnFromVa() work properly.
   __writecr3(cr3_value);
 
-  // Gets PDPTEs fomr CR3
+  // Gets PDPTEs form CR3
   PdptrRegister pd_pointers[4] = {};
   for (auto i = 0ul; i < 4; ++i) {
     const auto pd_addr = g_utilp_pde_base + i * PAGE_SIZE;

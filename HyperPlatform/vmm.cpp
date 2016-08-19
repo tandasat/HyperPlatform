@@ -355,7 +355,10 @@ _Use_decl_annotations_ static void VmmpHandleException(
           static_cast<ULONG32>(UtilVmRead(VmcsField::kVmExitIntrErrorCode))};
       const auto fault_address = UtilVmRead(VmcsField::kExitQualification);
       if (!fault_code.fields.present && PAGE_ALIGN(fault_address)) {
-        PfHanlePageFault(reinterpret_cast<void *>(guest_context->ip));
+        if (guest_context->ip >=
+                reinterpret_cast<ULONG_PTR>(MmSystemRangeStart) &&
+            fault_address >= reinterpret_cast<ULONG_PTR>(MmSystemRangeStart))
+          PfHandlePageFault(reinterpret_cast<void *>(guest_context->ip));
       }
 
       VmEntryInterruptionInformationField inject = {};
@@ -398,6 +401,10 @@ _Use_decl_annotations_ static void VmmpHandleException(
     if (static_cast<InterruptionVector>(exception.fields.vector) ==
         InterruptionVector::kBreakpointException) {
       // #BP
+
+      // Checks if the #BP occurred due to PfHandlePageFault(). If so, revert
+      // execution context and tests if any V2P mapping needs to be updated
+      // using RweHandleTlbFlush(). The exception is not delivered to a guest.
       if (PfHandleBreakpoint(reinterpret_cast<void *>(guest_context->ip))) {
         RweHandleTlbFlush(guest_context->stack->processor_data);
         return;
@@ -816,7 +823,7 @@ _Use_decl_annotations_ static void VmmpHandleIoPort(
 
   VmmpIoWrapper(is_in, is_string, size_of_access, port, address, count);
 
-  // Update RCX, RDI and RSI accodringly. Note that this code can handle only
+  // Update RCX, RDI and RSI accordingly. Note that this code can handle only
   // the REP prefix.
   if (is_string) {
     const auto update_count = (is_rep) ? guest_context->gp_regs->cx : 1;

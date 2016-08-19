@@ -19,7 +19,6 @@
 #define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
 #endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
-#include "../../MemoryMon/memorymon.h"
 #include "../../MemoryMon/rwe.h"
 #include "../../MemoryMon/test.h"
 
@@ -133,21 +132,9 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     return status;
   }
 
-  // Initialize MemoryMon
-  status = MmonInitialization();
-  if (!NT_SUCCESS(status)) {
-    PowerCallbackTermination();
-    UtilTermination();
-    PerfTermination();
-    GlobalObjectTermination();
-    LogTermination();
-    return status;
-  }
-
   // Virtualize all processors
   status = VmInitialization();
   if (!NT_SUCCESS(status)) {
-    MmonTermination();
     PowerCallbackTermination();
     UtilTermination();
     PerfTermination();
@@ -175,7 +162,6 @@ _Use_decl_annotations_ static void DriverpDriverUnload(
   HYPERPLATFORM_COMMON_DBG_BREAK();
 
   VmTermination();
-  MmonTermination();
   PowerCallbackTermination();
   UtilTermination();
   PerfTermination();
