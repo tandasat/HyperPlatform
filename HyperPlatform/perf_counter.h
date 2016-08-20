@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 /// @file
-/// Declares interfaces to performance mesurement primitives.
+/// Declares interfaces to performance measurement primitives.
 ///
 /// @warning
 /// All exposed interfaces but #HYPERPLATFORM_PERFCOUNTER_MEASURE_TIME are meant
