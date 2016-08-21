@@ -73,7 +73,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
 
   static const wchar_t kLogFilePath[] = L"\\SystemRoot\\MemoryMonRWX.log";
   static const auto kLogLevel =
-      (IsReleaseBuild()) ? kLogPutLevelInfo | kLogOptDisableFunctionName
+      (IsReleaseBuild()) ? kLogPutLevelDebug | kLogOptDisableFunctionName
                          : kLogPutLevelDebug | kLogOptDisableFunctionName;
 
   auto status = STATUS_UNSUCCESSFUL;
