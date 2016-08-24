@@ -58,6 +58,11 @@ To build HyperPlatform, the following are required.
 
 Installation and Uninstallation
 --------------------------------
+Clone full source code from Github with a below command and compile it on Visual
+Studio.
+
+    $ git clone --recursive https://github.com/tandasat/HyperPlatform.git
+
 On the x64 platform, you have to enable test signing to install the driver.
 To do that, open the command prompt with the administrator privilege and type
 the following command, and then restart the system to activate the change:
