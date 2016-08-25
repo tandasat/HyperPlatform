@@ -1034,6 +1034,10 @@ _Use_decl_annotations_ static void VmmpHandleVmCall(
                                   guest_context->gp_regs->dx);
       VmmpIndicateSuccessfulVmcall(guest_context);
       break;
+    case HypercallNumber::kGetSharedProcessorData:
+      *reinterpret_cast<void**>(guest_context->gp_regs->dx) = guest_context->stack->processor_data->shared_data;
+      VmmpIndicateSuccessfulVmcall(guest_context);
+      break;
     case HypercallNumber::kRweApplyRanges:
       RweVmcallApplyRanges(guest_context->stack->processor_data);
       VmmpIndicateSuccessfulVmcall(guest_context);

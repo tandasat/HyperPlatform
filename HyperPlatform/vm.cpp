@@ -120,6 +120,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static bool VmpIsVmmInstalled();
 #pragma alloc_text(PAGE, VmpFreeProcessorData)
 #pragma alloc_text(PAGE, VmpFreeSharedData)
 #pragma alloc_text(PAGE, VmpIsVmmInstalled)
+#pragma alloc_text(PAGE, VmHotplugCallback)
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -983,6 +984,40 @@ _Use_decl_annotations_ static bool VmpIsVmmInstalled() {
   RtlCopyMemory(&vendor_id[8], &cpu_info[2], 4);  // ecx
   return RtlCompareMemory(vendor_id, "Pong by VMM!\0", sizeof(vendor_id)) ==
          sizeof(vendor_id);
+}
+
+// Virtualizes the specified processor
+_Use_decl_annotations_ NTSTATUS
+VmHotplugCallback(const PROCESSOR_NUMBER &proc_num) {
+  PAGED_CODE();
+
+  // Switch to the processor 0 to get SharedProcessorData
+  GROUP_AFFINITY affinity = {};
+  GROUP_AFFINITY previous_affinity = {};
+  KeSetSystemGroupAffinityThread(&affinity, &previous_affinity);
+
+  SharedProcessorData *shared_data = nullptr;
+  auto status =
+      UtilVmCall(HypercallNumber::kGetSharedProcessorData, &shared_data);
+
+  KeSetSystemGroupAffinityThread(&affinity, &previous_affinity);
+
+  if (!NT_SUCCESS(status)) {
+    return status;
+  }
+  if (!shared_data) {
+    return STATUS_UNSUCCESSFUL;
+  }
+
+  // Switch to the newly added processor to virtualize it
+  affinity.Group = proc_num.Group;
+  affinity.Mask = 1ull << proc_num.Number;
+  KeSetSystemGroupAffinityThread(&affinity, &previous_affinity);
+
+  status = VmpStartVm(shared_data);
+
+  KeRevertToUserGroupAffinityThread(&previous_affinity);
+  return status;
 }
 
 }  // extern "C"

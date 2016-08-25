@@ -11,13 +11,11 @@
 #include "driver.h"
 #include "common.h"
 #include "global_object.h"
+#include "hotplug_callback.h"
 #include "log.h"
-#include "powercallback.h"
+#include "power_callback.h"
 #include "util.h"
 #include "vm.h"
-#ifndef HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
-#define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
-#endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
 #include "../../MemoryMon/rwe.h"
 #include "../../MemoryMon/test.h"
@@ -132,9 +130,21 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     return status;
   }
 
+  // Initialize hot-plug callback
+  status = HotplugCallbackInitialization();
+  if (!NT_SUCCESS(status)) {
+    PowerCallbackTermination();
+    UtilTermination();
+    PerfTermination();
+    GlobalObjectTermination();
+    LogTermination();
+    return status;
+  }
+
   // Virtualize all processors
   status = VmInitialization();
   if (!NT_SUCCESS(status)) {
+    HotplugCallbackTermination();
     PowerCallbackTermination();
     UtilTermination();
     PerfTermination();
@@ -162,6 +172,7 @@ _Use_decl_annotations_ static void DriverpDriverUnload(
   HYPERPLATFORM_COMMON_DBG_BREAK();
 
   VmTermination();
+  HotplugCallbackTermination();
   PowerCallbackTermination();
   UtilTermination();
   PerfTermination();

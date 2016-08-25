@@ -43,6 +43,14 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS VmInitialization();
 /// De-virtualize all processors
 _IRQL_requires_max_(PASSIVE_LEVEL) void VmTermination();
 
+/// Virtualizes the specified processor
+/// @param proc_num   A processor number to virtualize
+/// @return STATUS_SUCCESS on success
+///
+/// The processor 0 must have already been virtualized, or it fails.
+_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
+    VmHotplugCallback(const PROCESSOR_NUMBER& proc_num);
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // variables
