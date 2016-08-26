@@ -15,6 +15,7 @@
 #include "util.h"
 #include "vmm.h"
 #include "../../MemoryMon/rwe.h"
+#include "../../MemoryMon/page_fault.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -882,6 +883,8 @@ _Use_decl_annotations_ void VmTermination() {
   PAGED_CODE();
 
   HYPERPLATFORM_LOG_INFO("Uninstalling VMM.");
+  PfStopPageFaultHandling();
+
   auto status = UtilForEachProcessor(VmpStopVm, nullptr);
   if (NT_SUCCESS(status)) {
     HYPERPLATFORM_LOG_INFO("The VMM has been uninstalled.");
