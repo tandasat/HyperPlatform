@@ -494,6 +494,8 @@ _Use_decl_annotations_ static bool EptpIsDeviceMemory(
 // Returns an EPT entry corresponds to the physical_address
 _Use_decl_annotations_ EptCommonEntry *EptGetEptPtEntry(
     EptData *ept_data, ULONG64 physical_address) {
+  HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+
   return EptpGetEptPtEntry(ept_data->ept_pml4, 4, physical_address);
 }
 
