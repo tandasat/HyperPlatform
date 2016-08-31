@@ -808,9 +808,9 @@ _Use_decl_annotations_ ULONG_PTR UtilVmRead(VmcsField field) {
   const auto vmx_status = static_cast<VmxStatus>(
       __vmx_vmread(static_cast<size_t>(field), &field_value));
   if (vmx_status != VmxStatus::kOk) {
-    HYPERPLATFORM_LOG_ERROR_SAFE("__vmx_vmread(0x%08x) failed with an error %d",
-                                 field, vmx_status);
-    HYPERPLATFORM_COMMON_DBG_BREAK();
+    HYPERPLATFORM_COMMON_BUG_CHECK(
+        HyperPlatformBugCheck::kCriticalVmxInstructionFailure,
+        static_cast<ULONG_PTR>(vmx_status), static_cast<ULONG_PTR>(field), 0);
   }
   return field_value;
 }
@@ -835,14 +835,8 @@ _Use_decl_annotations_ ULONG64 UtilVmRead64(VmcsField field) {
 // Writes natural-width VMCS
 _Use_decl_annotations_ VmxStatus UtilVmWrite(VmcsField field,
                                              ULONG_PTR field_value) {
-  const auto vmx_status = static_cast<VmxStatus>(
+  return static_cast<VmxStatus>(
       __vmx_vmwrite(static_cast<size_t>(field), field_value));
-  if (vmx_status != VmxStatus::kOk) {
-    HYPERPLATFORM_LOG_ERROR_SAFE(
-        "__vmx_vmwrite(0x%08x) failed with an error %d", field, vmx_status);
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-  }
-  return vmx_status;
 }
 
 // Writes 64bit-width VMCS
@@ -889,14 +883,8 @@ _Use_decl_annotations_ void UtilWriteMsr64(Msr msr, ULONG64 value) {
 // Executes the INVEPT instruction and invalidates EPT entry cache
 /*_Use_decl_annotations_*/ VmxStatus UtilInveptGlobal() {
   InvEptDescriptor desc = {};
-  const auto vmx_status =
-      static_cast<VmxStatus>(AsmInvept(InvEptType::kGlobalInvalidation, &desc));
-  if (vmx_status != VmxStatus::kOk) {
-    HYPERPLATFORM_LOG_ERROR_SAFE(
-        "UtilInveptGlobal(Global) failed with an error %d", vmx_status);
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-  }
-  return vmx_status;
+  return static_cast<VmxStatus>(
+      AsmInvept(InvEptType::kGlobalInvalidation, &desc));
 }
 
 // Executes the INVVPID instruction (type 0)
@@ -905,42 +893,23 @@ _Use_decl_annotations_ VmxStatus UtilInvvpidIndividualAddress(USHORT vpid,
   InvVpidDescriptor desc = {};
   desc.vpid = vpid;
   desc.linear_address = reinterpret_cast<ULONG64>(address);
-  const auto vmx_status = static_cast<VmxStatus>(
+  return static_cast<VmxStatus>(
       AsmInvvpid(InvVpidType::kIndividualAddressInvalidation, &desc));
-  if (vmx_status != VmxStatus::kOk) {
-    HYPERPLATFORM_LOG_ERROR_SAFE(
-        "UtilInvvpidAllContext(Global) failed with an error %d", vmx_status);
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-  }
-  return vmx_status;
 }
 
 // Executes the INVVPID instruction (type 1)
 _Use_decl_annotations_ VmxStatus UtilInvvpidSingleContext(USHORT vpid) {
   InvVpidDescriptor desc = {};
   desc.vpid = vpid;
-  const auto vmx_status = static_cast<VmxStatus>(
+  return static_cast<VmxStatus>(
       AsmInvvpid(InvVpidType::kSingleContextInvalidation, &desc));
-  if (vmx_status != VmxStatus::kOk) {
-    HYPERPLATFORM_LOG_ERROR_SAFE(
-        "UtilInvvpidSingleContextExceptGlobal(Global) failed with an error %d",
-        vmx_status);
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-  }
-  return vmx_status;
 }
 
 // Executes the INVVPID instruction (type 2)
 /*_Use_decl_annotations_*/ VmxStatus UtilInvvpidAllContext() {
   InvVpidDescriptor desc = {};
-  const auto vmx_status = static_cast<VmxStatus>(
+  return static_cast<VmxStatus>(
       AsmInvvpid(InvVpidType::kAllContextInvalidation, &desc));
-  if (vmx_status != VmxStatus::kOk) {
-    HYPERPLATFORM_LOG_ERROR_SAFE(
-        "UtilInvvpidAllContext(Global) failed with an error %d", vmx_status);
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-  }
-  return vmx_status;
 }
 
 // Executes the INVVPID instruction (type 3)
@@ -948,15 +917,8 @@ _Use_decl_annotations_ VmxStatus
 UtilInvvpidSingleContextExceptGlobal(USHORT vpid) {
   InvVpidDescriptor desc = {};
   desc.vpid = vpid;
-  const auto vmx_status = static_cast<VmxStatus>(
+  return static_cast<VmxStatus>(
       AsmInvvpid(InvVpidType::kSingleContextInvalidationExceptGlobal, &desc));
-  if (vmx_status != VmxStatus::kOk) {
-    HYPERPLATFORM_LOG_ERROR_SAFE(
-        "UtilInvvpidSingleContextExceptGlobal(Global) failed with an error %d",
-        vmx_status);
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-  }
-  return vmx_status;
 }
 
 // Loads the PDPTE registers from CR3 to VMCS
