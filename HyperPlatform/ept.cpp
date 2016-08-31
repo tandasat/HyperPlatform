@@ -148,15 +148,22 @@ _Use_decl_annotations_ bool EptIsEptAvailable() {
     return false;
   }
 
-  // page walk length is 4 steps
-  // extended page tables can be laid out in write-back memory
-  // INVEPT instruction with all possible types is supported
-  Ia32VmxEptVpidCapMsr vpid = {UtilReadMsr64(Msr::kIa32VmxEptVpidCap)};
-  if (!vpid.fields.support_page_walk_length4 ||
-      !vpid.fields.support_write_back_memory_type ||
-      !vpid.fields.support_invept ||
-      !vpid.fields.support_single_context_invept ||
-      !vpid.fields.support_all_context_invept) {
+  // Check the followings:
+  // - page walk length is 4 steps
+  // - extended page tables can be laid out in write-back memory
+  // - INVEPT instruction with all possible types is supported
+  // - INVVPID instruction with all possible types is supported
+  Ia32VmxEptVpidCapMsr capability = {UtilReadMsr64(Msr::kIa32VmxEptVpidCap)};
+  if (!capability.fields.support_page_walk_length4 ||
+      !capability.fields.support_write_back_memory_type ||
+      !capability.fields.support_invept ||
+      !capability.fields.support_single_context_invept ||
+      !capability.fields.support_all_context_invept ||
+      !capability.fields.support_invvpid ||
+      !capability.fields.support_individual_address_invvpid ||
+      !capability.fields.support_single_context_invvpid ||
+      !capability.fields.support_all_context_invvpid ||
+      !capability.fields.support_single_context_retaining_globals_invvpid) {
     return false;
   }
   return true;
@@ -450,7 +457,7 @@ _Use_decl_annotations_ void EptHandleEptViolation(
         RweHandleNewDeviceMemoryAccess(fault_pa, fault_va);
       }
 
-      UtilInveptAll();
+      UtilInveptGlobal();
       return;
     }
   }

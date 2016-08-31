@@ -518,7 +518,10 @@ _Use_decl_annotations_ static bool VmpEnterVmxMode(
     return false;
   }
 
-  UtilInveptAll();
+  // See: Guidelines for Use of the INVVPID Instruction, and Guidelines for Use
+  // of the INVEPT Instruction
+  UtilInveptGlobal();
+  UtilInvvpidAllContext();
   return true;
 }
 
@@ -596,8 +599,9 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
 
   VmxSecondaryProcessorBasedControls vm_procctl2_requested = {};
   vm_procctl2_requested.fields.enable_ept = true;
-  vm_procctl2_requested.fields.enable_rdtscp = true;  // for Win10
   vm_procctl2_requested.fields.descriptor_table_exiting = true;
+  vm_procctl2_requested.fields.enable_rdtscp = true;  // for Win10
+  vm_procctl2_requested.fields.enable_vpid = true;
   vm_procctl2_requested.fields.enable_xsaves_xstors = true;  // for Win10
   VmxSecondaryProcessorBasedControls vm_procctl2 = {VmpAdjustControlValue(
       Msr::kIa32VmxProcBasedCtls2, vm_procctl2_requested.all)};
@@ -631,10 +635,12 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   }
 
   // clang-format off
+  auto error = VmxStatus::kOk;
+
   /* 16-Bit Control Field */
+  error |= UtilVmWrite(VmcsField::kVirtualProcessorId, KeGetCurrentProcessorNumberEx(nullptr) + 1);
 
   /* 16-Bit Guest-State Fields */
-  auto error = VmxStatus::kOk;
   error |= UtilVmWrite(VmcsField::kGuestEsSelector, AsmReadES());
   error |= UtilVmWrite(VmcsField::kGuestCsSelector, AsmReadCS());
   error |= UtilVmWrite(VmcsField::kGuestSsSelector, AsmReadSS());

@@ -201,6 +201,13 @@ _Use_decl_annotations_ bool __stdcall VmmVmExitHandler(VmmInitialStack *stack) {
 
   VmmpRestoreExtendedProcessorState(&guest_context);
 
+  // See: Guidelines for Use of the INVVPID Instruction, and Guidelines for Use
+  // of the INVEPT Instruction
+  if (!guest_context.vm_continue) {
+    UtilInveptGlobal();
+    UtilInvvpidAllContext();
+  }
+
   // Restore guest's context
   if (guest_context.irql < DISPATCH_LEVEL) {
     KeLowerIrql(guest_context.irql);
@@ -925,13 +932,15 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
         // CR3 <- Reg
         case 3: {
           HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
-          // Is TLB Flush?
+          // Is explicit TLB flush?
           if (UtilVmRead(VmcsField::kGuestCr3) == *register_used) {
             EptHandleTlbFlush(guest_context->stack->processor_data);
           }
           if (UtilIsX86Pae()) {
             UtilLoadPdptes(*register_used);
           }
+          UtilInvvpidSingleContextExceptGlobal(
+              static_cast<USHORT>(KeGetCurrentProcessorNumberEx(nullptr) + 1));
           UtilVmWrite(VmcsField::kGuestCr3, *register_used);
           break;
         }
@@ -942,13 +951,14 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
 
           const Cr4 cr4_current = {UtilVmRead(VmcsField::kGuestCr4)};
           const Cr4 cr4_requested = {*register_used};
-          // Is PGE being changed?
+          // Is explicit TLB flush?
           if (cr4_current.fields.pge && !cr4_requested.fields.pge) {
             EptHandleTlbFlush(guest_context->stack->processor_data);
           }
           if (UtilIsX86Pae()) {
             UtilLoadPdptes(UtilVmRead(VmcsField::kGuestCr3));
           }
+          UtilInvvpidAllContext();
           UtilVmWrite(VmcsField::kGuestCr4, *register_used);
           UtilVmWrite(VmcsField::kCr4ReadShadow, *register_used);
           break;
@@ -1064,6 +1074,9 @@ _Use_decl_annotations_ static void VmmpHandleInvalidateTlbEntry(
   const auto invalidate_address =
       reinterpret_cast<void *>(UtilVmRead(VmcsField::kExitQualification));
   __invlpg(invalidate_address);
+  UtilInvvpidIndividualAddress(
+      static_cast<USHORT>(KeGetCurrentProcessorNumberEx(nullptr) + 1),
+      invalidate_address);
   VmmpAdjustGuestInstructionPointer(guest_context->ip);
 }
 

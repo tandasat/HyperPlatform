@@ -138,6 +138,14 @@ unsigned char __stdcall AsmInvept(
     _In_ InvEptType invept_type,
     _In_ const InvEptDescriptor *invept_descriptor);
 
+/// Invalidate translations based on VPID
+/// @param invvpid_type  A type of invalidation
+/// @param invvpid_descriptor  A description of translations to invalidate
+/// @return 0 on success, 1 w/ an error code or 2 w/o an error code on failure
+unsigned char __stdcall AsmInvvpid(
+    _In_ InvVpidType invvpid_type,
+    _In_ const InvVpidDescriptor *invvpid_descriptor);
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // variables
