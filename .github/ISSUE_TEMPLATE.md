@@ -1,25 +1,31 @@
-### Summary
+(Please use this issue template for a bug report. You need not use it for any other type of issues.)
 
-To be described
+### Description
 
-### Expected behavior 
+(Please describe)
 
-To be described
+### Expected behavior
+
+(Please describe)
 
 ### Actual behavior
 
-To be described
+(Please describe)
 
 ### Steps to reproduce the problem
 
-To be described
+(Please describe)
 
-### Specifications 
-- OS version (version, x86 / x64): To be described
+### Specifications
+- Commit (eg, 2099af7): (Please fill in)
 
-- Hardware (real or a name of VM product): To be described
+- OS version (eg, Windows 10, Any): (Please fill in)
+
+- Architecture: (Please choose: x86, x64, Both)
+
+- Hardware (eg, Physical, VMware 11, Bochs): (Please fill in)
 
 - Anything else:
 
-To be described
+(Please describe. This may or may not include an impact/importance of the issue, proposed fix and anthing you may think useful for fixing the issue)
 
