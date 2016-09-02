@@ -23,6 +23,11 @@
 /// See: OVERVIEW
 static const SIZE_T kVmxMaxVmcsSize = 4096;
 
+/// A majority of modern hypervisors expose their signatures through CPUID with
+/// this CPUID function code to indicate their existence. HyperPlatform follows
+/// this convention.
+static const ULONG32 kHyperVCpuidInterface = 0x40000001;
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // types
@@ -251,39 +256,42 @@ struct SegmentDesctiptorX64 {
 };
 static_assert(sizeof(SegmentDesctiptorX64) == 16, "Size check");
 
-/// See: Figure 3-7.  Feature Information Returned in the ECX Register
+/// See: Figure 3-7. Feature Information Returned in the ECX Register
 union CpuFeaturesEcx {
   ULONG_PTR all;
   struct {
-    ULONG_PTR sse3 : 1;       //!< SSE3 Extensions
-    ULONG_PTR pclmulqdq : 1;  //!< Carryless Multiplication
-    ULONG_PTR dtes64 : 1;     //!< 64-bit DS Area
-    ULONG_PTR monitor : 1;    //!< MONITOR/WAIT
-    ULONG_PTR ds_cpl : 1;     //!< CPL qualified Debug Store
-    ULONG_PTR vmx : 1;        //!< Virtual Machine Technology
-    ULONG_PTR smx : 1;        //!< Safer Mode Extensions
-    ULONG_PTR est : 1;        //!< Enhanced Intel Speedstep Technology
-    ULONG_PTR tm2 : 1;        //!< Thermal monitor 2
-    ULONG_PTR ssse3 : 1;      //!< SSSE3 extensions
-    ULONG_PTR cid : 1;        //!< L1 context ID
-    ULONG_PTR reserved1 : 1;  //!<
-    ULONG_PTR fma : 1;        //!< Fused Multiply Add
-    ULONG_PTR cx16 : 1;       //!< CMPXCHG16B
-    ULONG_PTR xtpr : 1;       //!< Update control
-    ULONG_PTR pdcm : 1;       //!< Performance/Debug capability MSR
-    ULONG_PTR reserved2 : 2;  //!<
-    ULONG_PTR dca : 1;        //!<
-    ULONG_PTR sse4_1 : 1;     //!<
-    ULONG_PTR sse4_2 : 1;     //!<
-    ULONG_PTR x2_apic : 1;    //!<
-    ULONG_PTR movbe : 1;      //!<
-    ULONG_PTR popcnt : 1;     //!<
-    ULONG_PTR reserved3 : 1;  //!<
-    ULONG_PTR aes : 1;        //!<
-    ULONG_PTR xsave : 1;      //!<
-    ULONG_PTR osxsave : 1;    //!<
-    ULONG_PTR reserved4 : 2;  //!<
-    ULONG_PTR reserved5 : 1;  //!< Always 0
+    ULONG_PTR sse3 : 1;       //!< [0] Streaming SIMD Extensions 3 (SSE3)
+    ULONG_PTR pclmulqdq : 1;  //!< [1] PCLMULQDQ
+    ULONG_PTR dtes64 : 1;     //!< [2] 64-bit DS Area
+    ULONG_PTR monitor : 1;    //!< [3] MONITOR/WAIT
+    ULONG_PTR ds_cpl : 1;     //!< [4] CPL qualified Debug Store
+    ULONG_PTR vmx : 1;        //!< [5] Virtual Machine Technology
+    ULONG_PTR smx : 1;        //!< [6] Safer Mode Extensions
+    ULONG_PTR est : 1;        //!< [7] Enhanced Intel Speedstep Technology
+    ULONG_PTR tm2 : 1;        //!< [8] Thermal monitor 2
+    ULONG_PTR ssse3 : 1;      //!< [9] Supplemental Streaming SIMD Extensions 3
+    ULONG_PTR cid : 1;        //!< [10] L1 context ID
+    ULONG_PTR sdbg : 1;       //!< [11] IA32_DEBUG_INTERFACE MSR
+    ULONG_PTR fma : 1;        //!< [12] FMA extensions using YMM state
+    ULONG_PTR cx16 : 1;       //!< [13] CMPXCHG16B
+    ULONG_PTR xtpr : 1;       //!< [14] xTPR Update Control
+    ULONG_PTR pdcm : 1;       //!< [15] Performance/Debug capability MSR
+    ULONG_PTR reserved : 1;   //!< [16] Reserved
+    ULONG_PTR pcid : 1;       //!< [17] Process-context identifiers
+    ULONG_PTR dca : 1;        //!< [18] prefetch from a memory mapped device
+    ULONG_PTR sse4_1 : 1;     //!< [19] SSE4.1
+    ULONG_PTR sse4_2 : 1;     //!< [20] SSE4.2
+    ULONG_PTR x2_apic : 1;    //!< [21] x2APIC feature
+    ULONG_PTR movbe : 1;      //!< [22] MOVBE instruction
+    ULONG_PTR popcnt : 1;     //!< [23] POPCNT instruction
+    ULONG_PTR reserved3 : 1;  //!< [24] one-shot operation using a TSC deadline
+    ULONG_PTR aes : 1;        //!< [25] AESNI instruction
+    ULONG_PTR xsave : 1;      //!< [26] XSAVE/XRSTOR feature
+    ULONG_PTR osxsave : 1;    //!< [27] enable XSETBV/XGETBV instructions
+    ULONG_PTR avx : 1;        //!< [28] AVX instruction extensions
+    ULONG_PTR f16c : 1;       //!< [29] 16-bit floating-point conversion
+    ULONG_PTR rdrand : 1;     //!< [30] RDRAND instruction
+    ULONG_PTR not_used : 1;   //!< [31] Always 0 (a.k.a. HypervisorPresent)
   } fields;
 };
 static_assert(sizeof(CpuFeaturesEcx) == sizeof(void*), "Size check");
