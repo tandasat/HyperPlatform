@@ -27,5 +27,5 @@
 
 - Anything else:
 
-(Please describe. This may or may not include an impact/importance of the issue, proposed fix and anthing you may think useful for fixing the issue)
+(Please describe. This section may or may not include related log files, crash dump files, impact/importance of the issue, proposed fix and anything you may think useful for fixing the issue)
 
