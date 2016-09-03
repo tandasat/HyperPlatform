@@ -1430,7 +1430,7 @@ union VmEntryInterruptionInformationField {
 static_assert(sizeof(VmEntryInterruptionInformationField) == 4, "Size check");
 
 /// @copydoc VmEntryInterruptionInformationField
-enum class interruption_type {
+enum class InterruptionType {
   kExternalInterrupt = 0,
   kReserved = 1,  // Not used for VM-Exit
   kNonMaskableInterrupt = 2,
@@ -1444,6 +1444,7 @@ enum class interruption_type {
 /// @copydoc VmEntryInterruptionInformationField
 enum class InterruptionVector {
   kBreakpointException = 3,
+  kInvalidOpcodeException = 6,
   kGeneralProtectionException = 13,
   kPageFaultException = 14,
 };

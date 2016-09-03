@@ -345,8 +345,8 @@ _Use_decl_annotations_ static void VmmpHandleException(
   const VmExitInterruptionInformationField exception = {
       static_cast<ULONG32>(UtilVmRead(VmcsField::kVmExitIntrInfo))};
 
-  if (static_cast<interruption_type>(exception.fields.interruption_type) ==
-      interruption_type::kHardwareException) {
+  if (static_cast<InterruptionType>(exception.fields.interruption_type) ==
+      InterruptionType::kHardwareException) {
     // Hardware exception
     if (static_cast<InterruptionVector>(exception.fields.vector) ==
         InterruptionVector::kPageFaultException) {
@@ -387,9 +387,9 @@ _Use_decl_annotations_ static void VmmpHandleException(
                                      0);
     }
 
-  } else if (static_cast<interruption_type>(
+  } else if (static_cast<InterruptionType>(
                  exception.fields.interruption_type) ==
-             interruption_type::kSoftwareException) {
+             InterruptionType::kSoftwareException) {
     // Software exception
     if (static_cast<InterruptionVector>(exception.fields.vector) ==
         InterruptionVector::kBreakpointException) {
@@ -397,7 +397,6 @@ _Use_decl_annotations_ static void VmmpHandleException(
       VmEntryInterruptionInformationField inject = {};
       inject.fields.interruption_type = exception.fields.interruption_type;
       inject.fields.vector = exception.fields.vector;
-      inject.fields.deliver_error_code = false;
       inject.fields.valid = true;
       UtilVmWrite(VmcsField::kVmEntryIntrInfoField, inject.all);
       UtilVmWrite(VmcsField::kVmEntryInstructionLen, 1);
@@ -992,8 +991,9 @@ _Use_decl_annotations_ static void VmmpHandleVmx(GuestContext *guest_context) {
 // VMCALL
 _Use_decl_annotations_ static void VmmpHandleVmCall(
     GuestContext *guest_context) {
-  // VMCALL for Sushi expects that cx holds a command number, and dx holds an
-  // address of a context parameter optionally
+  // VMCALL convention for HyperPlatform:
+  //  ecx: hyper-call number (always 32bit)
+  //  edx: arbitrary context parameter (pointer size)
   const auto hypercall_number =
       static_cast<HypercallNumber>(guest_context->gp_regs->cx);
 
@@ -1007,9 +1007,17 @@ _Use_decl_annotations_ static void VmmpHandleVmCall(
                                   guest_context->gp_regs->dx);
       VmmpIndicateSuccessfulVmcall(guest_context);
       break;
-    default:
-      // Unsupported hypercall. Handle like other VMX instructions
-      VmmpHandleVmx(guest_context);
+    default: {
+      // Unsupported hypercall; raise #UD
+      VmEntryInterruptionInformationField inject = {};
+      inject.fields.interruption_type =
+          static_cast<ULONG32>(InterruptionType::kHardwareException);
+      inject.fields.vector =
+          static_cast<ULONG32>(InterruptionVector::kInvalidOpcodeException);
+      inject.fields.valid = true;
+      UtilVmWrite(VmcsField::kVmEntryIntrInfoField, inject.all);
+      UtilVmWrite(VmcsField::kVmEntryInstructionLen, 3);  // VMCALL is 3 bytes
+    }
   }
 }
 
