@@ -7,6 +7,9 @@
 
 #include "kernel_stl.h"
 
+// See common.h for details
+#pragma prefast(disable : 30030)
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // macro utilities
@@ -52,7 +55,8 @@ _Use_decl_annotations_ DECLSPEC_NORETURN void KernelStlRaiseException(
 
 // Followings are definitions of functions needed to link successfully.
 
-/*_Use_decl_annotations_*/ DECLSPEC_NORETURN void __cdecl _invalid_parameter_noinfo_noreturn() {
+/*_Use_decl_annotations_*/
+DECLSPEC_NORETURN void __cdecl _invalid_parameter_noinfo_noreturn() {
   KernelStlRaiseException(KMODE_EXCEPTION_NOT_HANDLED);
 }
 

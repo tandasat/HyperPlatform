@@ -9,6 +9,9 @@
 #define NTSTRSAFE_NO_CB_FUNCTIONS
 #include <ntstrsafe.h>
 
+// See common.h for details
+#pragma prefast(disable : 30030)
+
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
 //
