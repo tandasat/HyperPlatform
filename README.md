@@ -49,11 +49,11 @@ Build
 ------
 To build HyperPlatform, the following are required.
 - Visual Studio Community 2015 Update 3
- - https://www.visualstudio.com/en-us/news/vs2015-update1-vs.aspx
-- Windows Software Development Kit (SDK) for Windows 10
- - https://dev.windows.com/en-us/downloads/windows-10-sdk
-- Windows Driver Kit (WDK) 10
- - https://msdn.microsoft.com/en-us/windows/hardware/hh852365.aspx
+ - https://beta.visualstudio.com/downloads/
+- Windows Software Development Kit (SDK) for Windows 10 (10.0.10586.0 or later)
+ - https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk
+- Windows Driver Kit (WDK) 10 (10.0.10586.0 or later)
+ - https://developer.microsoft.com/en-us/windows/hardware/windows-driver-kit
 
 
 Installation and Uninstallation
@@ -106,14 +106,14 @@ Related Project(s)
  - http://ionescu007.github.io/SimpleVisor/
 
 SimpleVisor is a very (very) simple and readable Windows-specific hypervisor made
-up of only 1700 lines of code. I would recommend taking a look at the project to 
-learn VT-x if you are new to hypervisor development. It should give you a clearer 
+up of only 1700 lines of code. I would recommend taking a look at the project to
+learn VT-x if you are new to hypervisor development. It should give you a clearer
 view of how a hypervisor is initialized and executed.
 
 - ksm
  - https://github.com/asamy/ksm
 
-ksm is other simple and lightweight x64 hypervisor written in C for Windows for 
+ksm is other simple and lightweight x64 hypervisor written in C for Windows for
 Intel processors. It is just a half size of HyperPlatform in lines of code while
 demonstrating usage of EPT, as well as #VE and VMFUNC where HyperPlatform does
 not include.
@@ -121,10 +121,10 @@ not include.
 - Bareflank Hypervisor
  - http://bareflank.github.io/hypervisor/
 
-Bareflank Hypervisor is an actively developed open source, lightweight hypervisor. 
-It comes with rich documents, tests, and comments, supports Linux on Intel 64bit, 
+Bareflank Hypervisor is an actively developed open source, lightweight hypervisor.
+It comes with rich documents, tests, and comments, supports Linux on Intel 64bit,
 and also aims to support Windows, OS X, and UEFI as well as ARM and AMD platforms.
-While a size of code is larger than that of HyperPlatform, ones look for a more 
+While a size of code is larger than that of HyperPlatform, ones look for a more
 complihensive yet still lightweight hypervisor will find it interesting.
 
 
