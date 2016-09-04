@@ -223,7 +223,7 @@ static_assert(sizeof(SegmentSelector) == 2, "Size check");
 #include <poppack.h>
 
 /// See: Segment Desctiptor
-union SegmentDesctiptor {
+union SegmentDescriptor {
   ULONG64 all;
   struct {
     ULONG64 limit_low : 16;
@@ -241,11 +241,11 @@ union SegmentDesctiptor {
     ULONG64 base_high : 8;
   } fields;
 };
-static_assert(sizeof(SegmentDesctiptor) == 8, "Size check");
+static_assert(sizeof(SegmentDescriptor) == 8, "Size check");
 
-/// @copydoc SegmentDesctiptor
+/// @copydoc SegmentDescriptor
 struct SegmentDesctiptorX64 {
-  SegmentDesctiptor descriptor;
+  SegmentDescriptor descriptor;
   ULONG32 base_upper32;
   ULONG32 reserved;
 };

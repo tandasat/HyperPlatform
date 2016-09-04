@@ -12,9 +12,6 @@
 #include "ept.h"
 #include "log.h"
 #include "util.h"
-#ifndef HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
-#define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
-#endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
 
 extern "C" {
@@ -153,7 +150,17 @@ static void VmmpRestoreExtendedProcessorState(_In_ GuestContext *guest_context);
 
 static void VmmpIndicateSuccessfulVmcall(_In_ GuestContext *guest_context);
 
-static void VmmpHandleVmCallTermination(_In_ GuestContext *guest_context);
+static void VmmpIndicateUnsuccessfulVmcall(_In_ GuestContext *guest_context);
+
+static void VmmpHandleVmCallTermination(_In_ GuestContext *guest_context,
+                                        _Inout_ void *context);
+
+static UCHAR VmmpGetGuestCpl();
+
+static void VmmpInjectInterruption(_In_ InterruptionType interruption_type,
+                                   _In_ InterruptionVector vector,
+                                   _In_ bool deliver_error_code,
+                                   _In_ ULONG32 error_code);
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -344,41 +351,29 @@ _Use_decl_annotations_ static void VmmpHandleException(
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
   const VmExitInterruptionInformationField exception = {
       static_cast<ULONG32>(UtilVmRead(VmcsField::kVmExitIntrInfo))};
+  const auto interruption_type =
+      static_cast<InterruptionType>(exception.fields.interruption_type);
+  const auto vector = static_cast<InterruptionVector>(exception.fields.vector);
 
-  if (static_cast<InterruptionType>(exception.fields.interruption_type) ==
-      InterruptionType::kHardwareException) {
+  if (interruption_type == InterruptionType::kHardwareException) {
     // Hardware exception
-    if (static_cast<InterruptionVector>(exception.fields.vector) ==
-        InterruptionVector::kPageFaultException) {
+    if (vector == InterruptionVector::kPageFaultException) {
       // #PF
       const PageFaultErrorCode fault_code = {
           static_cast<ULONG32>(UtilVmRead(VmcsField::kVmExitIntrErrorCode))};
       const auto fault_address = UtilVmRead(VmcsField::kExitQualification);
 
-      VmEntryInterruptionInformationField inject = {};
-      inject.fields.interruption_type = exception.fields.interruption_type;
-      inject.fields.vector = exception.fields.vector;
-      inject.fields.deliver_error_code = true;
-      inject.fields.valid = true;
-      AsmWriteCR2(fault_address);
-      UtilVmWrite(VmcsField::kVmEntryExceptionErrorCode, fault_code.all);
-      UtilVmWrite(VmcsField::kVmEntryIntrInfoField, inject.all);
+      VmmpInjectInterruption(interruption_type, vector, true, fault_code.all);
       HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %p, #PF Fault= %p Code= 0x%2x",
                                   guest_context->ip, fault_address, fault_code);
+      AsmWriteCR2(fault_address);
 
-    } else if (static_cast<InterruptionVector>(exception.fields.vector) ==
-               InterruptionVector::kGeneralProtectionException) {
+    } else if (vector == InterruptionVector::kGeneralProtectionException) {
       // # GP
       const auto error_code =
           static_cast<ULONG32>(UtilVmRead(VmcsField::kVmExitIntrErrorCode));
 
-      VmEntryInterruptionInformationField inject = {};
-      inject.fields.interruption_type = exception.fields.interruption_type;
-      inject.fields.vector = exception.fields.vector;
-      inject.fields.deliver_error_code = true;
-      inject.fields.valid = true;
-      UtilVmWrite(VmcsField::kVmEntryExceptionErrorCode, error_code);
-      UtilVmWrite(VmcsField::kVmEntryIntrInfoField, inject.all);
+      VmmpInjectInterruption(interruption_type, vector, true, error_code);
       HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %p, #GP Code= 0x%2x",
                                   guest_context->ip, error_code);
 
@@ -387,20 +382,13 @@ _Use_decl_annotations_ static void VmmpHandleException(
                                      0);
     }
 
-  } else if (static_cast<InterruptionType>(
-                 exception.fields.interruption_type) ==
-             InterruptionType::kSoftwareException) {
+  } else if (interruption_type == InterruptionType::kSoftwareException) {
     // Software exception
-    if (static_cast<InterruptionVector>(exception.fields.vector) ==
-        InterruptionVector::kBreakpointException) {
+    if (vector == InterruptionVector::kBreakpointException) {
       // #BP
-      VmEntryInterruptionInformationField inject = {};
-      inject.fields.interruption_type = exception.fields.interruption_type;
-      inject.fields.vector = exception.fields.vector;
-      inject.fields.valid = true;
-      UtilVmWrite(VmcsField::kVmEntryIntrInfoField, inject.all);
-      UtilVmWrite(VmcsField::kVmEntryInstructionLen, 1);
+      VmmpInjectInterruption(interruption_type, vector, false, 0);
       HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %p, #BP ", guest_context->ip);
+      UtilVmWrite(VmcsField::kVmEntryInstructionLen, 1);
 
     } else {
       HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kUnspecified, 0, 0,
@@ -994,30 +982,28 @@ _Use_decl_annotations_ static void VmmpHandleVmCall(
   // VMCALL convention for HyperPlatform:
   //  ecx: hyper-call number (always 32bit)
   //  edx: arbitrary context parameter (pointer size)
+  // Any unsuccessful VMCALL will inject #UD into a guest
   const auto hypercall_number =
       static_cast<HypercallNumber>(guest_context->gp_regs->cx);
+  const auto context = reinterpret_cast<void *>(guest_context->gp_regs->dx);
 
   switch (hypercall_number) {
     case HypercallNumber::kTerminateVmm:
-      // Unloading requested
-      VmmpHandleVmCallTermination(guest_context);
+      // Unloading requested. This VMCALL is allowed to execute only from CPL=0
+      if (VmmpGetGuestCpl() == 0) {
+        VmmpHandleVmCallTermination(guest_context, context);
+      } else {
+        VmmpIndicateUnsuccessfulVmcall(guest_context);
+      }
       break;
     case HypercallNumber::kPingVmm:
-      HYPERPLATFORM_LOG_INFO_SAFE("Pong by VMM! (context = %p)",
-                                  guest_context->gp_regs->dx);
+      // Sample VMCALL handler
+      HYPERPLATFORM_LOG_INFO_SAFE("Pong by VMM! (context = %p)", context);
       VmmpIndicateSuccessfulVmcall(guest_context);
       break;
-    default: {
-      // Unsupported hypercall; raise #UD
-      VmEntryInterruptionInformationField inject = {};
-      inject.fields.interruption_type =
-          static_cast<ULONG32>(InterruptionType::kHardwareException);
-      inject.fields.vector =
-          static_cast<ULONG32>(InterruptionVector::kInvalidOpcodeException);
-      inject.fields.valid = true;
-      UtilVmWrite(VmcsField::kVmEntryIntrInfoField, inject.all);
-      UtilVmWrite(VmcsField::kVmEntryInstructionLen, 3);  // VMCALL is 3 bytes
-    }
+    default:
+      // Unsupported hypercall
+      VmmpIndicateUnsuccessfulVmcall(guest_context);
   }
 }
 
@@ -1138,11 +1124,14 @@ _Use_decl_annotations_ static void VmmpAdjustGuestInstructionPointer(
 // Handle VMRESUME or VMXOFF failure. Fatal error.
 _Use_decl_annotations_ void __stdcall VmmVmxFailureHandler(
     AllRegisters *all_regs) {
+  const auto guest_ip = UtilVmRead(VmcsField::kGuestRip);
+  // See: VM-Instruction Error Numbers
   const auto vmx_error = (all_regs->flags.fields.zf)
                              ? UtilVmRead(VmcsField::kVmInstructionError)
                              : 0;
   HYPERPLATFORM_COMMON_BUG_CHECK(
-      HyperPlatformBugCheck::kCriticalVmxInstructionFailure, vmx_error, 0, 0);
+      HyperPlatformBugCheck::kCriticalVmxInstructionFailure, vmx_error,
+      guest_ip, 0);
 }
 
 // Saves all supported user state components (x87, SSE, AVX states)
@@ -1191,11 +1180,19 @@ _Use_decl_annotations_ static void VmmpIndicateSuccessfulVmcall(
   VmmpAdjustGuestInstructionPointer(guest_context->ip);
 }
 
+// Indicates unsuccessful VMCALL
+_Use_decl_annotations_ static void VmmpIndicateUnsuccessfulVmcall(
+    GuestContext *guest_context) {
+  UNREFERENCED_PARAMETER(guest_context);
+
+  VmmpInjectInterruption(InterruptionType::kHardwareException,
+                         InterruptionVector::kInvalidOpcodeException, false, 0);
+  UtilVmWrite(VmcsField::kVmEntryInstructionLen, 3);  // VMCALL is 3 bytes
+}
+
 // Handles an unloading request
 _Use_decl_annotations_ static void VmmpHandleVmCallTermination(
-    GuestContext *guest_context) {
-  const auto context = reinterpret_cast<void *>(guest_context->gp_regs->dx);
-
+    GuestContext *guest_context, void *context) {
   // The processor sets ffff to limits of IDT and GDT when VM-exit occurred.
   // It is not correct value but fine to ignore since vmresume loads correct
   // values from VMCS. But here, we are going to skip vmresume and simply
@@ -1240,6 +1237,29 @@ _Use_decl_annotations_ static void VmmpHandleVmCallTermination(
   guest_context->gp_regs->dx = guest_context->gp_regs->sp;
   guest_context->gp_regs->ax = guest_context->flag_reg.all;
   guest_context->vm_continue = false;
+}
+
+// Returns guest's CPL
+/*_Use_decl_annotations_*/ static UCHAR VmmpGetGuestCpl() {
+  VmxRegmentDescriptorAccessRight ar = {
+      static_cast<unsigned int>(UtilVmRead(VmcsField::kGuestSsArBytes))};
+  return ar.fields.dpl;
+}
+
+// Injects interruption to a guest
+_Use_decl_annotations_ static void VmmpInjectInterruption(
+    InterruptionType interruption_type, InterruptionVector vector,
+    bool deliver_error_code, ULONG32 error_code) {
+  VmEntryInterruptionInformationField inject = {};
+  inject.fields.valid = true;
+  inject.fields.interruption_type = static_cast<ULONG32>(interruption_type);
+  inject.fields.vector = static_cast<ULONG32>(vector);
+  inject.fields.deliver_error_code = deliver_error_code;
+  UtilVmWrite(VmcsField::kVmEntryIntrInfoField, inject.all);
+
+  if (deliver_error_code) {
+    UtilVmWrite(VmcsField::kVmEntryExceptionErrorCode, error_code);
+  }
 }
 
 }  // extern "C"
