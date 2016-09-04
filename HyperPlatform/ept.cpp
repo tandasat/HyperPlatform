@@ -10,9 +10,6 @@
 #include "common.h"
 #include "log.h"
 #include "util.h"
-#ifndef HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
-#define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
-#endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
 
 extern "C" {
