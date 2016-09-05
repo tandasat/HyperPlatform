@@ -1148,9 +1148,17 @@ _Use_decl_annotations_ static void VmmpSaveExtendedProcessorState(
   const auto old_cr0 = cr0;
   cr0.fields.ts = false;
   __writecr0(cr0.all);
-  _xsave(guest_context->stack->processor_data->xsave_area,
-         guest_context->stack->processor_data->xsave_inst_mask);
-
+  if (guest_context->stack->processor_data->xsave_inst_mask) {
+    _xsave(guest_context->stack->processor_data->xsave_area,
+           guest_context->stack->processor_data->xsave_inst_mask);
+  } else {
+    // Advances an address up to 15 bytes to be 16-byte aligned
+    auto alignment = reinterpret_cast<ULONG_PTR>(
+                         guest_context->stack->processor_data->fxsave_area) %
+                     16;
+    alignment = (alignment) ? 16 - alignment : 0;
+    _fxsave(guest_context->stack->processor_data->fxsave_area + alignment);
+  }
   __writecr0(old_cr0.all);
 }
 
@@ -1162,10 +1170,17 @@ _Use_decl_annotations_ static void VmmpRestoreExtendedProcessorState(
   const auto old_cr0 = cr0;
   cr0.fields.ts = false;
   __writecr0(cr0.all);
-
-  _xrstor(guest_context->stack->processor_data->xsave_area,
-          guest_context->stack->processor_data->xsave_inst_mask);
-
+  if (guest_context->stack->processor_data->xsave_inst_mask) {
+    _xrstor(guest_context->stack->processor_data->xsave_area,
+            guest_context->stack->processor_data->xsave_inst_mask);
+  } else {
+    // Advances an address up to 15 bytes to be 16-byte aligned
+    auto alignment = reinterpret_cast<ULONG_PTR>(
+                         guest_context->stack->processor_data->fxsave_area) %
+                     16;
+    alignment = (alignment) ? 16 - alignment : 0;
+    _fxsave(guest_context->stack->processor_data->fxsave_area + alignment);
+  }
   __writecr0(old_cr0.all);
 }
 
@@ -1223,8 +1238,8 @@ _Use_decl_annotations_ static void VmmpHandleVmCallTermination(
       UtilVmRead(VmcsField::kVmExitInstructionLen);
   const auto return_address = guest_context->ip + exit_instruction_length;
 
-  // Since rflags is overwritten after VMXOFF, we should manually indicates
-  // that VMCALL was successful by clearing those flags.
+  // Since the flag register is overwritten after VMXOFF, we should manually
+  // indicates that VMCALL was successful by clearing those flags.
   // See "CONVENTIONS"
   guest_context->flag_reg.fields.cf = false;
   guest_context->flag_reg.fields.pf = false;

@@ -251,42 +251,84 @@ struct SegmentDesctiptorX64 {
 };
 static_assert(sizeof(SegmentDesctiptorX64) == 16, "Size check");
 
-/// See: Figure 3-7.  Feature Information Returned in the ECX Register
+/// See: Feature Information Returned in the ECX Register
 union CpuFeaturesEcx {
-  ULONG_PTR all;
+  ULONG32 all;
   struct {
-    ULONG_PTR sse3 : 1;       //!< SSE3 Extensions
-    ULONG_PTR pclmulqdq : 1;  //!< Carryless Multiplication
-    ULONG_PTR dtes64 : 1;     //!< 64-bit DS Area
-    ULONG_PTR monitor : 1;    //!< MONITOR/WAIT
-    ULONG_PTR ds_cpl : 1;     //!< CPL qualified Debug Store
-    ULONG_PTR vmx : 1;        //!< Virtual Machine Technology
-    ULONG_PTR smx : 1;        //!< Safer Mode Extensions
-    ULONG_PTR est : 1;        //!< Enhanced Intel Speedstep Technology
-    ULONG_PTR tm2 : 1;        //!< Thermal monitor 2
-    ULONG_PTR ssse3 : 1;      //!< SSSE3 extensions
-    ULONG_PTR cid : 1;        //!< L1 context ID
-    ULONG_PTR reserved1 : 1;  //!<
-    ULONG_PTR fma : 1;        //!< Fused Multiply Add
-    ULONG_PTR cx16 : 1;       //!< CMPXCHG16B
-    ULONG_PTR xtpr : 1;       //!< Update control
-    ULONG_PTR pdcm : 1;       //!< Performance/Debug capability MSR
-    ULONG_PTR reserved2 : 2;  //!<
-    ULONG_PTR dca : 1;        //!<
-    ULONG_PTR sse4_1 : 1;     //!<
-    ULONG_PTR sse4_2 : 1;     //!<
-    ULONG_PTR x2_apic : 1;    //!<
-    ULONG_PTR movbe : 1;      //!<
-    ULONG_PTR popcnt : 1;     //!<
-    ULONG_PTR reserved3 : 1;  //!<
-    ULONG_PTR aes : 1;        //!<
-    ULONG_PTR xsave : 1;      //!<
-    ULONG_PTR osxsave : 1;    //!<
-    ULONG_PTR reserved4 : 2;  //!<
-    ULONG_PTR reserved5 : 1;  //!< Always 0
+    ULONG32 sse3 : 1;       //!< [0] Streaming SIMD Extensions 3 (SSE3)
+    ULONG32 pclmulqdq : 1;  //!< [1] PCLMULQDQ
+    ULONG32 dtes64 : 1;     //!< [2] 64-bit DS Area
+    ULONG32 monitor : 1;    //!< [3] MONITOR/WAIT
+    ULONG32 ds_cpl : 1;     //!< [4] CPL qualified Debug Store
+    ULONG32 vmx : 1;        //!< [5] Virtual Machine Technology
+    ULONG32 smx : 1;        //!< [6] Safer Mode Extensions
+    ULONG32 est : 1;        //!< [7] Enhanced Intel Speedstep Technology
+    ULONG32 tm2 : 1;        //!< [8] Thermal monitor 2
+    ULONG32 ssse3 : 1;      //!< [9] Supplemental Streaming SIMD Extensions 3
+    ULONG32 cid : 1;        //!< [10] L1 context ID
+    ULONG32 sdbg : 1;       //!< [11] IA32_DEBUG_INTERFACE MSR
+    ULONG32 fma : 1;        //!< [12] FMA extensions using YMM state
+    ULONG32 cx16 : 1;       //!< [13] CMPXCHG16B
+    ULONG32 xtpr : 1;       //!< [14] xTPR Update Control
+    ULONG32 pdcm : 1;       //!< [15] Performance/Debug capability MSR
+    ULONG32 reserved : 1;   //!< [16] Reserved
+    ULONG32 pcid : 1;       //!< [17] Process-context identifiers
+    ULONG32 dca : 1;        //!< [18] prefetch from a memory mapped device
+    ULONG32 sse4_1 : 1;     //!< [19] SSE4.1
+    ULONG32 sse4_2 : 1;     //!< [20] SSE4.2
+    ULONG32 x2_apic : 1;    //!< [21] x2APIC feature
+    ULONG32 movbe : 1;      //!< [22] MOVBE instruction
+    ULONG32 popcnt : 1;     //!< [23] POPCNT instruction
+    ULONG32 reserved3 : 1;  //!< [24] one-shot operation using a TSC deadline
+    ULONG32 aes : 1;        //!< [25] AESNI instruction
+    ULONG32 xsave : 1;      //!< [26] XSAVE/XRSTOR feature
+    ULONG32 osxsave : 1;    //!< [27] enable XSETBV/XGETBV instructions
+    ULONG32 avx : 1;        //!< [28] AVX instruction extensions
+    ULONG32 f16c : 1;       //!< [29] 16-bit floating-point conversion
+    ULONG32 rdrand : 1;     //!< [30] RDRAND instruction
+    ULONG32 not_used : 1;   //!< [31] Always 0 (a.k.a. HypervisorPresent)
   } fields;
 };
-static_assert(sizeof(CpuFeaturesEcx) == sizeof(void*), "Size check");
+static_assert(sizeof(CpuFeaturesEcx) == 4, "Size check");
+
+/// See: More on Feature Information Returned in the EDX Register
+union CpuFeaturesEdx {
+  ULONG32 all;
+  struct {
+    ULONG32 fpu : 1;        //!< [0] Floating Point Unit On-Chip
+    ULONG32 vme : 1;        //!< [1] Virtual 8086 Mode Enhancements
+    ULONG32 de : 1;         //!< [2] Debugging Extensions
+    ULONG32 pse : 1;        //!< [3] Page Size Extension
+    ULONG32 tsc : 1;        //!< [4] Time Stamp Counter
+    ULONG32 msr : 1;        //!< [5] RDMSR and WRMSR Instructions
+    ULONG32 mce : 1;        //!< [7] Machine Check Exception
+    ULONG32 cx8 : 1;        //!< [8] Thermal monitor 2
+    ULONG32 apic : 1;       //!< [9] APIC On-Chip
+    ULONG32 reserved1 : 1;  //!< [10] Reserved
+    ULONG32 sep : 1;        //!< [11] SYSENTER and SYSEXIT Instructions
+    ULONG32 mtrr : 1;       //!< [12] Memory Type Range Registers
+    ULONG32 pge : 1;        //!< [13] Page Global Bit
+    ULONG32 mca : 1;        //!< [14] Machine Check Architecture
+    ULONG32 cmov : 1;       //!< [15] Conditional Move Instructions
+    ULONG32 pat : 1;        //!< [16] Page Attribute Table
+    ULONG32 pse36 : 1;      //!< [17] 36-Bit Page Size Extension
+    ULONG32 psn : 1;        //!< [18] Processor Serial Number
+    ULONG32 clfsh : 1;      //!< [19] CLFLUSH Instruction
+    ULONG32 reserved2 : 1;  //!< [20] Reserved
+    ULONG32 ds : 1;         //!< [21] Debug Store
+    ULONG32 acpi : 1;       //!< [22] TM and Software Controlled Clock
+    ULONG32 mmx : 1;        //!< [23] Intel MMX Technology
+    ULONG32 fxsr : 1;       //!< [24] FXSAVE and FXRSTOR Instructions
+    ULONG32 sse : 1;        //!< [25] SSE
+    ULONG32 sse2 : 1;       //!< [26] SSE2
+    ULONG32 ss : 1;         //!< [27] Self Snoop
+    ULONG32 htt : 1;        //!< [28] Max APIC IDs reserved field is Valid
+    ULONG32 tm : 1;         //!< [29] Thermal Monitor
+    ULONG32 reserved3 : 1;  //!< [30] Reserved
+    ULONG32 pbe : 1;        //!< [31] Pending Break Enable
+  } fields;
+};
+static_assert(sizeof(CpuFeaturesEdx) == 4, "Size check");
 
 /// nt!_HARDWARE_PTE on x86 PAE-disabled Windows
 struct HardwarePteX86 {

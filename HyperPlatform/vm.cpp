@@ -36,6 +36,9 @@ extern "C" {
 // prototypes
 //
 
+_IRQL_requires_max_(PASSIVE_LEVEL) NTSYSAPI ULONG64 NTAPI
+    RtlGetEnabledExtendedFeatures(_In_ ULONG64 FeatureMask);
+
 _IRQL_requires_max_(PASSIVE_LEVEL) static bool VmpIsVmxAvailable();
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
@@ -368,6 +371,8 @@ _Use_decl_annotations_ static void VmpInitializeVm(
     return;
   }
   RtlZeroMemory(processor_data, sizeof(ProcessorData));
+  processor_data->shared_data = shared_data;
+  InterlockedIncrement(&processor_data->shared_data->reference_count);
 
   // Set up EPT
   processor_data->ept_data = EptInitialization();
@@ -377,48 +382,57 @@ _Use_decl_annotations_ static void VmpInitializeVm(
 
   // Check if XSAVE/XRSTOR are available and save an instruction mask for all
   // supported user state components
-  ULONG64 RtlGetEnabledExtendedFeatures(_In_ ULONG64 FeatureMask);
-
   processor_data->xsave_inst_mask =
       RtlGetEnabledExtendedFeatures(static_cast<ULONG64>(-1));
-  if (!processor_data->xsave_inst_mask) {
-    goto ReturnFalse;
+  if (processor_data->xsave_inst_mask) {
+    // Allocate a large enough XSAVE area to store all supported user state
+    // components. A size is round-up to multiple of the page size so that the
+    // address fullfills a requirement of 64K alignment.
+    //
+    // See: ENUMERATION OF CPU SUPPORT FOR XSAVE INSTRUCTIONS AND XSAVESUPPORTED
+    // FEATURES
+    int cpu_info[4] = {};
+    __cpuidex(cpu_info, 0xd, 0);
+    const auto xsave_area_size = ROUND_TO_PAGES(cpu_info[2]);  // ecx
+    processor_data->xsave_area = ExAllocatePoolWithTag(
+        NonPagedPool, xsave_area_size, kHyperPlatformCommonPoolTag);
+    if (!processor_data->xsave_area) {
+      goto ReturnFalse;
+    }
+    RtlZeroMemory(processor_data->xsave_area, xsave_area_size);
+  } else {
+    // Use FXSAVE/FXRSTOR instead. Make sure if the system supports them.
+    int cpu_info[4] = {};
+    __cpuid(cpu_info, 1);
+    const CpuFeaturesEdx cpu_features = {static_cast<ULONG32>(cpu_info[3])};
+    if (!cpu_features.fields.fxsr) {
+      goto ReturnFalse;
+    }
   }
-
-  // Allocate a large enough XSAVE area to store all supported user state
-  // components. A size is round-up to multiple of the page size so that the
-  // address fullfills a requirement of 64K alignment.
-  //
-  // See: ENUMERATION OF CPU SUPPORT FOR XSAVE INSTRUCTIONS AND XSAVESUPPORTED
-  // FEATURES
-  int registers[4] = {};
-  __cpuidex(registers, 0xd, 0);
-  const auto xsave_area_size = ROUND_TO_PAGES(registers[2]);  // ecx
-  const auto xsave_area = ExAllocatePoolWithTag(NonPagedPool, xsave_area_size,
-                                                kHyperPlatformCommonPoolTag);
 
   // Allocated other processor data fields
-  const auto vmm_stack_limit = UtilAllocateContiguousMemory(KERNEL_STACK_SIZE);
-  const auto vmcs_region =
-      reinterpret_cast<VmControlStructure *>(ExAllocatePoolWithTag(
-          NonPagedPool, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
-  const auto vmxon_region =
-      reinterpret_cast<VmControlStructure *>(ExAllocatePoolWithTag(
-          NonPagedPool, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
-
-  // Initialize the management structure
-  processor_data->vmm_stack_limit = vmm_stack_limit;
-  processor_data->vmcs_region = vmcs_region;
-  processor_data->vmxon_region = vmxon_region;
-  processor_data->xsave_area = xsave_area;
-
-  if (!vmm_stack_limit || !vmcs_region || !vmxon_region || !xsave_area) {
+  processor_data->vmm_stack_limit =
+      UtilAllocateContiguousMemory(KERNEL_STACK_SIZE);
+  if (!processor_data->vmm_stack_limit) {
     goto ReturnFalse;
   }
-  RtlZeroMemory(vmm_stack_limit, KERNEL_STACK_SIZE);
-  RtlZeroMemory(vmcs_region, kVmxMaxVmcsSize);
-  RtlZeroMemory(vmxon_region, kVmxMaxVmcsSize);
-  RtlZeroMemory(xsave_area, xsave_area_size);
+  RtlZeroMemory(processor_data->vmm_stack_limit, KERNEL_STACK_SIZE);
+
+  processor_data->vmcs_region =
+      reinterpret_cast<VmControlStructure *>(ExAllocatePoolWithTag(
+          NonPagedPool, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
+  if (!processor_data->vmcs_region) {
+    goto ReturnFalse;
+  }
+  RtlZeroMemory(processor_data->vmcs_region, kVmxMaxVmcsSize);
+
+  processor_data->vmxon_region =
+      reinterpret_cast<VmControlStructure *>(ExAllocatePoolWithTag(
+          NonPagedPool, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
+  if (!processor_data->vmxon_region) {
+    goto ReturnFalse;
+  }
+  RtlZeroMemory(processor_data->vmxon_region, kVmxMaxVmcsSize);
 
   // Initialize stack memory for VMM like this:
   //
@@ -434,22 +448,22 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   // +------------------+  <- vmm_stack_limit            (eg, AED34000)
   // (Low)
   const auto vmm_stack_region_base =
-      reinterpret_cast<ULONG_PTR>(vmm_stack_limit) + KERNEL_STACK_SIZE;
+      reinterpret_cast<ULONG_PTR>(processor_data->vmm_stack_limit) +
+      KERNEL_STACK_SIZE;
   const auto vmm_stack_data = vmm_stack_region_base - sizeof(void *);
   const auto vmm_stack_base = vmm_stack_data - sizeof(void *);
-  HYPERPLATFORM_LOG_DEBUG("VmmStackTop=       %p", vmm_stack_limit);
-  HYPERPLATFORM_LOG_DEBUG("VmmStackBottom=    %p", vmm_stack_region_base);
-  HYPERPLATFORM_LOG_DEBUG("VmmStackData=      %p", vmm_stack_data);
-  HYPERPLATFORM_LOG_DEBUG("ProcessorData=     %p stored at %p", processor_data,
-                          vmm_stack_data);
-  HYPERPLATFORM_LOG_DEBUG("VmmStackBase=      %p", vmm_stack_base);
-  HYPERPLATFORM_LOG_DEBUG("GuestStackPointer= %p", guest_stack_pointer);
-  HYPERPLATFORM_LOG_DEBUG("GuestInstPointer=  %p", guest_instruction_pointer);
+  HYPERPLATFORM_LOG_DEBUG("vmm_stack_limit       = %p",
+                          processor_data->vmm_stack_limit);
+  HYPERPLATFORM_LOG_DEBUG("vmm_stack_region_base = %p", vmm_stack_region_base);
+  HYPERPLATFORM_LOG_DEBUG("vmm_stack_data        = %p", vmm_stack_data);
+  HYPERPLATFORM_LOG_DEBUG("vmm_stack_base        = %p", vmm_stack_base);
+  HYPERPLATFORM_LOG_DEBUG("processor_data        = %p stored at %p",
+                          processor_data, vmm_stack_data);
+  HYPERPLATFORM_LOG_DEBUG("guest_stack_pointer   = %p", guest_stack_pointer);
+  HYPERPLATFORM_LOG_DEBUG("guest_inst_pointer    = %p",
+                          guest_instruction_pointer);
   *reinterpret_cast<ULONG_PTR *>(vmm_stack_base) = MAXULONG_PTR;
   *reinterpret_cast<ProcessorData **>(vmm_stack_data) = processor_data;
-
-  processor_data->shared_data = shared_data;
-  InterlockedIncrement(&processor_data->shared_data->reference_count);
 
   // Set up VMCS
   if (!VmpEnterVmxMode(processor_data)) {
