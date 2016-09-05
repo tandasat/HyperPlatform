@@ -1443,10 +1443,26 @@ enum class InterruptionType {
 
 /// @copydoc VmEntryInterruptionInformationField
 enum class InterruptionVector {
-  kBreakpointException = 3,
-  kInvalidOpcodeException = 6,
-  kGeneralProtectionException = 13,
-  kPageFaultException = 14,
+  kDivideErrorException = 0,         //!< Error code: None
+  kDebugException = 1,               //!< Error code: None
+  kNmiInterrupt = 2,                 //!< Error code: N/A
+  kBreakpointException = 3,          //!< Error code: None
+  kOverflowException = 4,            //!< Error code: None
+  kBoundRangeExceededException = 5,  //!< Error code: None
+  kInvalidOpcodeException = 6,       //!< Error code: None
+  kDeviceNotAvailableException = 7,  //!< Error code: None
+  kDoubleFaultException = 8,         //!< Error code: Yes
+  kCoprocessorSegmentOverrun = 9,    //!< Error code: None
+  kInvalidTssException = 10,         //!< Error code: Yes
+  kSegmentNotPresent = 11,           //!< Error code: Yes
+  kStackFaultException = 12,         //!< Error code: Yes
+  kGeneralProtectionException = 13,  //!< Error code: Yes
+  kPageFaultException = 14,          //!< Error code: Yes
+  kx87FpuFloatingPointError = 16,    //!< Error code: None
+  kAlignmentCheckException = 17,     //!< Error code: Yes
+  kMachineCheckException = 18,       //!< Error code: None
+  kSimdFloatingPointException = 19,  //!< Error code: None
+  kVirtualizationException = 20,     //!< Error code: None
 };
 
 /// Provides << operator for VmEntryInterruptionInformationField

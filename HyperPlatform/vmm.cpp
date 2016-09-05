@@ -138,7 +138,7 @@ static ULONG_PTR *VmmpSelectRegister(_In_ ULONG index,
 
 static void VmmpDumpGuestSelectors();
 
-static void VmmpAdjustGuestInstructionPointer(_In_ ULONG_PTR guest_ip);
+static void VmmpAdjustGuestInstructionPointer(_In_ GuestContext *guest_context);
 
 static void VmmpIoWrapper(_In_ bool to_memory, _In_ bool is_string,
                           _In_ SIZE_T size_of_access, _In_ unsigned short port,
@@ -421,7 +421,7 @@ _Use_decl_annotations_ static void VmmpHandleCpuid(
     guest_context->gp_regs->dx = cpu_info[3];
   }
 
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // RDTSC
@@ -433,7 +433,7 @@ _Use_decl_annotations_ static void VmmpHandleRdtsc(
   guest_context->gp_regs->dx = tsc.HighPart;
   guest_context->gp_regs->ax = tsc.LowPart;
 
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // RDTSCP
@@ -447,7 +447,7 @@ _Use_decl_annotations_ static void VmmpHandleRdtscp(
   guest_context->gp_regs->ax = tsc.LowPart;
   guest_context->gp_regs->cx = tsc_aux;
 
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // XSETBV. It is executed at the time of system resuming
@@ -459,7 +459,7 @@ _Use_decl_annotations_ static void VmmpHandleXsetbv(
   value.HighPart = static_cast<ULONG>(guest_context->gp_regs->dx);
   _xsetbv(static_cast<ULONG>(guest_context->gp_regs->cx), value.QuadPart);
 
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // RDMSR
@@ -532,7 +532,7 @@ _Use_decl_annotations_ static void VmmpHandleMsrAccess(
     }
   }
 
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // LIDT, SIDT, LGDT and SGDT
@@ -614,7 +614,7 @@ _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
   }
 
   __writecr3(vmm_cr3);
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // LLDT, LTR, SLDT, and STR
@@ -699,7 +699,7 @@ _Use_decl_annotations_ static void VmmpHandleLdtrOrTrAccess(
   }
 
   __writecr3(vmm_cr3);
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // MOV to / from DRx
@@ -749,7 +749,7 @@ _Use_decl_annotations_ static void VmmpHandleDrAccess(
       break;
   }
 
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // IN, INS, OUT, OUTS
@@ -813,7 +813,7 @@ _Use_decl_annotations_ static void VmmpHandleIoPort(
     }
   }
 
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // Perform IO instruction according with parameters
@@ -959,7 +959,7 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
       break;
   }
 
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // VMX instructions except for VMCALL
@@ -973,7 +973,7 @@ _Use_decl_annotations_ static void VmmpHandleVmx(GuestContext *guest_context) {
   guest_context->flag_reg.fields.sf = false;
   guest_context->flag_reg.fields.of = false;
   UtilVmWrite(VmcsField::kGuestRflags, guest_context->flag_reg.all);
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // VMCALL
@@ -1012,7 +1012,7 @@ _Use_decl_annotations_ static void VmmpHandleInvalidateInternalCaches(
     GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
   AsmInvalidateInternalCaches();
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // INVLPG
@@ -1022,7 +1022,7 @@ _Use_decl_annotations_ static void VmmpHandleInvalidateTlbEntry(
   const auto invalidate_address =
       reinterpret_cast<void *>(UtilVmRead(VmcsField::kExitQualification));
   __invlpg(invalidate_address);
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // EXIT_REASON_EPT_VIOLATION
@@ -1113,15 +1113,21 @@ _Use_decl_annotations_ static ULONG_PTR *VmmpSelectRegister(
       UtilVmRead(VmcsField::kGuestTrArBytes));
 }
 
-// Sets rip to the next instruction
+// Advances guest's IP to the next instruction
 _Use_decl_annotations_ static void VmmpAdjustGuestInstructionPointer(
-    ULONG_PTR guest_ip) {
-  const auto exit_instruction_length =
-      UtilVmRead(VmcsField::kVmExitInstructionLen);
-  UtilVmWrite(VmcsField::kGuestRip, guest_ip + exit_instruction_length);
+    GuestContext *guest_context) {
+  const auto exit_inst_length = UtilVmRead(VmcsField::kVmExitInstructionLen);
+  UtilVmWrite(VmcsField::kGuestRip, guest_context->ip + exit_inst_length);
+
+  // Inject #DB if TF is set
+  if (guest_context->flag_reg.fields.tf) {
+    VmmpInjectInterruption(InterruptionType::kHardwareException,
+                           InterruptionVector::kDebugException, false, 0);
+    UtilVmWrite(VmcsField::kVmEntryInstructionLen, exit_inst_length);
+  }
 }
 
-// Handle VMRESUME or VMXOFF failure. Fatal error.
+// Handles VMRESUME or VMXOFF failure. Fatal error.
 _Use_decl_annotations_ void __stdcall VmmVmxFailureHandler(
     AllRegisters *all_regs) {
   const auto guest_ip = UtilVmRead(VmcsField::kGuestRip);
@@ -1142,7 +1148,6 @@ _Use_decl_annotations_ static void VmmpSaveExtendedProcessorState(
   const auto old_cr0 = cr0;
   cr0.fields.ts = false;
   __writecr0(cr0.all);
-
   _xsave(guest_context->stack->processor_data->xsave_area,
          guest_context->stack->processor_data->xsave_inst_mask);
 
@@ -1177,7 +1182,7 @@ _Use_decl_annotations_ static void VmmpIndicateSuccessfulVmcall(
   guest_context->flag_reg.fields.cf = false;
   guest_context->flag_reg.fields.zf = false;
   UtilVmWrite(VmcsField::kGuestRflags, guest_context->flag_reg.all);
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // Indicates unsuccessful VMCALL
