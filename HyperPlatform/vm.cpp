@@ -243,15 +243,14 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
     return nullptr;
   }
   RtlZeroMemory(shared_data, sizeof(SharedProcessorData));
-  HYPERPLATFORM_LOG_DEBUG("SharedData=        %p", shared_data);
+  HYPERPLATFORM_LOG_DEBUG("shared_data           = %p", shared_data);
 
   // Setup MSR bitmap
-  const auto msr_bitmap = VmpBuildMsrBitmap();
-  if (!msr_bitmap) {
+  shared_data->msr_bitmap = VmpBuildMsrBitmap();
+  if (!shared_data->msr_bitmap) {
     ExFreePoolWithTag(shared_data, kHyperPlatformCommonPoolTag);
     return nullptr;
   }
-  shared_data->msr_bitmap = msr_bitmap;
 
   // Setup IO bitmaps
   const auto io_bitmaps = VmpBuildIoBitmaps();
@@ -401,11 +400,17 @@ _Use_decl_annotations_ static void VmpInitializeVm(
     }
     RtlZeroMemory(processor_data->xsave_area, xsave_area_size);
   } else {
-    // Use FXSAVE/FXRSTOR instead. Make sure if the system supports them.
+    // Use FXSAVE/FXRSTOR instead.
     int cpu_info[4] = {};
     __cpuid(cpu_info, 1);
-    const CpuFeaturesEdx cpu_features = {static_cast<ULONG32>(cpu_info[3])};
-    if (!cpu_features.fields.fxsr) {
+    const CpuFeaturesEcx cpu_features_ecx = {static_cast<ULONG32>(cpu_info[2])};
+    const CpuFeaturesEdx cpu_features_edx = {static_cast<ULONG32>(cpu_info[3])};
+    if (cpu_features_ecx.fields.avx) {
+      HYPERPLATFORM_LOG_ERROR("A processor supports AVX but not XSAVE/XRSTOR.");
+      goto ReturnFalse;
+    }
+    if (!cpu_features_edx.fields.fxsr) {
+      HYPERPLATFORM_LOG_ERROR("A processor does not support FXSAVE/FXRSTOR.");
       goto ReturnFalse;
     }
   }
