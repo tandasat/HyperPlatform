@@ -569,14 +569,15 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
           Msr::kIa32VmxBasic)}.fields.vmx_capability_hint;
 
   VmxVmEntryControls vm_entryctl_requested = {};
+  vm_entryctl_requested.fields.load_debug_controls = true;
   vm_entryctl_requested.fields.ia32e_mode_guest = IsX64();
   VmxVmEntryControls vm_entryctl = {VmpAdjustControlValue(
       (use_true_msrs) ? Msr::kIa32VmxTrueEntryCtls : Msr::kIa32VmxEntryCtls,
       vm_entryctl_requested.all)};
 
   VmxVmExitControls vm_exitctl_requested = {};
-  vm_exitctl_requested.fields.acknowledge_interrupt_on_exit = true;
   vm_exitctl_requested.fields.host_address_space_size = IsX64();
+  vm_exitctl_requested.fields.acknowledge_interrupt_on_exit = true;
   VmxVmExitControls vm_exitctl = {VmpAdjustControlValue(
       (use_true_msrs) ? Msr::kIa32VmxTrueExitCtls : Msr::kIa32VmxExitCtls,
       vm_exitctl_requested.all)};
