@@ -37,6 +37,14 @@
 
 #include <fltKernel.h>
 
+// C30030: Calling a memory allocating function and passing a parameter that
+// indicates executable memory
+//
+// Disable C30030 since POOL_NX_OPTIN + ExInitializeDriverRuntime is in place.
+// This warning is false positive and can be seen when Target Platform Version
+// equals to 10.0.14393.0.
+#pragma prefast(disable : 30030)
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // macro utilities

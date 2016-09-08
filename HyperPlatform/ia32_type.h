@@ -256,45 +256,45 @@ struct SegmentDesctiptorX64 {
 };
 static_assert(sizeof(SegmentDesctiptorX64) == 16, "Size check");
 
-/// See: Figure 3-7. Feature Information Returned in the ECX Register
+/// See: Feature Information Returned in the ECX Register
 union CpuFeaturesEcx {
-  ULONG_PTR all;
+  ULONG32 all;
   struct {
-    ULONG_PTR sse3 : 1;       //!< [0] Streaming SIMD Extensions 3 (SSE3)
-    ULONG_PTR pclmulqdq : 1;  //!< [1] PCLMULQDQ
-    ULONG_PTR dtes64 : 1;     //!< [2] 64-bit DS Area
-    ULONG_PTR monitor : 1;    //!< [3] MONITOR/WAIT
-    ULONG_PTR ds_cpl : 1;     //!< [4] CPL qualified Debug Store
-    ULONG_PTR vmx : 1;        //!< [5] Virtual Machine Technology
-    ULONG_PTR smx : 1;        //!< [6] Safer Mode Extensions
-    ULONG_PTR est : 1;        //!< [7] Enhanced Intel Speedstep Technology
-    ULONG_PTR tm2 : 1;        //!< [8] Thermal monitor 2
-    ULONG_PTR ssse3 : 1;      //!< [9] Supplemental Streaming SIMD Extensions 3
-    ULONG_PTR cid : 1;        //!< [10] L1 context ID
-    ULONG_PTR sdbg : 1;       //!< [11] IA32_DEBUG_INTERFACE MSR
-    ULONG_PTR fma : 1;        //!< [12] FMA extensions using YMM state
-    ULONG_PTR cx16 : 1;       //!< [13] CMPXCHG16B
-    ULONG_PTR xtpr : 1;       //!< [14] xTPR Update Control
-    ULONG_PTR pdcm : 1;       //!< [15] Performance/Debug capability MSR
-    ULONG_PTR reserved : 1;   //!< [16] Reserved
-    ULONG_PTR pcid : 1;       //!< [17] Process-context identifiers
-    ULONG_PTR dca : 1;        //!< [18] prefetch from a memory mapped device
-    ULONG_PTR sse4_1 : 1;     //!< [19] SSE4.1
-    ULONG_PTR sse4_2 : 1;     //!< [20] SSE4.2
-    ULONG_PTR x2_apic : 1;    //!< [21] x2APIC feature
-    ULONG_PTR movbe : 1;      //!< [22] MOVBE instruction
-    ULONG_PTR popcnt : 1;     //!< [23] POPCNT instruction
-    ULONG_PTR reserved3 : 1;  //!< [24] one-shot operation using a TSC deadline
-    ULONG_PTR aes : 1;        //!< [25] AESNI instruction
-    ULONG_PTR xsave : 1;      //!< [26] XSAVE/XRSTOR feature
-    ULONG_PTR osxsave : 1;    //!< [27] enable XSETBV/XGETBV instructions
-    ULONG_PTR avx : 1;        //!< [28] AVX instruction extensions
-    ULONG_PTR f16c : 1;       //!< [29] 16-bit floating-point conversion
-    ULONG_PTR rdrand : 1;     //!< [30] RDRAND instruction
-    ULONG_PTR not_used : 1;   //!< [31] Always 0 (a.k.a. HypervisorPresent)
+    ULONG32 sse3 : 1;       //!< [0] Streaming SIMD Extensions 3 (SSE3)
+    ULONG32 pclmulqdq : 1;  //!< [1] PCLMULQDQ
+    ULONG32 dtes64 : 1;     //!< [2] 64-bit DS Area
+    ULONG32 monitor : 1;    //!< [3] MONITOR/WAIT
+    ULONG32 ds_cpl : 1;     //!< [4] CPL qualified Debug Store
+    ULONG32 vmx : 1;        //!< [5] Virtual Machine Technology
+    ULONG32 smx : 1;        //!< [6] Safer Mode Extensions
+    ULONG32 est : 1;        //!< [7] Enhanced Intel Speedstep Technology
+    ULONG32 tm2 : 1;        //!< [8] Thermal monitor 2
+    ULONG32 ssse3 : 1;      //!< [9] Supplemental Streaming SIMD Extensions 3
+    ULONG32 cid : 1;        //!< [10] L1 context ID
+    ULONG32 sdbg : 1;       //!< [11] IA32_DEBUG_INTERFACE MSR
+    ULONG32 fma : 1;        //!< [12] FMA extensions using YMM state
+    ULONG32 cx16 : 1;       //!< [13] CMPXCHG16B
+    ULONG32 xtpr : 1;       //!< [14] xTPR Update Control
+    ULONG32 pdcm : 1;       //!< [15] Performance/Debug capability MSR
+    ULONG32 reserved : 1;   //!< [16] Reserved
+    ULONG32 pcid : 1;       //!< [17] Process-context identifiers
+    ULONG32 dca : 1;        //!< [18] prefetch from a memory mapped device
+    ULONG32 sse4_1 : 1;     //!< [19] SSE4.1
+    ULONG32 sse4_2 : 1;     //!< [20] SSE4.2
+    ULONG32 x2_apic : 1;    //!< [21] x2APIC feature
+    ULONG32 movbe : 1;      //!< [22] MOVBE instruction
+    ULONG32 popcnt : 1;     //!< [23] POPCNT instruction
+    ULONG32 reserved3 : 1;  //!< [24] one-shot operation using a TSC deadline
+    ULONG32 aes : 1;        //!< [25] AESNI instruction
+    ULONG32 xsave : 1;      //!< [26] XSAVE/XRSTOR feature
+    ULONG32 osxsave : 1;    //!< [27] enable XSETBV/XGETBV instructions
+    ULONG32 avx : 1;        //!< [28] AVX instruction extensions
+    ULONG32 f16c : 1;       //!< [29] 16-bit floating-point conversion
+    ULONG32 rdrand : 1;     //!< [30] RDRAND instruction
+    ULONG32 not_used : 1;   //!< [31] Always 0 (a.k.a. HypervisorPresent)
   } fields;
 };
-static_assert(sizeof(CpuFeaturesEcx) == sizeof(void*), "Size check");
+static_assert(sizeof(CpuFeaturesEcx) == 4, "Size check");
 
 /// nt!_HARDWARE_PTE on x86 PAE-disabled Windows
 struct HardwarePteX86 {

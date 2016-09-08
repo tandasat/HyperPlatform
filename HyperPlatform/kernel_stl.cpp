@@ -9,6 +9,9 @@
 #undef _HAS_EXCEPTIONS
 #define _HAS_EXCEPTIONS 0
 
+// See common.h for details
+#pragma prefast(disable : 30030)
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // macro utilities
