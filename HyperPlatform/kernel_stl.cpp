@@ -43,7 +43,7 @@ static const ULONG kKstlpPoolTag = 'LTSK';
 // implementations
 //
 
-// An alternative implmentation of a C++ exception handler. Issues a bug check.
+// An alternative implementation of a C++ exception handler. Issues a bug check.
 _Use_decl_annotations_ DECLSPEC_NORETURN void KernelStlRaiseException(
     ULONG bug_check_code) {
   KdBreakPoint();
@@ -88,7 +88,7 @@ _Use_decl_annotations_ DECLSPEC_NORETURN void __cdecl _Xruntime_error(
 
 }  // namespace std
 
-// An alternative implmentation of the new operator
+// An alternative implementation of the new operator
 _Use_decl_annotations_ void *__cdecl operator new(size_t size) {
   if (size == 0) {
     size = 1;
@@ -101,14 +101,14 @@ _Use_decl_annotations_ void *__cdecl operator new(size_t size) {
   return p;
 }
 
-// An alternative implmentation of the new operator
+// An alternative implementation of the new operator
 _Use_decl_annotations_ void __cdecl operator delete(void *p) {
   if (p) {
     ExFreePoolWithTag(p, kKstlpPoolTag);
   }
 }
 
-// An alternative implmentation of the new operator
+// An alternative implementation of the new operator
 /*_Use_decl_annotations_*/ void __cdecl operator delete(void *p, size_t size) {
   UNREFERENCED_PARAMETER(size);
   if (p) {
@@ -116,7 +116,7 @@ _Use_decl_annotations_ void __cdecl operator delete(void *p) {
   }
 }
 
-// An alternative implmentation of __stdio_common_vsprintf_s
+// An alternative implementation of __stdio_common_vsprintf_s
 _Use_decl_annotations_ EXTERN_C int __cdecl __stdio_common_vsprintf_s(
     unsigned __int64 _Options, char *_Buffer, size_t _BufferCount,
     char const *_Format, _locale_t _Locale, va_list _ArgList) {
@@ -136,7 +136,7 @@ _Use_decl_annotations_ EXTERN_C int __cdecl __stdio_common_vsprintf_s(
   return local__vsnprintf(_Buffer, _BufferCount, _Format, _ArgList);
 }
 
-// An alternative implmentation of __stdio_common_vswprintf_s
+// An alternative implementation of __stdio_common_vswprintf_s
 _Use_decl_annotations_ EXTERN_C int __cdecl __stdio_common_vswprintf_s(
     unsigned __int64 _Options, wchar_t *_Buffer, size_t _BufferCount,
     wchar_t const *_Format, _locale_t _Locale, va_list _ArgList) {

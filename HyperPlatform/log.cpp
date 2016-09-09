@@ -252,7 +252,7 @@ _Use_decl_annotations_ static NTSTATUS LogpInitializeBufferInfo(
   return status;
 }
 
-// Initializes a log file and startes a log buffer thread.
+// Initializes a log file and starts a log buffer thread.
 _Use_decl_annotations_ static NTSTATUS LogpInitializeLogFile(
     LogBufferInfo *info) {
   PAGED_CODE();
@@ -291,7 +291,7 @@ _Use_decl_annotations_ static NTSTATUS LogpInitializeLogFile(
     return status;
   }
 
-  // Wait until the thead has started
+  // Wait until the thread has started
   while (!info->buffer_flush_thread_started) {
     LogpSleep(100);
   }
@@ -556,7 +556,7 @@ _Use_decl_annotations_ static NTSTATUS LogpPut(char *message, ULONG attribute) {
       }
 #pragma warning(pop)
     } else {
-      // No, it cannot. Set the prited bit if needed, and then buffer it.
+      // No, it cannot. Set the printed bit if needed, and then buffer it.
       if (do_DbgPrint) {
         LogpSetPrintedBit(message, true);
       }
@@ -572,7 +572,7 @@ _Use_decl_annotations_ static NTSTATUS LogpPut(char *message, ULONG attribute) {
   return status;
 }
 
-// Switchs the current log buffer, saves the contents of old buffer to the log
+// Switches the current log buffer, saves the contents of old buffer to the log
 // file, and prints them out as necessary. This function does not flush the log
 // file, so code should call LogpWriteMessageToFile() or ZwFlushBuffersFile()
 // later.
@@ -796,8 +796,8 @@ _Use_decl_annotations_ static bool LogpIsPrinted(char *message) {
 // Provides an implementation of _vsnprintf as it fails to link when a include
 // directory setting is modified for using STL
 _Success_(return >= 0) _Check_return_opt_ int __cdecl __stdio_common_vsprintf(
-    _In_ unsigned __int64 _Options, _Out_writes_z_(_BufferCount) char *_Buffer,
-    _In_ size_t _BufferCount,
+    _In_ unsigned __int64 _Options,
+    _Out_writes_opt_z_(_BufferCount) char *_Buffer, _In_ size_t _BufferCount,
     _In_z_ _Printf_format_string_params_(2) char const *_Format,
     _In_opt_ _locale_t _Locale, va_list _ArgList) {
   UNREFERENCED_PARAMETER(_Options);
@@ -819,7 +819,7 @@ _Success_(return >= 0) _Check_return_opt_ int __cdecl __stdio_common_vsprintf(
 // directory setting is modified for using STL
 _Success_(return >= 0) _Check_return_opt_ int __cdecl __stdio_common_vswprintf(
     _In_ unsigned __int64 _Options,
-    _Out_writes_z_(_BufferCount) wchar_t *_Buffer, _In_ size_t _BufferCount,
+    _Out_writes_opt_z_(_BufferCount) wchar_t *_Buffer, _In_ size_t _BufferCount,
     _In_z_ _Printf_format_string_params_(2) wchar_t const *_Format,
     _In_opt_ _locale_t _Locale, va_list _ArgList) {
   UNREFERENCED_PARAMETER(_Options);

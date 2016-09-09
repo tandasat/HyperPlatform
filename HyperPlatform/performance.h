@@ -18,7 +18,7 @@ extern "C" {
 
 #if (HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER != 0)
 
-/// Measures an elappsed time from execution of this macro to the end of a scope
+/// Measures an elapsed time from execution of this macro to the end of a scope
 ///
 /// @warning
 /// This macro cannot be called from an INIT section. See
@@ -52,8 +52,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS PerfInitialization();
 /// Ends performance monitoring and outputs its results
 _IRQL_requires_max_(PASSIVE_LEVEL) void PerfTermination();
 
-/// Returns the current "time" for performance mesurement.
-/// @return Current performence counter
+/// Returns the current "time" for performance measurement.
+/// @return Current performance counter
 ///
 /// It should only be used by #HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE().
 ULONG64 PerfGetTime();

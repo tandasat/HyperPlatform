@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 /// @file
-/// Ddefines constants and structures defined by the x86-64 archtecture
+/// Defines constants and structures defined by the x86-64 architecture
 
 #ifndef HYPERPLATFORM_IA32_TYPE_H_
 #define HYPERPLATFORM_IA32_TYPE_H_
@@ -63,7 +63,7 @@ union FlagRegister {
 };
 static_assert(sizeof(FlagRegister) == sizeof(void*), "Size check");
 
-/// Reprsents a stack layout after PUSHAQ
+/// Represents a stack layout after PUSHAQ
 struct GpRegistersX64 {
   ULONG_PTR r15;
   ULONG_PTR r14;
@@ -83,7 +83,7 @@ struct GpRegistersX64 {
   ULONG_PTR ax;
 };
 
-/// Reprsents a stack layout after PUSHAD
+/// Represents a stack layout after PUSHAD
 struct GpRegistersX86 {
   ULONG_PTR di;
   ULONG_PTR si;
@@ -95,14 +95,14 @@ struct GpRegistersX86 {
   ULONG_PTR ax;
 };
 
-/// Reprsents a stack layout after PUSHAx
+/// Represents a stack layout after PUSHAx
 #if defined(_AMD64_)
 using GpRegisters = GpRegistersX64;
 #else
 using GpRegisters = GpRegistersX86;
 #endif
 
-/// Reprsents a stack layout after a sequence of PUSHFx, PUSHAx
+/// Represents a stack layout after a sequence of PUSHFx, PUSHAx
 struct AllRegisters {
   GpRegisters gp;
   FlagRegister flags;
@@ -222,7 +222,7 @@ union SegmentSelector {
 static_assert(sizeof(SegmentSelector) == 2, "Size check");
 #include <poppack.h>
 
-/// See: Segment Desctiptor
+/// See: Segment Descriptor
 union SegmentDescriptor {
   ULONG64 all;
   struct {

@@ -28,7 +28,7 @@ extern "C" {
 
 /// Represents ranges of addresses
 struct PhysicalMemoryRun {
-  ULONG_PTR base_page;   //!< A base addrress / PAGE_SIZE (ie, 0x1 for 0x1000)
+  ULONG_PTR base_page;   //!< A base address / PAGE_SIZE (ie, 0x1 for 0x1000)
   ULONG_PTR page_count;  //!< A number of pages
 };
 #if defined(_AMD64_)
@@ -64,7 +64,7 @@ constexpr VmxStatus operator|=(_In_ VmxStatus lhs, _In_ VmxStatus rhs) {
                                 static_cast<unsigned __int8>(rhs));
 }
 
-/// Avaialable command numbers for VMCALL
+/// Available command numbers for VMCALL
 enum class HypercallNumber : unsigned __int32 {
   kTerminateVmm,  //!< Terminates VMM
   kPingVmm,       //!< Sends ping to the VMM
@@ -81,7 +81,7 @@ enum class HypercallNumber : unsigned __int32 {
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
     UtilInitialization(_In_ PDRIVER_OBJECT driver_object);
 
-/// Frees all resources allocated for the sake of the Util funcions
+/// Frees all resources allocated for the sake of the Util functions
 _IRQL_requires_max_(PASSIVE_LEVEL) void UtilTermination();
 
 /// Returns a module base address of \a address
@@ -122,7 +122,8 @@ _IRQL_requires_max_(APC_LEVEL) NTSTATUS UtilSleep(_In_ LONG millisecond);
 /// @param search_size  A length to search in bytes
 /// @param pattern  A byte pattern to search
 /// @param pattern_size   A size of \a pattern
-/// @return An address of the first occurence of the patten if found, or nullptr
+/// @return An address of the first occurrence of the patten if found, or
+/// nullptr
 void *UtilMemMem(_In_ const void *search_base, _In_ SIZE_T search_size,
                  _In_ const void *pattern, _In_ SIZE_T pattern_size);
 
@@ -142,7 +143,7 @@ bool UtilIsAccessibleAddress(_In_ void *address);
 
 /// VA -> PA
 /// @param va   A virtual address to get its physical address
-/// @return A pysical address of \a va, or nullptr
+/// @return A physical address of \a va, or nullptr
 ///
 /// @warning
 /// It cannot be used for a virtual address managed by a prototype PTE.
@@ -157,18 +158,18 @@ ULONG64 UtilPaFromVa(_In_ void *va);
 PFN_NUMBER UtilPfnFromVa(_In_ void *va);
 
 /// PA -> PFN
-/// @param pa   A pysical address to get its page frame number
+/// @param pa   A physical address to get its page frame number
 /// @return A page frame number of \a pa, or 0
 PFN_NUMBER UtilPfnFromPa(_In_ ULONG64 pa);
 
 /// PA -> VA
-/// @param pa   A pysical address to get its virtual address
+/// @param pa   A physical address to get its virtual address
 /// @return A virtual address \a pa, or 0
 void *UtilVaFromPa(_In_ ULONG64 pa);
 
 /// PNF -> PA
 /// @param pfn   A page frame number to get its physical address
-/// @return A pysical address of \a pfn
+/// @return A physical address of \a pfn
 ULONG64 UtilPaFromPfn(_In_ PFN_NUMBER pfn);
 
 /// PNF -> VA
@@ -192,7 +193,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void UtilFreeContiguousMemory(
 /// Executes VMCALL
 /// @param hypercall_number   A command number
 /// @param context  An arbitrary parameter
-/// @return STATUS_SUCCESS if VMXON instruction succedded
+/// @return STATUS_SUCCESS if VMXON instruction succeeded
 NTSTATUS UtilVmCall(_In_ HypercallNumber hypercall_number,
                     _In_opt_ void *context);
 
@@ -249,7 +250,7 @@ void UtilWriteMsr64(_In_ Msr msr, _In_ ULONG64 value);
 VmxStatus UtilInveptAll();
 
 /// Loads the PDPTE registers from CR3 to VMCS
-/// @param cr3_value  CR3 value to retrive PDPTEs
+/// @param cr3_value  CR3 value to retrieve PDPTEs
 void UtilLoadPdptes(_In_ ULONG_PTR cr3_value);
 
 /// Does RtlCopyMemory safely even if destination is a read only region

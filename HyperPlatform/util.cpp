@@ -24,7 +24,7 @@ extern "C" {
 
 // Use RtlPcToFileHeader if available. Using the API causes a broken font bug
 // on the 64 bit Windows 10 and should be avoided. This flag exist for only
-// futher investigation.
+// further investigation.
 static const auto kUtilpUseRtlPcToFileHeader = false;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -258,10 +258,10 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
   g_utilp_pdi_shift = kUtilpPdiShift;
   g_utilp_pti_shift = kUtilpPtiShift;
 
-  g_utilp_pdi_mask = kUtilpPdiMask;
-  g_utilp_pti_mask = kUtilpPtiMask;
   g_utilp_pxi_mask = kUtilpPxiMask;
   g_utilp_ppi_mask = kUtilpPpiMask;
+  g_utilp_pdi_mask = kUtilpPdiMask;
+  g_utilp_pti_mask = kUtilpPtiMask;
   return status;
 }
 
@@ -291,7 +291,7 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializeRtlPcToFileHeader(
   return STATUS_SUCCESS;
 }
 
-// A fake RtlPcToFileHeader without accquireing PsLoadedModuleSpinLock. Thus, it
+// A fake RtlPcToFileHeader without acquiring PsLoadedModuleSpinLock. Thus, it
 // is unsafe and should be updated if we can locate PsLoadedModuleSpinLock.
 _Use_decl_annotations_ static PVOID NTAPI
 UtilpUnsafePcToFileHeader(PVOID pc_value, PVOID *base_of_image) {
@@ -512,8 +512,7 @@ _Use_decl_annotations_ void *UtilGetSystemProcAddress(
   return (!IsX64() && Cr4{__readcr4()}.fields.pae);
 }
 
-// Return true if the given address is accessible. It does not prevent a race
-// condition.
+// Return true if the given address is accessible.
 _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
   if (!UtilpIsCanonicalFormAddress(address)) {
     return false;
@@ -806,7 +805,7 @@ _Use_decl_annotations_ void UtilLoadPdptes(ULONG_PTR cr3_value) {
   // Have to load cr3 to make UtilPfnFromVa() work properly.
   __writecr3(cr3_value);
 
-  // Gets PDPTEs fomr CR3
+  // Gets PDPTEs form CR3
   PdptrRegister pd_pointers[4] = {};
   for (auto i = 0ul; i < 4; ++i) {
     const auto pd_addr = g_utilp_pde_base + i * PAGE_SIZE;

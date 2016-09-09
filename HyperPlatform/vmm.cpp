@@ -12,6 +12,9 @@
 #include "ept.h"
 #include "log.h"
 #include "util.h"
+#ifndef HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
+#define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
+#endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
 
 extern "C" {
@@ -794,7 +797,7 @@ _Use_decl_annotations_ static void VmmpHandleIoPort(
 
   VmmpIoWrapper(is_in, is_string, size_of_access, port, address, count);
 
-  // Update RCX, RDI and RSI accodringly. Note that this code can handle only
+  // Update RCX, RDI and RSI accordingly. Note that this code can handle only
   // the REP prefix.
   if (is_string) {
     const auto update_count = (is_rep) ? guest_context->gp_regs->cx : 1;

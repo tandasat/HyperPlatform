@@ -310,7 +310,7 @@ _Use_decl_annotations_ static void *VmpBuildMsrBitmap() {
 _Use_decl_annotations_ static UCHAR *VmpBuildIoBitmaps() {
   PAGED_CODE();
 
-  // Allocate two IO bitmaps as one contigunouse 4K+4K page
+  // Allocate two IO bitmaps as one contiguous 4K+4K page
   const auto io_bitmaps = reinterpret_cast<UCHAR *>(ExAllocatePoolWithTag(
       NonPagedPool, PAGE_SIZE * 2, kHyperPlatformCommonPoolTag));
   if (!io_bitmaps) {
@@ -856,7 +856,7 @@ _Use_decl_annotations_ static ULONG_PTR VmpGetSegmentBaseByDescriptor(
     const SegmentDescriptor *segment_descriptor) {
   PAGED_CODE();
 
-  // Caluculate a 32bit base address
+  // Calculate a 32bit base address
   const auto base_high = segment_descriptor->fields.base_high << (6 * 4);
   const auto base_middle = segment_descriptor->fields.base_mid << (4 * 4);
   const auto base_low = segment_descriptor->fields.base_low;
@@ -950,7 +950,7 @@ _Use_decl_annotations_ static void VmpFreeProcessorData(
   ExFreePoolWithTag(processor_data, kHyperPlatformCommonPoolTag);
 }
 
-// Decredement reference count of shared data and free it if no refernece
+// Decrement reference count of shared data and free it if no reference
 _Use_decl_annotations_ static void VmpFreeSharedData(
     ProcessorData *processor_data) {
   PAGED_CODE();

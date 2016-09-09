@@ -38,11 +38,11 @@ ASM_DUMP_REGISTERS MACRO
     mov ecx, esp                ; all_regs
     mov edx, esp
     add edx, 4*9                ; stack_pointer
-    
+
     push ecx
     push edx
     call UtilDumpGpRegisters@8  ; UtilDumpGpRegisters(all_regs, stack_pointer);
-    
+
     popad
     popfd
 ENDM
@@ -63,7 +63,7 @@ AsmInitializeVm PROC vm_initialization_routine, context
     pushad                  ; -4 * 8
 
     mov ecx, esp            ; esp
-    
+
     ; vm_initialization_routine(rsp, asmResumeVm, context)
     push context
     push asmResumeVm
@@ -76,7 +76,7 @@ AsmInitializeVm PROC vm_initialization_routine, context
     ret
 
     ; This is where the virtualized guest start to execute after successful
-    ; vmlaunch. 
+    ; vmlaunch.
 asmResumeVm:
     nop                     ; keep this nop for ease of debugging
     popad
@@ -114,7 +114,7 @@ exitVm:
     jz vmxError             ; if (ZF) jmp
     jc vmxError             ; if (CF) jmp
     push eax
-    popfd                   ; eflags <= GurstFlags 
+    popfd                   ; eflags <= GurstFlags
     mov esp, edx            ; esp <= GuestRsp
     push ecx
     ret                     ; jmp AddressToReturn
@@ -288,8 +288,9 @@ AsmWriteCR2 PROC cr2_value
     ret
 AsmWriteCR2 ENDP
 
-; unsigned char __stdcall AsmInvept(_In_ InvEptType invept_type,
-;                                   _In_ const InvEptDescriptor *invept_descriptor);
+; unsigned char __stdcall AsmInvept(
+;     _In_ InvEptType invept_type,
+;     _In_ const InvEptDescriptor *invept_descriptor);
 AsmInvept PROC invept_type, invept_descriptor
     mov ecx, invept_type
     mov edx, invept_descriptor

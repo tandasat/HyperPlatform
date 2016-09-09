@@ -5,7 +5,7 @@
 /// @file
 /// Defines page table related constants
 ///
-/// This file defienes platform depedent constants and is included only from a
+/// This file defines platform dependent constants and is included only from a
 /// function where initializes g_utilp_p*e_base, g_utilp_p*i_shift and
 /// g_utilp_p*i_mask global variables.
 
