@@ -902,6 +902,8 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
           if (UtilIsX86Pae()) {
             UtilLoadPdptes(*register_used);
           }
+          UtilInvvpidSingleContextExceptGlobal(
+              static_cast<USHORT>(KeGetCurrentProcessorNumberEx(nullptr) + 1));
           UtilVmWrite(VmcsField::kGuestCr3, *register_used);
           break;
         }
@@ -912,6 +914,7 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
           if (UtilIsX86Pae()) {
             UtilLoadPdptes(UtilVmRead(VmcsField::kGuestCr3));
           }
+          UtilInvvpidAllContext();
           UtilVmWrite(VmcsField::kGuestCr4, *register_used);
           UtilVmWrite(VmcsField::kCr4ReadShadow, *register_used);
           break;
@@ -1025,6 +1028,9 @@ _Use_decl_annotations_ static void VmmpHandleInvalidateTlbEntry(
   const auto invalidate_address =
       reinterpret_cast<void *>(UtilVmRead(VmcsField::kExitQualification));
   __invlpg(invalidate_address);
+  UtilInvvpidIndividualAddress(
+      static_cast<USHORT>(KeGetCurrentProcessorNumberEx(nullptr) + 1),
+      invalidate_address);
   VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
@@ -1130,7 +1136,7 @@ _Use_decl_annotations_ static void VmmpAdjustGuestInstructionPointer(
   }
 }
 
-// Handles VMRESUME or VMXOFF failure. Fatal error.
+// Handle VMRESUME or VMXOFF failure. Fatal error.
 _Use_decl_annotations_ void __stdcall VmmVmxFailureHandler(
     AllRegisters *all_regs) {
   const auto guest_ip = UtilVmRead(VmcsField::kGuestRip);
@@ -1139,8 +1145,7 @@ _Use_decl_annotations_ void __stdcall VmmVmxFailureHandler(
                              ? UtilVmRead(VmcsField::kVmInstructionError)
                              : 0;
   HYPERPLATFORM_COMMON_BUG_CHECK(
-      HyperPlatformBugCheck::kCriticalVmxInstructionFailure, vmx_error,
-      guest_ip, 0);
+      HyperPlatformBugCheck::kCriticalVmxInstructionFailure, vmx_error, 0, 0);
 }
 
 // Saves all supported user state components (x87, SSE, AVX states)

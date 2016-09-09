@@ -247,7 +247,23 @@ void UtilWriteMsr64(_In_ Msr msr, _In_ ULONG64 value);
 
 /// Executes the INVEPT instruction and invalidates EPT entry cache
 /// @return A result of the INVEPT instruction
-VmxStatus UtilInveptAll();
+VmxStatus UtilInveptGlobal();
+
+/// Executes the INVVPID instruction (type 0)
+/// @return A result of the INVVPID instruction
+VmxStatus UtilInvvpidIndividualAddress(_In_ USHORT vpid, _In_ void *address);
+
+/// Executes the INVVPID instruction (type 1)
+/// @return A result of the INVVPID instruction
+VmxStatus UtilInvvpidSingleContext(_In_ USHORT vpid);
+
+/// Executes the INVVPID instruction (type 2)
+/// @return A result of the INVVPID instruction
+VmxStatus UtilInvvpidAllContext();
+
+/// Executes the INVVPID instruction (type 3)
+/// @return A result of the INVVPID instruction
+VmxStatus UtilInvvpidSingleContextExceptGlobal(_In_ USHORT vpid);
 
 /// Loads the PDPTE registers from CR3 to VMCS
 /// @param cr3_value  CR3 value to retrieve PDPTEs

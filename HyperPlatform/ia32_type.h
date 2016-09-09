@@ -1434,7 +1434,7 @@ static_assert(sizeof(EptViolationQualification) == 8, "Size check");
 /// See: INVEPT Descriptor
 struct InvEptDescriptor {
   EptPointer ept_pointer;
-  ULONG_PTR reserved1;
+  ULONG64 reserved1;
 };
 static_assert(sizeof(InvEptDescriptor) == 16, "Size check");
 
@@ -1442,6 +1442,23 @@ static_assert(sizeof(InvEptDescriptor) == 16, "Size check");
 enum class InvEptType : ULONG_PTR {
   kSingleContextInvalidation = 1,
   kGlobalInvalidation = 2,
+};
+
+/// See: INVVPID Descriptor
+struct InvVpidDescriptor {
+  USHORT vpid;
+  USHORT reserved1;
+  ULONG32 reserved2;
+  ULONG64 linear_address;
+};
+static_assert(sizeof(InvVpidDescriptor) == 16, "Size check");
+
+/// @copydoc InvVpidDescriptor
+enum class InvVpidType : ULONG_PTR {
+  kIndividualAddressInvalidation = 0,
+  kSingleContextInvalidation = 1,
+  kAllContextInvalidation = 2,
+  kSingleContextInvalidationExceptGlobal = 3,
 };
 
 /// See: Format of the VM-Exit Interruption-Information Field

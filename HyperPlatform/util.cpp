@@ -786,16 +786,44 @@ _Use_decl_annotations_ void UtilWriteMsr64(Msr msr, ULONG64 value) {
 }
 
 // Executes the INVEPT instruction and invalidates EPT entry cache
-/*_Use_decl_annotations_*/ VmxStatus UtilInveptAll() {
+/*_Use_decl_annotations_*/ VmxStatus UtilInveptGlobal() {
   InvEptDescriptor desc = {};
-  const auto vmx_status =
-      static_cast<VmxStatus>(AsmInvept(InvEptType::kGlobalInvalidation, &desc));
-  if (vmx_status != VmxStatus::kOk) {
-    HYPERPLATFORM_LOG_ERROR_SAFE(
-        "UtilInveptAll(Global) failed with an error %d", vmx_status);
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-  }
-  return vmx_status;
+  return static_cast<VmxStatus>(
+      AsmInvept(InvEptType::kGlobalInvalidation, &desc));
+}
+
+// Executes the INVVPID instruction (type 0)
+_Use_decl_annotations_ VmxStatus UtilInvvpidIndividualAddress(USHORT vpid,
+                                                              void *address) {
+  InvVpidDescriptor desc = {};
+  desc.vpid = vpid;
+  desc.linear_address = reinterpret_cast<ULONG64>(address);
+  return static_cast<VmxStatus>(
+      AsmInvvpid(InvVpidType::kIndividualAddressInvalidation, &desc));
+}
+
+// Executes the INVVPID instruction (type 1)
+_Use_decl_annotations_ VmxStatus UtilInvvpidSingleContext(USHORT vpid) {
+  InvVpidDescriptor desc = {};
+  desc.vpid = vpid;
+  return static_cast<VmxStatus>(
+      AsmInvvpid(InvVpidType::kSingleContextInvalidation, &desc));
+}
+
+// Executes the INVVPID instruction (type 2)
+/*_Use_decl_annotations_*/ VmxStatus UtilInvvpidAllContext() {
+  InvVpidDescriptor desc = {};
+  return static_cast<VmxStatus>(
+      AsmInvvpid(InvVpidType::kAllContextInvalidation, &desc));
+}
+
+// Executes the INVVPID instruction (type 3)
+_Use_decl_annotations_ VmxStatus
+UtilInvvpidSingleContextExceptGlobal(USHORT vpid) {
+  InvVpidDescriptor desc = {};
+  desc.vpid = vpid;
+  return static_cast<VmxStatus>(
+      AsmInvvpid(InvVpidType::kSingleContextInvalidationExceptGlobal, &desc));
 }
 
 // Loads the PDPTE registers from CR3 to VMCS

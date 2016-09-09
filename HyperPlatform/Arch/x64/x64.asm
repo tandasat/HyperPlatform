@@ -341,6 +341,26 @@ errorWithCode:
     ret
 AsmInvept ENDP
 
+; unsigned char __stdcall AsmInvvpid(
+;     _In_ InvVpidType invvpid_type,
+;     _In_ const InvVpidDescriptor *invvpid_descriptor);
+AsmInvvpid PROC
+    ; invvpid  ecx, oword ptr [rdx]
+    db  66h, 0fh, 38h, 81h, 0ah
+    jz errorWithCode        ; if (ZF) jmp
+    jc errorWithoutCode     ; if (CF) jmp
+    xor rax, rax            ; return VMX_OK
+    ret
+
+errorWithoutCode:
+    mov rax, VMX_ERROR_WITHOUT_STATUS
+    ret
+
+errorWithCode:
+    mov rax, VMX_ERROR_WITH_STATUS
+    ret
+AsmInvvpid ENDP
+
 
 PURGE PUSHAQ
 PURGE POPAQ
