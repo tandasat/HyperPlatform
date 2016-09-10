@@ -48,7 +48,13 @@
     <ClCompile Include="kernel_stl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="powercallback.cpp">
+    <ClCompile Include="global_object.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hotplug_callback.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="power_callback.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -92,7 +98,13 @@
     <ClInclude Include="util_page_constants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="powercallback.h">
+    <ClInclude Include="global_object.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hotplug_callback.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="power_callback.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

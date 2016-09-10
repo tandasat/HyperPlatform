@@ -1007,6 +1007,11 @@ _Use_decl_annotations_ static void VmmpHandleVmCall(
       HYPERPLATFORM_LOG_INFO_SAFE("Pong by VMM! (context = %p)", context);
       VmmpIndicateSuccessfulVmcall(guest_context);
       break;
+    case HypercallNumber::kGetSharedProcessorData:
+      *reinterpret_cast<void **>(context) =
+          guest_context->stack->processor_data->shared_data;
+      VmmpIndicateSuccessfulVmcall(guest_context);
+      break;
     default:
       // Unsupported hypercall
       VmmpIndicateUnsuccessfulVmcall(guest_context);

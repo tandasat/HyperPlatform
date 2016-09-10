@@ -3,10 +3,10 @@
 // found in the LICENSE file.
 
 /// @file
-/// @brief Declares interfaces to power functions.
+/// Declares interfaces to global object functions.
 
-#ifndef HYPERPLATFORM_POWERCALLBACK_H_
-#define HYPERPLATFORM_POWERCALLBACK_H_
+#ifndef HYPERPLATFORM_GLOBAL_OBJECT_H_
+#define HYPERPLATFORM_GLOBAL_OBJECT_H_
 
 #include <fltKernel.h>
 
@@ -31,9 +31,12 @@ extern "C" {
 // prototypes
 //
 
-_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS PowerCallbackInitialization();
+/// Calls all constructors and register all destructor
+/// @return STATUS_SUCCESS on success
+_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS GlobalObjectInitialization();
 
-_IRQL_requires_max_(PASSIVE_LEVEL) void PowerCallbackTermination();
+/// Calls all destructors
+_IRQL_requires_max_(PASSIVE_LEVEL) void GlobalObjectTermination();
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -47,4 +50,4 @@ _IRQL_requires_max_(PASSIVE_LEVEL) void PowerCallbackTermination();
 
 }  // extern "C"
 
-#endif  // HYPERPLATFORM_POWERCALLBACK_H_
+#endif  // HYPERPLATFORM_GLOBAL_OBJECT_H_
