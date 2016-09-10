@@ -76,13 +76,13 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ULONG
 _IRQL_requires_max_(PASSIVE_LEVEL) static ULONG_PTR
     VmpGetSegmentBase(_In_ ULONG_PTR gdt_base, _In_ USHORT segment_selector);
 
-_IRQL_requires_max_(PASSIVE_LEVEL) static SegmentDesctiptor
+_IRQL_requires_max_(PASSIVE_LEVEL) static SegmentDescriptor
     *VmpGetSegmentDescriptor(_In_ ULONG_PTR descriptor_table_base,
                              _In_ USHORT segment_selector);
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static ULONG_PTR
     VmpGetSegmentBaseByDescriptor(
-        _In_ const SegmentDesctiptor *segment_descriptor);
+        _In_ const SegmentDescriptor *segment_descriptor);
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static ULONG
     VmpAdjustControlValue(_In_ Msr msr, _In_ ULONG requested_value);
@@ -839,18 +839,18 @@ _Use_decl_annotations_ static ULONG_PTR VmpGetSegmentBase(
 }
 
 // Returns the segment descriptor corresponds to the SegmentSelector
-_Use_decl_annotations_ static SegmentDesctiptor *VmpGetSegmentDescriptor(
+_Use_decl_annotations_ static SegmentDescriptor *VmpGetSegmentDescriptor(
     ULONG_PTR descriptor_table_base, USHORT segment_selector) {
   PAGED_CODE();
 
   const SegmentSelector ss = {segment_selector};
-  return reinterpret_cast<SegmentDesctiptor *>(
-      descriptor_table_base + ss.fields.index * sizeof(SegmentDesctiptor));
+  return reinterpret_cast<SegmentDescriptor *>(
+      descriptor_table_base + ss.fields.index * sizeof(SegmentDescriptor));
 }
 
 // Returns a base address of segment_descriptor
 _Use_decl_annotations_ static ULONG_PTR VmpGetSegmentBaseByDescriptor(
-    const SegmentDesctiptor *segment_descriptor) {
+    const SegmentDescriptor *segment_descriptor) {
   PAGED_CODE();
 
   // Calculate a 32bit base address

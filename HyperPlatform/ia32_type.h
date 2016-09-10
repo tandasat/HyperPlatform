@@ -228,7 +228,7 @@ static_assert(sizeof(SegmentSelector) == 2, "Size check");
 #include <poppack.h>
 
 /// See: Segment Descriptor
-union SegmentDesctiptor {
+union SegmentDescriptor {
   ULONG64 all;
   struct {
     ULONG64 limit_low : 16;
@@ -246,11 +246,11 @@ union SegmentDesctiptor {
     ULONG64 base_high : 8;
   } fields;
 };
-static_assert(sizeof(SegmentDesctiptor) == 8, "Size check");
+static_assert(sizeof(SegmentDescriptor) == 8, "Size check");
 
-/// @copydoc SegmentDesctiptor
+/// @copydoc SegmentDescriptor
 struct SegmentDesctiptorX64 {
-  SegmentDesctiptor descriptor;
+  SegmentDescriptor descriptor;
   ULONG32 base_upper32;
   ULONG32 reserved;
 };
@@ -1500,7 +1500,7 @@ union VmEntryInterruptionInformationField {
 static_assert(sizeof(VmEntryInterruptionInformationField) == 4, "Size check");
 
 /// @copydoc VmEntryInterruptionInformationField
-enum class interruption_type {
+enum class InterruptionType {
   kExternalInterrupt = 0,
   kReserved = 1,  // Not used for VM-Exit
   kNonMaskableInterrupt = 2,
@@ -1513,9 +1513,26 @@ enum class interruption_type {
 
 /// @copydoc VmEntryInterruptionInformationField
 enum class InterruptionVector {
-  kBreakpointException = 3,
-  kGeneralProtectionException = 13,
-  kPageFaultException = 14,
+  kDivideErrorException = 0,         //!< Error code: None
+  kDebugException = 1,               //!< Error code: None
+  kNmiInterrupt = 2,                 //!< Error code: N/A
+  kBreakpointException = 3,          //!< Error code: None
+  kOverflowException = 4,            //!< Error code: None
+  kBoundRangeExceededException = 5,  //!< Error code: None
+  kInvalidOpcodeException = 6,       //!< Error code: None
+  kDeviceNotAvailableException = 7,  //!< Error code: None
+  kDoubleFaultException = 8,         //!< Error code: Yes
+  kCoprocessorSegmentOverrun = 9,    //!< Error code: None
+  kInvalidTssException = 10,         //!< Error code: Yes
+  kSegmentNotPresent = 11,           //!< Error code: Yes
+  kStackFaultException = 12,         //!< Error code: Yes
+  kGeneralProtectionException = 13,  //!< Error code: Yes
+  kPageFaultException = 14,          //!< Error code: Yes
+  kx87FpuFloatingPointError = 16,    //!< Error code: None
+  kAlignmentCheckException = 17,     //!< Error code: Yes
+  kMachineCheckException = 18,       //!< Error code: None
+  kSimdFloatingPointException = 19,  //!< Error code: None
+  kVirtualizationException = 20,     //!< Error code: None
 };
 
 /// Provides << operator for VmEntryInterruptionInformationField

@@ -11,9 +11,6 @@
 #include "log.h"
 #include "util.h"
 #include "vmm.h"
-#ifndef HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
-#define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
-#endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
 #include "../../MemoryMon/rwe.h"
 
@@ -135,18 +132,6 @@ static void EptpFreeUnusedPreAllocatedEntries(
 // Checks if the system supports EPT technology sufficient enough
 _Use_decl_annotations_ bool EptIsEptAvailable() {
   PAGED_CODE();
-
-  int regs[4] = {};
-  __cpuidex(regs, 0x80000008, 0);
-  Cpuid80000008Eax cpuidEax = {static_cast<ULONG32>(regs[0])};
-  HYPERPLATFORM_LOG_DEBUG("Physical Address Range = %d bits",
-                          cpuidEax.fields.physical_address_bits);
-
-  // No processors supporting the Intel 64 architecture support more than 48
-  // physical-address bits
-  if (cpuidEax.fields.physical_address_bits > 48) {
-    return false;
-  }
 
   // Check the followings:
   // - page walk length is 4 steps
@@ -501,8 +486,6 @@ _Use_decl_annotations_ static bool EptpIsDeviceMemory(
 // Returns an EPT entry corresponds to the physical_address
 _Use_decl_annotations_ EptCommonEntry *EptGetEptPtEntry(
     EptData *ept_data, ULONG64 physical_address) {
-  HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
-
   return EptpGetEptPtEntry(ept_data->ept_pml4, 4, physical_address);
 }
 

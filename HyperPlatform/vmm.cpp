@@ -352,8 +352,8 @@ _Use_decl_annotations_ static void VmmpHandleException(
   const VmExitInterruptionInformationField exception = {
       static_cast<ULONG32>(UtilVmRead(VmcsField::kVmExitIntrInfo))};
 
-  if (static_cast<interruption_type>(exception.fields.interruption_type) ==
-      interruption_type::kHardwareException) {
+  if (static_cast<InterruptionType>(exception.fields.interruption_type) ==
+      InterruptionType::kHardwareException) {
     // Hardware exception
     if (static_cast<InterruptionVector>(exception.fields.vector) ==
         InterruptionVector::kPageFaultException) {
@@ -401,9 +401,9 @@ _Use_decl_annotations_ static void VmmpHandleException(
                                      0);
     }
 
-  } else if (static_cast<interruption_type>(
+  } else if (static_cast<InterruptionType>(
                  exception.fields.interruption_type) ==
-             interruption_type::kSoftwareException) {
+             InterruptionType::kSoftwareException) {
     // Software exception
     if (static_cast<InterruptionVector>(exception.fields.vector) ==
         InterruptionVector::kBreakpointException) {
@@ -1183,6 +1183,8 @@ _Use_decl_annotations_ static void VmmpAdjustGuestInstructionPointer(
 // Handle VMRESUME or VMXOFF failure. Fatal error.
 _Use_decl_annotations_ void __stdcall VmmVmxFailureHandler(
     AllRegisters *all_regs) {
+  const auto guest_ip = UtilVmRead(VmcsField::kGuestRip);
+  // See: VM-Instruction Error Numbers
   const auto vmx_error = (all_regs->flags.fields.zf)
                              ? UtilVmRead(VmcsField::kVmInstructionError)
                              : 0;
@@ -1266,8 +1268,8 @@ _Use_decl_annotations_ static void VmmpHandleVmCallTermination(
       UtilVmRead(VmcsField::kVmExitInstructionLen);
   const auto return_address = guest_context->ip + exit_instruction_length;
 
-  // Since rflags is overwritten after VMXOFF, we should manually indicates
-  // that VMCALL was successful by clearing those flags.
+  // Since the flag register is overwritten after VMXOFF, we should manually
+  // indicates that VMCALL was successful by clearing those flags.
   // See "CONVENTIONS"
   guest_context->flag_reg.fields.cf = false;
   guest_context->flag_reg.fields.pf = false;
