@@ -411,18 +411,22 @@ _Use_decl_annotations_ static void VmmpHandleCpuid(
   const auto function_id = static_cast<int>(guest_context->gp_regs->ax);
   const auto sub_function_id = static_cast<int>(guest_context->gp_regs->cx);
 
-  if (function_id == 0 && sub_function_id == kHyperPlatformVmmBackdoorCode) {
-    // Say "Pong by VMM!" when the back-door code was given
-    guest_context->gp_regs->bx = 'gnoP';
-    guest_context->gp_regs->dx = ' yb ';
-    guest_context->gp_regs->cx = '!MMV';
-  } else {
-    __cpuidex(reinterpret_cast<int *>(cpu_info), function_id, sub_function_id);
-    guest_context->gp_regs->ax = cpu_info[0];
-    guest_context->gp_regs->bx = cpu_info[1];
-    guest_context->gp_regs->cx = cpu_info[2];
-    guest_context->gp_regs->dx = cpu_info[3];
+  __cpuidex(reinterpret_cast<int *>(cpu_info), function_id, sub_function_id);
+
+  if (function_id == 1) {
+    // Present existence of a hypervisor using the HypervisorPresent bit
+    CpuFeaturesEcx cpu_features = {static_cast<ULONG_PTR>(cpu_info[2])};
+    cpu_features.fields.not_used = true;
+    cpu_info[2] = static_cast<int>(cpu_features.all);
+  } else if (function_id == kHyperVCpuidInterface) {
+    // Leave signature of HyperPlatform onto EAX
+    cpu_info[0] = 'PpyH';
   }
+
+  guest_context->gp_regs->ax = cpu_info[0];
+  guest_context->gp_regs->bx = cpu_info[1];
+  guest_context->gp_regs->cx = cpu_info[2];
+  guest_context->gp_regs->dx = cpu_info[3];
 
   VmmpAdjustGuestInstructionPointer(guest_context);
 }

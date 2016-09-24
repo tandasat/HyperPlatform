@@ -23,6 +23,11 @@
 /// See: OVERVIEW
 static const SIZE_T kVmxMaxVmcsSize = 4096;
 
+/// A majority of modern hypervisors expose their signatures through CPUID with
+/// this CPUID function code to indicate their existence. HyperPlatform follows
+/// this convention.
+static const ULONG32 kHyperVCpuidInterface = 0x40000001;
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // types

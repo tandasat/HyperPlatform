@@ -97,7 +97,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static void VmpFreeProcessorData(
 _IRQL_requires_max_(PASSIVE_LEVEL) static void VmpFreeSharedData(
     _In_ ProcessorData *processor_data);
 
-_IRQL_requires_max_(PASSIVE_LEVEL) static bool VmpIsVmmInstalled();
+_IRQL_requires_max_(PASSIVE_LEVEL) static bool VmpIsHyperPlatformInstalled();
 
 #if defined(ALLOC_PRAGMA)
 #pragma alloc_text(PAGE, VmInitialization)
@@ -121,7 +121,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static bool VmpIsVmmInstalled();
 #pragma alloc_text(PAGE, VmpStopVm)
 #pragma alloc_text(PAGE, VmpFreeProcessorData)
 #pragma alloc_text(PAGE, VmpFreeSharedData)
-#pragma alloc_text(PAGE, VmpIsVmmInstalled)
+#pragma alloc_text(PAGE, VmpIsHyperPlatformInstalled)
+#pragma alloc_text(PAGE, VmHotplugCallback)
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -145,7 +146,7 @@ inline ULONG GetSegmentLimit(_In_ ULONG selector) {
 _Use_decl_annotations_ NTSTATUS VmInitialization() {
   PAGED_CODE();
 
-  if (VmpIsVmmInstalled()) {
+  if (VmpIsHyperPlatformInstalled()) {
     return STATUS_CANCELLED;
   }
 
@@ -342,7 +343,7 @@ _Use_decl_annotations_ static NTSTATUS VmpStartVm(void *context) {
   HYPERPLATFORM_LOG_INFO("Initializing VMX for the processor %d.",
                          KeGetCurrentProcessorNumberEx(nullptr));
   const auto ok = AsmInitializeVm(VmpInitializeVm, context);
-  NT_ASSERT(VmpIsVmmInstalled() == ok);
+  NT_ASSERT(VmpIsHyperPlatformInstalled() == ok);
   if (!ok) {
     return STATUS_UNSUCCESSFUL;
   }
@@ -904,7 +905,7 @@ _Use_decl_annotations_ void VmTermination() {
   } else {
     HYPERPLATFORM_LOG_WARN("The VMM has not been uninstalled (%08x).", status);
   }
-  NT_ASSERT(!VmpIsVmmInstalled());
+  NT_ASSERT(!VmpIsHyperPlatformInstalled());
 }
 
 // Stops virtualization through a hypercall and frees all related memory
@@ -982,18 +983,19 @@ _Use_decl_annotations_ static void VmpFreeSharedData(
   ExFreePoolWithTag(processor_data->shared_data, kHyperPlatformCommonPoolTag);
 }
 
-// Tests if the VMM is already installed using a backdoor command
-_Use_decl_annotations_ static bool VmpIsVmmInstalled() {
+// Tests if HyperPlatform is already installed
+_Use_decl_annotations_ static bool VmpIsHyperPlatformInstalled() {
   PAGED_CODE();
 
   int cpu_info[4] = {};
-  __cpuidex(cpu_info, 0, kHyperPlatformVmmBackdoorCode);
-  char vendor_id[13] = {};
-  RtlCopyMemory(&vendor_id[0], &cpu_info[1], 4);  // ebx
-  RtlCopyMemory(&vendor_id[4], &cpu_info[3], 4);  // edx
-  RtlCopyMemory(&vendor_id[8], &cpu_info[2], 4);  // ecx
-  return RtlCompareMemory(vendor_id, "Pong by VMM!\0", sizeof(vendor_id)) ==
-         sizeof(vendor_id);
+  __cpuid(cpu_info, 1);
+  const CpuFeaturesEcx cpu_features = {static_cast<ULONG_PTR>(cpu_info[2])};
+  if (!cpu_features.fields.not_used) {
+    return false;
+  }
+
+  __cpuid(cpu_info, kHyperVCpuidInterface);
+  return cpu_info[0] == 'PpyH';
 }
 
 // Virtualizes the specified processor
