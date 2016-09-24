@@ -512,6 +512,10 @@ _Use_decl_annotations_ static void VmmpHandleMsrAccess(
       vmcs_field = VmcsField::kGuestSysenterEip;
       transfer_to_vmcs = true;
       break;
+    case Msr::kIa32Debugctl:
+      vmcs_field = VmcsField::kGuestIa32Debugctl;
+      transfer_to_vmcs = true;
+      break;
     case Msr::kIa32GsBase:
       vmcs_field = VmcsField::kGuestGsBase;
       transfer_to_vmcs = true;
@@ -522,15 +526,19 @@ _Use_decl_annotations_ static void VmmpHandleMsrAccess(
     default:
       break;
   }
-  // Do not shadow 64bit fields because the current implmentation for x86 is not
-  // able to handle it due to a simple use of UtilVmWrite() below.
-  NT_ASSERT(UtilIsInBounds(vmcs_field, VmcsField::kIoBitmapA,
-                           VmcsField::kHostIa32PerfGlobalCtrlHigh) == false);
+
+  const auto is_64bit_vmcs =
+      UtilIsInBounds(vmcs_field, VmcsField::kIoBitmapA,
+                     VmcsField::kHostIa32PerfGlobalCtrlHigh);
 
   LARGE_INTEGER msr_value = {};
   if (read_access) {
     if (transfer_to_vmcs) {
-      msr_value.QuadPart = UtilVmRead(vmcs_field);
+      if (is_64bit_vmcs) {
+        msr_value.QuadPart = UtilVmRead64(vmcs_field);
+      } else {
+        msr_value.QuadPart = UtilVmRead(vmcs_field);
+      }
     } else {
       msr_value.QuadPart = UtilReadMsr64(msr);
     }
@@ -540,7 +548,11 @@ _Use_decl_annotations_ static void VmmpHandleMsrAccess(
     msr_value.LowPart = static_cast<ULONG>(guest_context->gp_regs->ax);
     msr_value.HighPart = static_cast<ULONG>(guest_context->gp_regs->dx);
     if (transfer_to_vmcs) {
-      UtilVmWrite(vmcs_field, static_cast<ULONG_PTR>(msr_value.QuadPart));
+      if (is_64bit_vmcs) {
+        UtilVmWrite64(vmcs_field, static_cast<ULONG_PTR>(msr_value.QuadPart));
+      } else {
+        UtilVmWrite(vmcs_field, static_cast<ULONG_PTR>(msr_value.QuadPart));
+      }
     } else {
       UtilWriteMsr64(msr, msr_value.QuadPart);
     }

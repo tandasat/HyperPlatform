@@ -721,8 +721,10 @@ _Use_decl_annotations_ ULONG64 UtilVmRead64(VmcsField field) {
   return UtilVmRead(field);
 #else
   // Only 64bit fields should be given on x86 because it access field + 1 too.
+  // Also, the field must be even number.
   NT_ASSERT(UtilIsInBounds(field, VmcsField::kIoBitmapA,
                            VmcsField::kHostIa32PerfGlobalCtrlHigh));
+  NT_ASSERT((static_cast<ULONG>(field) % 2) == 0);
 
   ULARGE_INTEGER value64 = {};
   value64.LowPart = UtilVmRead(field);
@@ -746,8 +748,10 @@ _Use_decl_annotations_ VmxStatus UtilVmWrite64(VmcsField field,
   return UtilVmWrite(field, field_value);
 #else
   // Only 64bit fields should be given on x86 because it access field + 1 too.
+  // Also, the field must be even number.
   NT_ASSERT(UtilIsInBounds(field, VmcsField::kIoBitmapA,
                            VmcsField::kHostIa32PerfGlobalCtrlHigh));
+  NT_ASSERT((static_cast<ULONG>(field) % 2) == 0);
 
   ULARGE_INTEGER value64 = {};
   value64.QuadPart = field_value;

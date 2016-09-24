@@ -384,6 +384,8 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   // supported user state components
   processor_data->xsave_inst_mask =
       RtlGetEnabledExtendedFeatures(static_cast<ULONG64>(-1));
+  HYPERPLATFORM_LOG_DEBUG("xsave_inst_mask       = %p",
+                          processor_data->xsave_inst_mask);
   if (processor_data->xsave_inst_mask) {
     // Allocate a large enough XSAVE area to store all supported user state
     // components. A size is round-up to multiple of the page size so that the
