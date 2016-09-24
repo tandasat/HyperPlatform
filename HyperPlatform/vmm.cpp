@@ -209,6 +209,13 @@ _Use_decl_annotations_ bool __stdcall VmmVmExitHandler(VmmInitialStack *stack) {
 
   VmmpRestoreExtendedProcessorState(&guest_context);
 
+  // See: Guidelines for Use of the INVVPID Instruction, and Guidelines for Use
+  // of the INVEPT Instruction
+  if (!guest_context.vm_continue) {
+    UtilInveptGlobal();
+    UtilInvvpidAllContext();
+  }
+
   // Restore guest's context
   if (guest_context.irql < DISPATCH_LEVEL) {
     KeLowerIrql(guest_context.irql);
