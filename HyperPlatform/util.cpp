@@ -462,6 +462,7 @@ UtilForEachProcessorDpc(PKDEFERRED_ROUTINE deferred_routine, void *context) {
       return STATUS_MEMORY_NOT_ALLOCATED;
     }
     KeInitializeDpc(dpc, deferred_routine, context);
+    KeSetImportanceDpc(dpc, HighImportance);
     status = KeSetTargetProcessorDpcEx(dpc, &processor_number);
     if (!NT_SUCCESS(status)) {
       ExFreePoolWithTag(dpc, kHyperPlatformCommonPoolTag);
@@ -707,9 +708,9 @@ _Use_decl_annotations_ ULONG_PTR UtilVmRead(VmcsField field) {
   const auto vmx_status = static_cast<VmxStatus>(
       __vmx_vmread(static_cast<size_t>(field), &field_value));
   if (vmx_status != VmxStatus::kOk) {
-    HYPERPLATFORM_LOG_ERROR_SAFE("__vmx_vmread(0x%08x) failed with an error %d",
-                                 field, vmx_status);
-    HYPERPLATFORM_COMMON_DBG_BREAK();
+    HYPERPLATFORM_COMMON_BUG_CHECK(
+        HyperPlatformBugCheck::kCriticalVmxInstructionFailure,
+        static_cast<ULONG_PTR>(vmx_status), static_cast<ULONG_PTR>(field), 0);
   }
   return field_value;
 }
@@ -734,14 +735,8 @@ _Use_decl_annotations_ ULONG64 UtilVmRead64(VmcsField field) {
 // Writes natural-width VMCS
 _Use_decl_annotations_ VmxStatus UtilVmWrite(VmcsField field,
                                              ULONG_PTR field_value) {
-  const auto vmx_status = static_cast<VmxStatus>(
+  return static_cast<VmxStatus>(
       __vmx_vmwrite(static_cast<size_t>(field), field_value));
-  if (vmx_status != VmxStatus::kOk) {
-    HYPERPLATFORM_LOG_ERROR_SAFE(
-        "__vmx_vmwrite(0x%08x) failed with an error %d", field, vmx_status);
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-  }
-  return vmx_status;
 }
 
 // Writes 64bit-width VMCS
