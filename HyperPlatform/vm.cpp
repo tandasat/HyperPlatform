@@ -389,7 +389,7 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   if (processor_data->xsave_inst_mask) {
     // Allocate a large enough XSAVE area to store all supported user state
     // components. A size is round-up to multiple of the page size so that the
-    // address fullfills a requirement of 64K alignment.
+    // address fulfills a requirement of 64K alignment.
     //
     // See: ENUMERATION OF CPU SUPPORT FOR XSAVE INSTRUCTIONS AND XSAVESUPPORTED
     // FEATURES
@@ -689,15 +689,8 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   error |= UtilVmWrite(VmcsField::kPinBasedVmExecControl, vm_pinctl.all);
   error |= UtilVmWrite(VmcsField::kCpuBasedVmExecControl, vm_procctl.all);
   error |= UtilVmWrite(VmcsField::kExceptionBitmap, exception_bitmap);
-  error |= UtilVmWrite(VmcsField::kPageFaultErrorCodeMask, 0);
-  error |= UtilVmWrite(VmcsField::kPageFaultErrorCodeMatch, 0);
-  error |= UtilVmWrite(VmcsField::kCr3TargetCount, 0);
   error |= UtilVmWrite(VmcsField::kVmExitControls, vm_exitctl.all);
-  error |= UtilVmWrite(VmcsField::kVmExitMsrStoreCount, 0);
-  error |= UtilVmWrite(VmcsField::kVmExitMsrLoadCount, 0);
   error |= UtilVmWrite(VmcsField::kVmEntryControls, vm_entryctl.all);
-  error |= UtilVmWrite(VmcsField::kVmEntryMsrLoadCount, 0);
-  error |= UtilVmWrite(VmcsField::kVmEntryIntrInfoField, 0);
   error |= UtilVmWrite(VmcsField::kSecondaryVmExecControl, vm_procctl2.all);
 
   /* 32-Bit Guest-State Fields */
@@ -719,8 +712,6 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   error |= UtilVmWrite(VmcsField::kGuestGsArBytes, VmpGetSegmentAccessRight(AsmReadGS()));
   error |= UtilVmWrite(VmcsField::kGuestLdtrArBytes, VmpGetSegmentAccessRight(AsmReadLDTR()));
   error |= UtilVmWrite(VmcsField::kGuestTrArBytes, VmpGetSegmentAccessRight(AsmReadTR()));
-  error |= UtilVmWrite(VmcsField::kGuestInterruptibilityInfo, 0);
-  error |= UtilVmWrite(VmcsField::kGuestActivityState, 0);
   error |= UtilVmWrite(VmcsField::kGuestSysenterCs, UtilReadMsr(Msr::kIa32SysenterCs));
 
   /* 32-Bit Host-State Field */
