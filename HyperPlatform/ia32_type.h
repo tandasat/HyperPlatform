@@ -296,6 +296,45 @@ union CpuFeaturesEcx {
 };
 static_assert(sizeof(CpuFeaturesEcx) == 4, "Size check");
 
+/// See: More on Feature Information Returned in the EDX Register
+union CpuFeaturesEdx {
+  ULONG32 all;
+  struct {
+    ULONG32 fpu : 1;        //!< [0] Floating Point Unit On-Chip
+    ULONG32 vme : 1;        //!< [1] Virtual 8086 Mode Enhancements
+    ULONG32 de : 1;         //!< [2] Debugging Extensions
+    ULONG32 pse : 1;        //!< [3] Page Size Extension
+    ULONG32 tsc : 1;        //!< [4] Time Stamp Counter
+    ULONG32 msr : 1;        //!< [5] RDMSR and WRMSR Instructions
+    ULONG32 mce : 1;        //!< [7] Machine Check Exception
+    ULONG32 cx8 : 1;        //!< [8] Thermal monitor 2
+    ULONG32 apic : 1;       //!< [9] APIC On-Chip
+    ULONG32 reserved1 : 1;  //!< [10] Reserved
+    ULONG32 sep : 1;        //!< [11] SYSENTER and SYSEXIT Instructions
+    ULONG32 mtrr : 1;       //!< [12] Memory Type Range Registers
+    ULONG32 pge : 1;        //!< [13] Page Global Bit
+    ULONG32 mca : 1;        //!< [14] Machine Check Architecture
+    ULONG32 cmov : 1;       //!< [15] Conditional Move Instructions
+    ULONG32 pat : 1;        //!< [16] Page Attribute Table
+    ULONG32 pse36 : 1;      //!< [17] 36-Bit Page Size Extension
+    ULONG32 psn : 1;        //!< [18] Processor Serial Number
+    ULONG32 clfsh : 1;      //!< [19] CLFLUSH Instruction
+    ULONG32 reserved2 : 1;  //!< [20] Reserved
+    ULONG32 ds : 1;         //!< [21] Debug Store
+    ULONG32 acpi : 1;       //!< [22] TM and Software Controlled Clock
+    ULONG32 mmx : 1;        //!< [23] Intel MMX Technology
+    ULONG32 fxsr : 1;       //!< [24] FXSAVE and FXRSTOR Instructions
+    ULONG32 sse : 1;        //!< [25] SSE
+    ULONG32 sse2 : 1;       //!< [26] SSE2
+    ULONG32 ss : 1;         //!< [27] Self Snoop
+    ULONG32 htt : 1;        //!< [28] Max APIC IDs reserved field is Valid
+    ULONG32 tm : 1;         //!< [29] Thermal Monitor
+    ULONG32 reserved3 : 1;  //!< [30] Reserved
+    ULONG32 pbe : 1;        //!< [31] Pending Break Enable
+  } fields;
+};
+static_assert(sizeof(CpuFeaturesEdx) == 4, "Size check");
+
 /// nt!_HARDWARE_PTE on x86 PAE-disabled Windows
 struct HardwarePteX86 {
   ULONG valid : 1;               //!< [0]

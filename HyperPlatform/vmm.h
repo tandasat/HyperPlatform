@@ -45,6 +45,7 @@ struct ProcessorData {
   struct RweData* rwe_data;                 //!< TBD
   void* xsave_area;                         //!< VA to store state components
   ULONG64 xsave_inst_mask;                  //!< A mask to save state components
+  UCHAR fxsave_area[512 + 16];              //!< for fxsave (+16 for alignment)
 };
 
 ////////////////////////////////////////////////////////////////////////////////

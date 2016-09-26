@@ -143,7 +143,7 @@ static ULONG_PTR *VmmpSelectRegister(_In_ ULONG index,
 
 static void VmmpDumpGuestSelectors();
 
-static void VmmpAdjustGuestInstructionPointer(_In_ ULONG_PTR guest_ip);
+static void VmmpAdjustGuestInstructionPointer(_In_ GuestContext *guest_context);
 
 static void VmmpIoWrapper(_In_ bool to_memory, _In_ bool is_string,
                           _In_ SIZE_T size_of_access, _In_ unsigned short port,
@@ -155,7 +155,17 @@ static void VmmpRestoreExtendedProcessorState(_In_ GuestContext *guest_context);
 
 static void VmmpIndicateSuccessfulVmcall(_In_ GuestContext *guest_context);
 
-static void VmmpHandleVmCallTermination(_In_ GuestContext *guest_context);
+static void VmmpIndicateUnsuccessfulVmcall(_In_ GuestContext *guest_context);
+
+static void VmmpHandleVmCallTermination(_In_ GuestContext *guest_context,
+                                        _Inout_ void *context);
+
+static UCHAR VmmpGetGuestCpl();
+
+static void VmmpInjectInterruption(_In_ InterruptionType interruption_type,
+                                   _In_ InterruptionVector vector,
+                                   _In_ bool deliver_error_code,
+                                   _In_ ULONG32 error_code);
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -351,12 +361,13 @@ _Use_decl_annotations_ static void VmmpHandleException(
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
   const VmExitInterruptionInformationField exception = {
       static_cast<ULONG32>(UtilVmRead(VmcsField::kVmExitIntrInfo))};
+  const auto interruption_type =
+      static_cast<InterruptionType>(exception.fields.interruption_type);
+  const auto vector = static_cast<InterruptionVector>(exception.fields.vector);
 
-  if (static_cast<InterruptionType>(exception.fields.interruption_type) ==
-      InterruptionType::kHardwareException) {
+  if (interruption_type == InterruptionType::kHardwareException) {
     // Hardware exception
-    if (static_cast<InterruptionVector>(exception.fields.vector) ==
-        InterruptionVector::kPageFaultException) {
+    if (vector == InterruptionVector::kPageFaultException) {
       // #PF
       const PageFaultErrorCode fault_code = {
           static_cast<ULONG32>(UtilVmRead(VmcsField::kVmExitIntrErrorCode))};
@@ -368,31 +379,17 @@ _Use_decl_annotations_ static void VmmpHandleException(
           PfHandlePageFault(reinterpret_cast<void *>(guest_context->ip));
       }
 
-      VmEntryInterruptionInformationField inject = {};
-      inject.fields.interruption_type = exception.fields.interruption_type;
-      inject.fields.vector = exception.fields.vector;
-      inject.fields.deliver_error_code = true;
-      inject.fields.valid = true;
+      VmmpInjectInterruption(interruption_type, vector, true, fault_code.all);
       AsmWriteCR2(fault_address);
-      UtilVmWrite(VmcsField::kVmEntryExceptionErrorCode, fault_code.all);
-      UtilVmWrite(VmcsField::kVmEntryIntrInfoField, inject.all);
-      // HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %p, #PF Fault= %p Code= 0x%2x",
-      //  guest_context->ip, fault_address,
-      //  fault_code);
+      //HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %p, #PF Fault= %p Code= 0x%2x",
+      //                            guest_context->ip, fault_address, fault_code);
 
-    } else if (static_cast<InterruptionVector>(exception.fields.vector) ==
-               InterruptionVector::kGeneralProtectionException) {
+    } else if (vector == InterruptionVector::kGeneralProtectionException) {
       // # GP
       const auto error_code =
           static_cast<ULONG32>(UtilVmRead(VmcsField::kVmExitIntrErrorCode));
 
-      VmEntryInterruptionInformationField inject = {};
-      inject.fields.interruption_type = exception.fields.interruption_type;
-      inject.fields.vector = exception.fields.vector;
-      inject.fields.deliver_error_code = true;
-      inject.fields.valid = true;
-      UtilVmWrite(VmcsField::kVmEntryExceptionErrorCode, error_code);
-      UtilVmWrite(VmcsField::kVmEntryIntrInfoField, inject.all);
+      VmmpInjectInterruption(interruption_type, vector, true, error_code);
       HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %p, #GP Code= 0x%2x",
                                   guest_context->ip, error_code);
 
@@ -401,12 +398,9 @@ _Use_decl_annotations_ static void VmmpHandleException(
                                      0);
     }
 
-  } else if (static_cast<InterruptionType>(
-                 exception.fields.interruption_type) ==
-             InterruptionType::kSoftwareException) {
+  } else if (interruption_type == InterruptionType::kSoftwareException) {
     // Software exception
-    if (static_cast<InterruptionVector>(exception.fields.vector) ==
-        InterruptionVector::kBreakpointException) {
+    if (vector == InterruptionVector::kBreakpointException) {
       // #BP
 
       // Checks if the #BP occurred due to PfHandlePageFault(). If so, revert
@@ -416,15 +410,9 @@ _Use_decl_annotations_ static void VmmpHandleException(
         RweHandleTlbFlush(guest_context->stack->processor_data);
         return;
       }
-
-      VmEntryInterruptionInformationField inject = {};
-      inject.fields.interruption_type = exception.fields.interruption_type;
-      inject.fields.vector = exception.fields.vector;
-      inject.fields.deliver_error_code = false;
-      inject.fields.valid = true;
-      UtilVmWrite(VmcsField::kVmEntryIntrInfoField, inject.all);
-      UtilVmWrite(VmcsField::kVmEntryInstructionLen, 1);
+      VmmpInjectInterruption(interruption_type, vector, false, 0);
       HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %p, #BP ", guest_context->ip);
+      UtilVmWrite(VmcsField::kVmEntryInstructionLen, 1);
 
     } else {
       HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kUnspecified, 0, 0,
@@ -461,7 +449,7 @@ _Use_decl_annotations_ static void VmmpHandleCpuid(
   guest_context->gp_regs->cx = cpu_info[2];
   guest_context->gp_regs->dx = cpu_info[3];
 
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // RDTSC
@@ -473,7 +461,7 @@ _Use_decl_annotations_ static void VmmpHandleRdtsc(
   guest_context->gp_regs->dx = tsc.HighPart;
   guest_context->gp_regs->ax = tsc.LowPart;
 
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // RDTSCP
@@ -487,7 +475,7 @@ _Use_decl_annotations_ static void VmmpHandleRdtscp(
   guest_context->gp_regs->ax = tsc.LowPart;
   guest_context->gp_regs->cx = tsc_aux;
 
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // XSETBV. It is executed at the time of system resuming
@@ -499,7 +487,7 @@ _Use_decl_annotations_ static void VmmpHandleXsetbv(
   value.HighPart = static_cast<ULONG>(guest_context->gp_regs->dx);
   _xsetbv(static_cast<ULONG>(guest_context->gp_regs->cx), value.QuadPart);
 
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // RDMSR
@@ -572,7 +560,7 @@ _Use_decl_annotations_ static void VmmpHandleMsrAccess(
     }
   }
 
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // LIDT, SIDT, LGDT and SGDT
@@ -654,7 +642,7 @@ _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
   }
 
   __writecr3(vmm_cr3);
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // LLDT, LTR, SLDT, and STR
@@ -739,7 +727,7 @@ _Use_decl_annotations_ static void VmmpHandleLdtrOrTrAccess(
   }
 
   __writecr3(vmm_cr3);
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // MOV to / from DRx
@@ -789,7 +777,7 @@ _Use_decl_annotations_ static void VmmpHandleDrAccess(
       break;
   }
 
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // IN, INS, OUT, OUTS
@@ -853,7 +841,7 @@ _Use_decl_annotations_ static void VmmpHandleIoPort(
     }
   }
 
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // Perform IO instruction according with parameters
@@ -1013,7 +1001,7 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
       break;
   }
 
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // VMX instructions except for VMCALL
@@ -1027,29 +1015,36 @@ _Use_decl_annotations_ static void VmmpHandleVmx(GuestContext *guest_context) {
   guest_context->flag_reg.fields.sf = false;
   guest_context->flag_reg.fields.of = false;
   UtilVmWrite(VmcsField::kGuestRflags, guest_context->flag_reg.all);
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // VMCALL
 _Use_decl_annotations_ static void VmmpHandleVmCall(
     GuestContext *guest_context) {
-  // VMCALL for Sushi expects that cx holds a command number, and dx holds an
-  // address of a context parameter optionally
+  // VMCALL convention for HyperPlatform:
+  //  ecx: hyper-call number (always 32bit)
+  //  edx: arbitrary context parameter (pointer size)
+  // Any unsuccessful VMCALL will inject #UD into a guest
   const auto hypercall_number =
       static_cast<HypercallNumber>(guest_context->gp_regs->cx);
+  const auto context = reinterpret_cast<void *>(guest_context->gp_regs->dx);
 
   switch (hypercall_number) {
     case HypercallNumber::kTerminateVmm:
-      // Unloading requested
-      VmmpHandleVmCallTermination(guest_context);
+      // Unloading requested. This VMCALL is allowed to execute only from CPL=0
+      if (VmmpGetGuestCpl() == 0) {
+        VmmpHandleVmCallTermination(guest_context, context);
+      } else {
+        VmmpIndicateUnsuccessfulVmcall(guest_context);
+      }
       break;
     case HypercallNumber::kPingVmm:
-      HYPERPLATFORM_LOG_INFO_SAFE("Pong by VMM! (context = %p)",
-                                  guest_context->gp_regs->dx);
+      // Sample VMCALL handler
+      HYPERPLATFORM_LOG_INFO_SAFE("Pong by VMM! (context = %p)", context);
       VmmpIndicateSuccessfulVmcall(guest_context);
       break;
     case HypercallNumber::kGetSharedProcessorData:
-      *reinterpret_cast<void **>(guest_context->gp_regs->dx) =
+      *reinterpret_cast<void **>(context) =
           guest_context->stack->processor_data->shared_data;
       VmmpIndicateSuccessfulVmcall(guest_context);
       break;
@@ -1058,8 +1053,8 @@ _Use_decl_annotations_ static void VmmpHandleVmCall(
       VmmpIndicateSuccessfulVmcall(guest_context);
       break;
     default:
-      // Unsupported hypercall. Handle like other VMX instructions
-      VmmpHandleVmx(guest_context);
+      // Unsupported hypercall
+      VmmpIndicateUnsuccessfulVmcall(guest_context);
   }
 }
 
@@ -1068,7 +1063,7 @@ _Use_decl_annotations_ static void VmmpHandleInvalidateInternalCaches(
     GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
   AsmInvalidateInternalCaches();
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // INVLPG
@@ -1081,14 +1076,14 @@ _Use_decl_annotations_ static void VmmpHandleInvalidateTlbEntry(
   UtilInvvpidIndividualAddress(
       static_cast<USHORT>(KeGetCurrentProcessorNumberEx(nullptr) + 1),
       invalidate_address);
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // EXIT_REASON_EPT_VIOLATION
 _Use_decl_annotations_ static void VmmpHandleEptViolation(
     GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
-  auto processor_data = guest_context->stack->processor_data;
+  const auto processor_data = guest_context->stack->processor_data;
   EptHandleEptViolation(processor_data->ept_data, processor_data);
 }
 
@@ -1172,12 +1167,18 @@ _Use_decl_annotations_ static ULONG_PTR *VmmpSelectRegister(
       UtilVmRead(VmcsField::kGuestTrArBytes));
 }
 
-// Sets rip to the next instruction
+// Advances guest's IP to the next instruction
 _Use_decl_annotations_ static void VmmpAdjustGuestInstructionPointer(
-    ULONG_PTR guest_ip) {
-  const auto exit_instruction_length =
-      UtilVmRead(VmcsField::kVmExitInstructionLen);
-  UtilVmWrite(VmcsField::kGuestRip, guest_ip + exit_instruction_length);
+    GuestContext *guest_context) {
+  const auto exit_inst_length = UtilVmRead(VmcsField::kVmExitInstructionLen);
+  UtilVmWrite(VmcsField::kGuestRip, guest_context->ip + exit_inst_length);
+
+  // Inject #DB if TF is set
+  if (guest_context->flag_reg.fields.tf) {
+    VmmpInjectInterruption(InterruptionType::kHardwareException,
+                           InterruptionVector::kDebugException, false, 0);
+    UtilVmWrite(VmcsField::kVmEntryInstructionLen, exit_inst_length);
+  }
 }
 
 // Handle VMRESUME or VMXOFF failure. Fatal error.
@@ -1200,10 +1201,17 @@ _Use_decl_annotations_ static void VmmpSaveExtendedProcessorState(
   const auto old_cr0 = cr0;
   cr0.fields.ts = false;
   __writecr0(cr0.all);
-
-  _xsave(guest_context->stack->processor_data->xsave_area,
-         guest_context->stack->processor_data->xsave_inst_mask);
-
+  if (guest_context->stack->processor_data->xsave_inst_mask) {
+    _xsave(guest_context->stack->processor_data->xsave_area,
+           guest_context->stack->processor_data->xsave_inst_mask);
+  } else {
+    // Advances an address up to 15 bytes to be 16-byte aligned
+    auto alignment = reinterpret_cast<ULONG_PTR>(
+                         guest_context->stack->processor_data->fxsave_area) %
+                     16;
+    alignment = (alignment) ? 16 - alignment : 0;
+    _fxsave(guest_context->stack->processor_data->fxsave_area + alignment);
+  }
   __writecr0(old_cr0.all);
 }
 
@@ -1215,10 +1223,17 @@ _Use_decl_annotations_ static void VmmpRestoreExtendedProcessorState(
   const auto old_cr0 = cr0;
   cr0.fields.ts = false;
   __writecr0(cr0.all);
-
-  _xrstor(guest_context->stack->processor_data->xsave_area,
-          guest_context->stack->processor_data->xsave_inst_mask);
-
+  if (guest_context->stack->processor_data->xsave_inst_mask) {
+    _xrstor(guest_context->stack->processor_data->xsave_area,
+            guest_context->stack->processor_data->xsave_inst_mask);
+  } else {
+    // Advances an address up to 15 bytes to be 16-byte aligned
+    auto alignment = reinterpret_cast<ULONG_PTR>(
+                         guest_context->stack->processor_data->fxsave_area) %
+                     16;
+    alignment = (alignment) ? 16 - alignment : 0;
+    _fxsave(guest_context->stack->processor_data->fxsave_area + alignment);
+  }
   __writecr0(old_cr0.all);
 }
 
@@ -1235,14 +1250,22 @@ _Use_decl_annotations_ static void VmmpIndicateSuccessfulVmcall(
   guest_context->flag_reg.fields.cf = false;
   guest_context->flag_reg.fields.zf = false;
   UtilVmWrite(VmcsField::kGuestRflags, guest_context->flag_reg.all);
-  VmmpAdjustGuestInstructionPointer(guest_context->ip);
+  VmmpAdjustGuestInstructionPointer(guest_context);
+}
+
+// Indicates unsuccessful VMCALL
+_Use_decl_annotations_ static void VmmpIndicateUnsuccessfulVmcall(
+    GuestContext *guest_context) {
+  UNREFERENCED_PARAMETER(guest_context);
+
+  VmmpInjectInterruption(InterruptionType::kHardwareException,
+                         InterruptionVector::kInvalidOpcodeException, false, 0);
+  UtilVmWrite(VmcsField::kVmEntryInstructionLen, 3);  // VMCALL is 3 bytes
 }
 
 // Handles an unloading request
 _Use_decl_annotations_ static void VmmpHandleVmCallTermination(
-    GuestContext *guest_context) {
-  const auto context = reinterpret_cast<void *>(guest_context->gp_regs->dx);
-
+    GuestContext *guest_context, void *context) {
   // The processor sets ffff to limits of IDT and GDT when VM-exit occurred.
   // It is not correct value but fine to ignore since vmresume loads correct
   // values from VMCS. But here, we are going to skip vmresume and simply
@@ -1287,6 +1310,29 @@ _Use_decl_annotations_ static void VmmpHandleVmCallTermination(
   guest_context->gp_regs->dx = guest_context->gp_regs->sp;
   guest_context->gp_regs->ax = guest_context->flag_reg.all;
   guest_context->vm_continue = false;
+}
+
+// Returns guest's CPL
+/*_Use_decl_annotations_*/ static UCHAR VmmpGetGuestCpl() {
+  VmxRegmentDescriptorAccessRight ar = {
+      static_cast<unsigned int>(UtilVmRead(VmcsField::kGuestSsArBytes))};
+  return ar.fields.dpl;
+}
+
+// Injects interruption to a guest
+_Use_decl_annotations_ static void VmmpInjectInterruption(
+    InterruptionType interruption_type, InterruptionVector vector,
+    bool deliver_error_code, ULONG32 error_code) {
+  VmEntryInterruptionInformationField inject = {};
+  inject.fields.valid = true;
+  inject.fields.interruption_type = static_cast<ULONG32>(interruption_type);
+  inject.fields.vector = static_cast<ULONG32>(vector);
+  inject.fields.deliver_error_code = deliver_error_code;
+  UtilVmWrite(VmcsField::kVmEntryIntrInfoField, inject.all);
+
+  if (deliver_error_code) {
+    UtilVmWrite(VmcsField::kVmEntryExceptionErrorCode, error_code);
+  }
 }
 
 }  // extern "C"
