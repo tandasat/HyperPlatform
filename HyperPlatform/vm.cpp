@@ -440,15 +440,7 @@ _Use_decl_annotations_ static void VmpInitializeVm(
     goto ReturnFalse;
   }
 
-  const auto vmm_stack_limit = UtilAllocateContiguousMemory(KERNEL_STACK_SIZE);
-  const auto vmcs_region =
-      reinterpret_cast<VmControlStructure *>(ExAllocatePoolWithTag(
-          NonPagedPoolNx, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
-  const auto vmxon_region =
-      reinterpret_cast<VmControlStructure *>(ExAllocatePoolWithTag(
-          NonPagedPoolNx, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
-
-  // Allocated other processor data fields
+  // Allocate other processor data fields
   processor_data->vmm_stack_limit =
       UtilAllocateContiguousMemory(KERNEL_STACK_SIZE);
   if (!processor_data->vmm_stack_limit) {
@@ -649,7 +641,7 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
 
   // NOTE: Comment in any of those as needed
   const auto exception_bitmap =
-      // 1 << InterruptionVector::kBreakpointException |
+      1 << InterruptionVector::kBreakpointException |
       // 1 << InterruptionVector::kGeneralProtectionException |
       // 1 << InterruptionVector::kPageFaultException |
       0;
@@ -675,12 +667,6 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
     cr4_mask.fields.pse = true;
     cr4_mask.fields.smep = true;
   }
-
-  const auto exception_bitmap =
-      1 << InterruptionVector::kBreakpointException |
-      // 1 << InterruptionVector::kGeneralProtectionException |
-      // 1 << InterruptionVector::kPageFaultException |
-      0;
 
   // clang-format off
   auto error = VmxStatus::kOk;
