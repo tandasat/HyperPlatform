@@ -666,7 +666,7 @@ _Use_decl_annotations_ void EptHandleEptViolation(
     return;
   }
 
-  if (exit_qualification.fields.caused_by_translation) {	// FIXME
+  if (exit_qualification.fields.caused_by_translation) {
     // Tell EPT violation when it is caused due to read or write violation.
     const auto read_failure = exit_qualification.fields.read_access &&
                               !exit_qualification.fields.ept_readable;
