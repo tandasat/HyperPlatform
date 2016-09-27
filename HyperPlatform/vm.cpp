@@ -270,6 +270,15 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
   }
   shared_data->io_bitmap_a = io_bitmaps;
   shared_data->io_bitmap_b = io_bitmaps + PAGE_SIZE;
+
+  // Set up shared shadow hook data
+  shared_data->shared_sh_data = ShAllocateSharedShaowHookData();
+  if (!shared_data->shared_sh_data) {
+    ExFreePoolWithTag(shared_data->io_bitmap_a, kHyperPlatformCommonPoolTag);
+    ExFreePoolWithTag(shared_data->msr_bitmap, kHyperPlatformCommonPoolTag);
+    ExFreePoolWithTag(shared_data, kHyperPlatformCommonPoolTag);
+    return nullptr;
+  }
   return shared_data;
 }
 
