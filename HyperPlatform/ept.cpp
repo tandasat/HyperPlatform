@@ -450,8 +450,6 @@ _Use_decl_annotations_ void EptHandleEptViolation(
     HYPERPLATFORM_LOG_DEBUG_SAFE("[IGNR] OTH VA = %p, PA = %016llx", fault_va,
                                  fault_pa);
   }
-  HYPERPLATFORM_LOG_DEBUG_SAFE("[IGNR] OTH VA = %p, PA = %016llx", fault_va,
-                               fault_pa);
 }
 
 // Returns if the physical_address is device memory (which could not have a

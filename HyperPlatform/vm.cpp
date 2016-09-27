@@ -170,7 +170,7 @@ _Use_decl_annotations_ NTSTATUS VmInitialization() {
 
   status = DdimonInitialization(shared_data->shared_sh_data);
   if (!NT_SUCCESS(status)) {
-    UtilForEachProcessor(VmpStopVM, nullptr);
+    UtilForEachProcessor(VmpStopVm, nullptr);
     return status;
   }
   return status;
@@ -270,6 +270,15 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
   }
   shared_data->io_bitmap_a = io_bitmaps;
   shared_data->io_bitmap_b = io_bitmaps + PAGE_SIZE;
+
+  // Set up shared shadow hook data
+  shared_data->shared_sh_data = ShAllocateSharedShaowHookData();
+  if (!shared_data->shared_sh_data) {
+    ExFreePoolWithTag(shared_data->io_bitmap_a, kHyperPlatformCommonPoolTag);
+    ExFreePoolWithTag(shared_data->msr_bitmap, kHyperPlatformCommonPoolTag);
+    ExFreePoolWithTag(shared_data, kHyperPlatformCommonPoolTag);
+    return nullptr;
+  }
   return shared_data;
 }
 
@@ -920,7 +929,7 @@ _Use_decl_annotations_ void VmTermination() {
 
   HYPERPLATFORM_LOG_INFO("Uninstalling VMM.");
   DdimonTermination();
-  auto status = UtilForEachProcessor(VmpStopVM, nullptr);
+  auto status = UtilForEachProcessor(VmpStopVm, nullptr);
   if (NT_SUCCESS(status)) {
     HYPERPLATFORM_LOG_INFO("The VMM has been uninstalled.");
   } else {
@@ -1003,6 +1012,9 @@ _Use_decl_annotations_ static void VmpFreeSharedData(
   if (processor_data->shared_data->msr_bitmap) {
     ExFreePoolWithTag(processor_data->shared_data->msr_bitmap,
                       kHyperPlatformCommonPoolTag);
+  }
+  if (processor_data->shared_data->shared_sh_data) {
+    ShFreeSharedShadowHookData(processor_data->shared_data->shared_sh_data);
   }
   ExFreePoolWithTag(processor_data->shared_data, kHyperPlatformCommonPoolTag);
 }
