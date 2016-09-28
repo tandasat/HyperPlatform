@@ -31,7 +31,7 @@ struct SharedProcessorData {
   void* msr_bitmap;               //!< Bitmap to activate MSR I/O VM-exit
   void* io_bitmap_a;              //!< Bitmap to activate IO VM-exit (~ 0x7FFF)
   void* io_bitmap_b;              //!< Bitmap to activate IO VM-exit (~ 0xffff)
-  struct SharedShadowHookData* shared_sh_data;  //!< Shared hadow hook data
+  struct SharedShadowHookData* shared_sh_data;  //!< Shared shadow hook data
 };
 
 /// Represents VMM related data associated with each processor
