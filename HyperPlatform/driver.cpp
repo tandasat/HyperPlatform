@@ -153,6 +153,18 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     return status;
   }
 
+  status = TestInitialization();
+  if (!NT_SUCCESS(status)) {
+    VmTermination();
+    HotplugCallbackTermination();
+    PowerCallbackTermination();
+    UtilTermination();
+    PerfTermination();
+    GlobalObjectTermination();
+    LogTermination();
+    return status;
+  }
+
   // Register re-initialization for the log functions if needed
   if (need_reinitialization) {
     LogRegisterReinitialization(driver_object);
@@ -171,6 +183,7 @@ _Use_decl_annotations_ static void DriverpDriverUnload(
 
   HYPERPLATFORM_COMMON_DBG_BREAK();
 
+  TestTermination();
   VmTermination();
   HotplugCallbackTermination();
   PowerCallbackTermination();
