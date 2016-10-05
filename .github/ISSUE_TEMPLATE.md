@@ -25,7 +25,27 @@
 
 - Hardware (eg, Physical, VMware 11, Bochs): (Please fill in)
 
-- Anything else:
+- Details:
 
-(Please describe. This section may or may not include related log files, crash dump files, impact/importance of the issue, proposed fix and anything you may think useful for fixing the issue)
+(Please describe)
+
+--
+NOTE: The Details section may include related log files, crash dump files,
+impact/importance of the issue, proposed fix and anything you may think useful
+for fixing the issue.
+
+It is hugely helpful and speeds up investigating the issue when the following
+files are provided:
+- a Debug build version of a compiled SYS file and a PDB file
+- a full set of source code used to build the SYS file
+- a log file (i.e., C:\Windows\HyperPlatform.log)
+- a system crash dump file (i.e., C:\Windows\MEMORY.DMP) if applicable
+
+GitHub does not support attaching of any binary files into issues. You may use
+any free file hosting services, however. Here are some of those services:
+- OneDrive
+- DropBox
+- GoogleDrive
+- Sendspace
+- ZippyShare
 
