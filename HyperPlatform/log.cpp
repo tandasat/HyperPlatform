@@ -115,6 +115,8 @@ static bool LogpIsLogFileActivated(_In_ const LogBufferInfo &info);
 
 static bool LogpIsLogNeeded(_In_ ULONG level);
 
+static bool LogpIsDbgPrintNeeded();
+
 static KSTART_ROUTINE LogpBufferFlushThreadRoutine;
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
@@ -696,6 +698,9 @@ _Use_decl_annotations_ static NTSTATUS LogpBufferMessage(const char *message,
 
 // Calls DbgPrintEx() while converting \r\n to \n\0
 _Use_decl_annotations_ static void LogpDoDbgPrint(char *message) {
+  if (!LogpIsDbgPrintNeeded()) {
+    return;
+  }
   const auto location_of_cr = strlen(message) - 2;
   message[location_of_cr] = '\n';
   message[location_of_cr + 1] = '\0';
@@ -734,6 +739,11 @@ _Use_decl_annotations_ static bool LogpIsLogFileActivated(
 // a set log level.
 _Use_decl_annotations_ static bool LogpIsLogNeeded(ULONG level) {
   return !!(g_logp_debug_flag & level);
+}
+
+// Returns true when DbgPrint is requested
+/*_Use_decl_annotations_*/ static bool LogpIsDbgPrintNeeded() {
+  return (g_logp_debug_flag & kLogOptDisableDbgPrint) == 0;
 }
 
 // A thread runs as long as info.buffer_flush_thread_should_be_alive is true and
