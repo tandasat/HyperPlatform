@@ -103,14 +103,17 @@ static const auto kLogPutLevelError = kLogpLevelError;
 /// For LogInitialization(). Disables all levels of logs
 static const auto kLogPutLevelDisable = 0x00ul;
 
-/// For LogInitialization(). Do not log a current time.
+/// For LogInitialization(). Do not log a current time
 static const auto kLogOptDisableTime = 0x100ul;
 
-/// For LogInitialization(). Do not log a current function name.
+/// For LogInitialization(). Do not log a current function name
 static const auto kLogOptDisableFunctionName = 0x200ul;
 
-/// For LogInitialization(). Do not log a current processor number.
+/// For LogInitialization(). Do not log a current processor number
 static const auto kLogOptDisableProcessorNumber = 0x400ul;
+
+/// For LogInitialization(). Do not log to debug buffer
+static const auto kLogOptDisableDbgPrint = 0x800ul;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
