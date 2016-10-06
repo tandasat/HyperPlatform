@@ -418,7 +418,7 @@ _Use_decl_annotations_ static void VmpInitializeVm(
     }
   }
 
-  // Allocated other processor data fields
+  // Allocate other processor data fields
   processor_data->vmm_stack_limit =
       UtilAllocateContiguousMemory(KERNEL_STACK_SIZE);
   if (!processor_data->vmm_stack_limit) {

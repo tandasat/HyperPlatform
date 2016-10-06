@@ -470,6 +470,9 @@ _Use_decl_annotations_ static EptCommonEntry *EptpGetEptPtEntry(
       // table == PML4
       const auto pxe_index = EptpAddressToPxeIndex(physical_address);
       const auto ept_pml4_entry = &table[pxe_index];
+      if (!ept_pml4_entry->all) {
+        return nullptr;
+      }
       return EptpGetEptPtEntry(reinterpret_cast<EptCommonEntry *>(UtilVaFromPfn(
                                    ept_pml4_entry->fields.physial_address)),
                                table_level - 1, physical_address);
@@ -478,6 +481,9 @@ _Use_decl_annotations_ static EptCommonEntry *EptpGetEptPtEntry(
       // table == PDPT
       const auto ppe_index = EptpAddressToPpeIndex(physical_address);
       const auto ept_pdpt_entry = &table[ppe_index];
+      if (!ept_pdpt_entry->all) {
+        return nullptr;
+      }
       return EptpGetEptPtEntry(reinterpret_cast<EptCommonEntry *>(UtilVaFromPfn(
                                    ept_pdpt_entry->fields.physial_address)),
                                table_level - 1, physical_address);
@@ -486,6 +492,9 @@ _Use_decl_annotations_ static EptCommonEntry *EptpGetEptPtEntry(
       // table == PDT
       const auto pde_index = EptpAddressToPdeIndex(physical_address);
       const auto ept_pdt_entry = &table[pde_index];
+      if (!ept_pdt_entry->all) {
+        return nullptr;
+      }
       return EptpGetEptPtEntry(reinterpret_cast<EptCommonEntry *>(UtilVaFromPfn(
                                    ept_pdt_entry->fields.physial_address)),
                                table_level - 1, physical_address);
