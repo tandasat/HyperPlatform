@@ -147,6 +147,20 @@ static void LogpDbgBreak();
 // variables
 //
 
+//
+// Avoid a linker error with Release x86. In this settings, you would get the
+// following error:
+//      ntstrsafe.lib(vsnprint.obj) : error LNK2005: __vsnprintf_l already
+//      defined in log.obj
+// To avoid it, DdiMon does not link ntstrsafe.lib on this settings, and
+// manually defines _fltused to avoid another link error below:
+//      capstone_static_winkernel.lib(MCInst.obj) : error LNK2001: unresolved
+//      external symbol __fltused
+//
+#if !defined(_AMD64_) && !defined(DBG)
+int _fltused;
+#endif
+
 static auto g_logp_debug_flag = kLogPutLevelDisable;
 static LogBufferInfo g_logp_log_buffer_info = {};
 
