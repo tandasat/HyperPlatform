@@ -638,6 +638,7 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   // VM-exit occurs when a guest modifies any of those fields
   Cr0 cr0_mask = {};
   Cr4 cr4_mask = {};
+  cr4_mask.fields.pge = true;   // to tell occurrence of TLB flush
 
   // See: PDPTE Registers
   // If PAE paging would be in use following an execution of MOV to CR0 or MOV
