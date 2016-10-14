@@ -31,7 +31,7 @@ struct SharedProcessorData {
   void* msr_bitmap;               //!< Bitmap to activate MSR I/O VM-exit
   void* io_bitmap_a;              //!< Bitmap to activate IO VM-exit (~ 0x7FFF)
   void* io_bitmap_b;              //!< Bitmap to activate IO VM-exit (~ 0xffff)
-  struct SharedShadowHookData* shared_sh_data;  //!< Shared hadow hook data
+  struct SharedShadowHookData* shared_sh_data;  //!< Shared shadow hook data
 };
 
 /// Represents VMM related data associated with each processor
@@ -41,12 +41,6 @@ struct ProcessorData {
   struct VmControlStructure* vmxon_region;  //!< VA of a VMXON region
   struct VmControlStructure* vmcs_region;   //!< VA of a VMCS region
   struct EptData* ept_data;                 //!< A pointer to EPT related data
-<<<<<<< HEAD
-=======
-  void* xsave_area;                         //!< VA to store state components
-  ULONG64 xsave_inst_mask;                  //!< A mask to save state components
-  UCHAR fxsave_area[512 + 16];              //!< for fxsave (+16 for alignment)
->>>>>>> add code for DdiMon
   struct ShadowHookData* sh_data;           //!< Per-processor shadow hook data
 };
 

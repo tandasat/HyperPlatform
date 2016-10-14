@@ -345,7 +345,7 @@ _Use_decl_annotations_ static void VmmpHandleUnexpectedExit(
 _Use_decl_annotations_ static void VmmpHandleMonitorTrap(
     GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
-  auto processor_data = guest_context->stack->processor_data;
+  const auto processor_data = guest_context->stack->processor_data;
   ShHandleMonitorTrapFlag(processor_data->sh_data,
                           processor_data->shared_data->shared_sh_data,
                           processor_data->ept_data);

@@ -660,20 +660,16 @@ _Use_decl_annotations_ void EptHandleEptViolation(
   if (exit_qualification.fields.ept_readable ||
       exit_qualification.fields.ept_writeable ||
       exit_qualification.fields.ept_executable) {
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-    HYPERPLATFORM_LOG_ERROR_SAFE("[UNK1] VA = %p, PA = %016llx", fault_va,
-                                 fault_pa);
-    return;
-  }
-
-  if (exit_qualification.fields.caused_by_translation) {
-    // Tell EPT violation when it is caused due to read or write violation.
-    const auto read_failure = exit_qualification.fields.read_access &&
-                              !exit_qualification.fields.ept_readable;
-    const auto write_failure = exit_qualification.fields.write_access &&
-                               !exit_qualification.fields.ept_writeable;
-    if (read_failure || write_failure) {
-      ShHandleEptViolation(sh_data, shared_sh_data, ept_data, fault_va);
+    // EPT entry is present. Permission violation.
+    if (exit_qualification.fields.caused_by_translation) {
+      // Tell EPT violation when it is caused due to read or write violation.
+      const auto read_failure = exit_qualification.fields.read_access &&
+                                !exit_qualification.fields.ept_readable;
+      const auto write_failure = exit_qualification.fields.write_access &&
+                                 !exit_qualification.fields.ept_writeable;
+      if (read_failure || write_failure) {
+        ShHandleEptViolation(sh_data, shared_sh_data, ept_data, fault_va);
+      }
     }
     return;
   }
