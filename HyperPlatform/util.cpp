@@ -648,18 +648,15 @@ _Use_decl_annotations_ void UtilFreeContiguousMemory(void *base_address) {
 // Executes VMCALL
 _Use_decl_annotations_ NTSTATUS UtilVmCall(HypercallNumber hypercall_number,
                                            void *context) {
-  EXCEPTION_POINTERS *exp_info = nullptr;
   __try {
     const auto vmx_status = static_cast<VmxStatus>(
         AsmVmxCall(static_cast<ULONG>(hypercall_number), context));
     return (vmx_status == VmxStatus::kOk) ? STATUS_SUCCESS
                                           : STATUS_UNSUCCESSFUL;
-  } __except (exp_info = GetExceptionInformation(), EXCEPTION_EXECUTE_HANDLER) {
+  } __except (EXCEPTION_EXECUTE_HANDLER) {
     const auto status = GetExceptionCode();
     HYPERPLATFORM_COMMON_DBG_BREAK();
-    HYPERPLATFORM_LOG_WARN_SAFE("Exception %08x at %p",
-                                exp_info->ExceptionRecord->ExceptionCode,
-                                exp_info->ExceptionRecord->ExceptionAddress);
+    HYPERPLATFORM_LOG_WARN_SAFE("Exception thrown (code %08x)", status);
     return status;
   }
 }
