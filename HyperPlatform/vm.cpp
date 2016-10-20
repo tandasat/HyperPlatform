@@ -941,6 +941,11 @@ _Use_decl_annotations_ static NTSTATUS VmpStopVm(void *context) {
     return status;
   }
 
+  // Clear CR4.VMXE, as there is no reason to leave the bit after vmxoff
+  Cr4 cr4 = {__readcr4()};
+  cr4.fields.vmxe = false;
+  __writecr4(cr4.all);
+
   VmpFreeProcessorData(processor_data);
   return STATUS_SUCCESS;
 }
