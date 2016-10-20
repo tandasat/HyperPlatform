@@ -473,7 +473,7 @@ UtilForEachProcessorDpc(PKDEFERRED_ROUTINE deferred_routine, void *context) {
   return STATUS_SUCCESS;
 }
 
-// Sleep the current thread's execution for Millisecond milli-seconds.
+// Sleep the current thread's execution for Millisecond milliseconds.
 _Use_decl_annotations_ NTSTATUS UtilSleep(LONG Millisecond) {
   PAGED_CODE();
 

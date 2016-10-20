@@ -755,7 +755,7 @@ enum class VmxExitReason : unsigned __int16 {
   kIoInstruction = 30,
   kMsrRead = 31,
   kMsrWrite = 32,
-  kInvalidGuestState = 33,
+  kInvalidGuestState = 33,  // See: BASIC VM-ENTRY CHECKS
   kMsrLoading = 34,
   kUndefined35 = 35,
   kMwaitInstruction = 36,

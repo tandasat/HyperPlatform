@@ -490,7 +490,7 @@ _Use_decl_annotations_ static void VmmpHandleMsrWriteAccess(
 // RDMSR and WRMSR
 _Use_decl_annotations_ static void VmmpHandleMsrAccess(
     GuestContext *guest_context, bool read_access) {
-  // Apply it for VMCS instead of a real MSR if a speficied MSR is either of
+  // Apply it for VMCS instead of a real MSR if a specified MSR is either of
   // them.
   const auto msr = static_cast<Msr>(guest_context->gp_regs->cx);
 
@@ -1176,7 +1176,7 @@ _Use_decl_annotations_ void __stdcall VmmVmxFailureHandler(
 // Saves all supported user state components (x87, SSE, AVX states)
 _Use_decl_annotations_ static void VmmpSaveExtendedProcessorState(
     GuestContext *guest_context) {
-  // Clear the TS flag temporality since XSAVE/XRSTOR raise #NM
+  // Clear the TS flag temporarily since XSAVE/XRSTOR raise #NM
   Cr0 cr0 = {__readcr0()};
   const auto old_cr0 = cr0;
   cr0.fields.ts = false;
@@ -1198,7 +1198,7 @@ _Use_decl_annotations_ static void VmmpSaveExtendedProcessorState(
 // Restores all supported user state components (x87, SSE, AVX states)
 _Use_decl_annotations_ static void VmmpRestoreExtendedProcessorState(
     GuestContext *guest_context) {
-  // Clear the TS flag temporality since XSAVE/XRSTOR raise #NM
+  // Clear the TS flag temporarily since XSAVE/XRSTOR raise #NM
   Cr0 cr0 = {__readcr0()};
   const auto old_cr0 = cr0;
   cr0.fields.ts = false;
