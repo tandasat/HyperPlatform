@@ -47,5 +47,4 @@ any free file hosting services, however. Here are some of those services:
 - DropBox
 - GoogleDrive
 - Sendspace
-- ZippyShare
 
