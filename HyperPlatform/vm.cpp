@@ -504,19 +504,38 @@ _Use_decl_annotations_ static bool VmpEnterVmxMode(
   PAGED_CODE();
 
   // Apply FIXED bits
+  // See: VMX-FIXED BITS IN CR0
+
+  //        IA32_VMX_CRx_FIXED0 IA32_VMX_CRx_FIXED1 Meaning
+  // Values 1                   1                   bit of CRx is fixed to 1
+  // Values 0                   1                   bit of CRx is flexible
+  // Values 0                   0                   bit of CRx is fixed to 0
   const Cr0 cr0_fixed0 = {UtilReadMsr(Msr::kIa32VmxCr0Fixed0)};
   const Cr0 cr0_fixed1 = {UtilReadMsr(Msr::kIa32VmxCr0Fixed1)};
   Cr0 cr0 = {__readcr0()};
+  Cr0 cr0_original = cr0;
   cr0.all &= cr0_fixed1.all;
   cr0.all |= cr0_fixed0.all;
   __writecr0(cr0.all);
 
+  HYPERPLATFORM_LOG_DEBUG("IA32_VMX_CR0_FIXED0   = %08x", cr0_fixed0.all);
+  HYPERPLATFORM_LOG_DEBUG("IA32_VMX_CR0_FIXED1   = %08x", cr0_fixed1.all);
+  HYPERPLATFORM_LOG_DEBUG("Original CR0          = %08x", cr0_original.all);
+  HYPERPLATFORM_LOG_DEBUG("Fixed CR0             = %08x", cr0.all);
+
+  // See: VMX-FIXED BITS IN CR4
   const Cr4 cr4_fixed0 = {UtilReadMsr(Msr::kIa32VmxCr4Fixed0)};
   const Cr4 cr4_fixed1 = {UtilReadMsr(Msr::kIa32VmxCr4Fixed1)};
   Cr4 cr4 = {__readcr4()};
+  Cr4 cr4_original = cr4;
   cr4.all &= cr4_fixed1.all;
   cr4.all |= cr4_fixed0.all;
   __writecr4(cr4.all);
+
+  HYPERPLATFORM_LOG_DEBUG("IA32_VMX_CR4_FIXED0   = %08x", cr4_fixed0.all);
+  HYPERPLATFORM_LOG_DEBUG("IA32_VMX_CR4_FIXED1   = %08x", cr4_fixed1.all);
+  HYPERPLATFORM_LOG_DEBUG("Original CR4          = %08x", cr4_original.all);
+  HYPERPLATFORM_LOG_DEBUG("Fixed CR4             = %08x", cr4.all);
 
   // Write a VMCS revision identifier
   const Ia32VmxBasicMsr vmx_basic_msr = {UtilReadMsr64(Msr::kIa32VmxBasic)};
@@ -629,7 +648,13 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   // - Where a bit is not masked, the actual bit appears
   // VM-exit occurs when a guest modifies any of those fields
   Cr0 cr0_mask = {};
+  Cr0 cr0_shadow = {__readcr0()};
+
   Cr4 cr4_mask = {};
+  Cr4 cr4_shadow = {__readcr4()};
+  // For example, when we want to hide CR4.VMXE from the guest, comment in below
+  // cr4_mask.fields.vmxe = true;
+  // cr4_shadow.fields.vmxe = false;
 
   // See: PDPTE Registers
   // If PAE paging would be in use following an execution of MOV to CR0 or MOV
@@ -720,8 +745,8 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   /* Natural-Width Control Fields */
   error |= UtilVmWrite(VmcsField::kCr0GuestHostMask, cr0_mask.all);
   error |= UtilVmWrite(VmcsField::kCr4GuestHostMask, cr4_mask.all);
-  error |= UtilVmWrite(VmcsField::kCr0ReadShadow, __readcr0());
-  error |= UtilVmWrite(VmcsField::kCr4ReadShadow, __readcr4());
+  error |= UtilVmWrite(VmcsField::kCr0ReadShadow, cr0_shadow.all);
+  error |= UtilVmWrite(VmcsField::kCr4ReadShadow, cr4_shadow.all);
 
   /* Natural-Width Guest-State Fields */
   error |= UtilVmWrite(VmcsField::kGuestCr0, __readcr0());
