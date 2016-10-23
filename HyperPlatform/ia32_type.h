@@ -441,6 +441,18 @@ struct MMPTE_TRANSITION_X86_PAE {
   ULONGLONG Unused : 24;           //!< [40:63]
 };
 
+struct MMPTE_TRANSITION_X86 {
+  ULONG Valid : 1;             //!< [0]
+  ULONG Write : 1;             //!< [1]
+  ULONG Owner : 1;             //!< [2]
+  ULONG WriteThrough : 1;      //!< [3]
+  ULONG CacheDisable : 1;      //!< [4]
+  ULONG Protection : 5;        //!< [5:9]
+  ULONG Prototype : 1;         //!< [10]
+  ULONG Transition : 1;        //!< [11]
+  ULONG PageFrameNumber : 20;  //!< [12:31]
+};
+
 #if defined(_X86_)
 using MMPTE_TRANSITION = MMPTE_TRANSITION_X86_PAE;
 #elif defined(_AMD64_)
@@ -448,23 +460,31 @@ using MMPTE_TRANSITION = MMPTE_TRANSITION_X64;
 #endif
 
 struct MMPTE_PROTOTYPE_X64 {
-  ULONGLONG Valid : 1;         //!< [0]
-  ULONGLONG Unused0 : 7;       //!< [1:7]
-  ULONGLONG ReadOnly : 1;      //!< [8]
-  ULONGLONG Unused1 : 1;       //!< [9]
-  ULONGLONG Prototype : 1;     //!< [10]
-  ULONGLONG Protection : 5;    //!< [11:15]
-  LONGLONG ProtoAddress : 48;  //!< [16:63]
+  ULONGLONG Valid : 1;          //!< [0]
+  ULONGLONG Unused0 : 7;        //!< [1:7]
+  ULONGLONG ReadOnly : 1;       //!< [8]
+  ULONGLONG Unused1 : 1;        //!< [9]
+  ULONGLONG Prototype : 1;      //!< [10]
+  ULONGLONG Protection : 5;     //!< [11:15]
+  ULONGLONG ProtoAddress : 48;  //!< [16:63]
 };
 
 struct MMPTE_PROTOTYPE_X86_PAE {
-  ULONGLONG Valid : 1;         //!< [0]
-  ULONGLONG Unused0 : 7;       //!< [1:7]
-  ULONGLONG ReadOnly : 1;      //!< [8]
-  ULONGLONG Unused1 : 1;       //!< [9]
-  ULONGLONG Prototype : 1;     //!< [10]
-  ULONGLONG Protection : 5;    //!< [11:15]
-  LONGLONG ProtoAddress : 48;  //!< [16:63]
+  ULONGLONG Valid : 1;          //!< [0]
+  ULONGLONG Unused0 : 7;        //!< [1:7]
+  ULONGLONG ReadOnly : 1;       //!< [8]
+  ULONGLONG Unused1 : 1;        //!< [9]
+  ULONGLONG Prototype : 1;      //!< [10]
+  ULONGLONG Protection : 5;     //!< [11:15]
+  ULONGLONG ProtoAddress : 48;  //!< [16:63]
+};
+
+struct MMPTE_PROTOTYPE_X86 {
+  ULONG Valid : 1;              //!< [0]
+  ULONG ProtoAddressLow : 8;    //!< [1:8]
+  ULONG ReadOnly : 1;           //!< [9]
+  ULONG Prototype : 1;          //!< [10]
+  ULONG ProtoAddressHigh : 21;  //!< [11:31]
 };
 
 #if defined(_X86_)
@@ -488,15 +508,24 @@ struct MMPTE_SOFTWARE_X64 {
 };
 
 struct MMPTE_SOFTWARE_X86_PAE {
-  ULONGLONG Valid : 1;                  //!< [0]
-  ULONGLONG PageFileLow : 4;            //!< [1:4]
-  ULONGLONG Protection : 5;             //!< [5:9]
-  ULONGLONG Prototype : 1;              //!< [10]
-  ULONGLONG Transition : 1;             //!< [11]
-  ULONGLONG PageFileReserved : 1;       //!< [12]
-  ULONGLONG PageFileAllocated : 1;      //!< [13]
-  ULONGLONG Unused : 18;                //!< [14:31]
-  ULONGLONG PageFileHigh : 32;          //!< [32:63]
+  ULONGLONG Valid : 1;              //!< [0]
+  ULONGLONG PageFileLow : 4;        //!< [1:4]
+  ULONGLONG Protection : 5;         //!< [5:9]
+  ULONGLONG Prototype : 1;          //!< [10]
+  ULONGLONG Transition : 1;         //!< [11]
+  ULONGLONG PageFileReserved : 1;   //!< [12]
+  ULONGLONG PageFileAllocated : 1;  //!< [13]
+  ULONGLONG Unused : 18;            //!< [14:31]
+  ULONGLONG PageFileHigh : 32;      //!< [32:63]
+};
+
+struct MMPTE_SOFTWARE_X86 {
+  ULONG Valid : 1;          //!< [0]
+  ULONG PageFileLow : 4;    //!< [1:4]
+  ULONG Protection : 5;     //!< [5:9]
+  ULONG Prototype : 1;      //!< [10]
+  ULONG Transition : 1;     //!< [11]
+  ULONG PageFileHigh : 20;  //!< [12:31]
 };
 
 #if defined(_X86_)
