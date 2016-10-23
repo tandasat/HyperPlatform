@@ -407,49 +407,103 @@ static_assert(sizeof(HardwarePteARM) == 4, "Size check");
 
 /// nt!_HARDWARE_PTE on the current platform
 #if defined(_X86_)
-using HardwarePte = HardwarePteX86;
+using HardwarePte = HardwarePteX86Pae;
 #elif defined(_AMD64_)
 using HardwarePte = HardwarePteX64;
 #elif defined(_ARM_)
 using HardwarePte = HardwarePteARM;
 #endif
 
-struct MMPTE_TRANSITION {
-  ULONGLONG Valid : 1;
-  ULONGLONG Write : 1;
-  ULONGLONG Owner : 1;
-  ULONGLONG WriteThrough : 1;
-  ULONGLONG CacheDisable : 1;
-  ULONGLONG Protection : 5;
-  ULONGLONG Prototype : 1;
-  ULONGLONG Transition : 1;
-  ULONGLONG PageFrameNumber : 28;
-  ULONGLONG Unused : 24;
+// All those definitions were take from Windows 7 (x86/x64)
+struct MMPTE_TRANSITION_X64 {
+  ULONGLONG Valid : 1;             //!< [0]
+  ULONGLONG Write : 1;             //!< [1]
+  ULONGLONG Owner : 1;             //!< [2]
+  ULONGLONG WriteThrough : 1;      //!< [3]
+  ULONGLONG CacheDisable : 1;      //!< [4]
+  ULONGLONG Protection : 5;        //!< [5:9]
+  ULONGLONG Prototype : 1;         //!< [10]
+  ULONGLONG Transition : 1;        //!< [11]
+  ULONGLONG PageFrameNumber : 28;  //!< [12:39]
+  ULONGLONG Unused : 24;           //!< [40:63]
 };
 
-struct MMPTE_PROTOTYPE {
-  ULONGLONG Valid : 1;
-  ULONGLONG Unused0 : 7;
-  ULONGLONG ReadOnly : 1;
-  ULONGLONG Unused1 : 1;
-  ULONGLONG Prototype : 1;
-  ULONGLONG Protection : 5;
-  LONGLONG ProtoAddress : 48;
+struct MMPTE_TRANSITION_X86_PAE {
+  ULONGLONG Valid : 1;             //!< [0]
+  ULONGLONG Write : 1;             //!< [1]
+  ULONGLONG Owner : 1;             //!< [2]
+  ULONGLONG WriteThrough : 1;      //!< [3]
+  ULONGLONG CacheDisable : 1;      //!< [4]
+  ULONGLONG Protection : 5;        //!< [5:9]
+  ULONGLONG Prototype : 1;         //!< [10]
+  ULONGLONG Transition : 1;        //!< [11]
+  ULONGLONG PageFrameNumber : 28;  //!< [12:39]
+  ULONGLONG Unused : 24;           //!< [40:63]
 };
 
-struct MMPTE_SOFTWARE {
-  ULONGLONG Valid : 1;
-  ULONGLONG PageFileLow : 4;
-  ULONGLONG Protection : 5;
-  ULONGLONG Prototype : 1;
-  ULONGLONG Transition : 1;
-  ULONGLONG PageFileReserved : 1;
-  ULONGLONG PageFileAllocated : 1;
-  ULONGLONG UsedPageTableEntries : 10;
-  ULONGLONG LocalPartition : 1;
-  ULONGLONG Unused : 7;
-  ULONGLONG PageFileHigh : 32;
+#if defined(_X86_)
+using MMPTE_TRANSITION = MMPTE_TRANSITION_X86_PAE;
+#elif defined(_AMD64_)
+using MMPTE_TRANSITION = MMPTE_TRANSITION_X64;
+#endif
+
+struct MMPTE_PROTOTYPE_X64 {
+  ULONGLONG Valid : 1;         //!< [0]
+  ULONGLONG Unused0 : 7;       //!< [1:7]
+  ULONGLONG ReadOnly : 1;      //!< [8]
+  ULONGLONG Unused1 : 1;       //!< [9]
+  ULONGLONG Prototype : 1;     //!< [10]
+  ULONGLONG Protection : 5;    //!< [11:15]
+  LONGLONG ProtoAddress : 48;  //!< [16:63]
 };
+
+struct MMPTE_PROTOTYPE_X86_PAE {
+  ULONGLONG Valid : 1;         //!< [0]
+  ULONGLONG Unused0 : 7;       //!< [1:7]
+  ULONGLONG ReadOnly : 1;      //!< [8]
+  ULONGLONG Unused1 : 1;       //!< [9]
+  ULONGLONG Prototype : 1;     //!< [10]
+  ULONGLONG Protection : 5;    //!< [11:15]
+  LONGLONG ProtoAddress : 48;  //!< [16:63]
+};
+
+#if defined(_X86_)
+using MMPTE_PROTOTYPE = MMPTE_PROTOTYPE_X86_PAE;
+#elif defined(_AMD64_)
+using MMPTE_PROTOTYPE = MMPTE_PROTOTYPE_X64;
+#endif
+
+struct MMPTE_SOFTWARE_X64 {
+  ULONGLONG Valid : 1;                  //!< [0]
+  ULONGLONG PageFileLow : 4;            //!< [1:4]
+  ULONGLONG Protection : 5;             //!< [5:9]
+  ULONGLONG Prototype : 1;              //!< [10]
+  ULONGLONG Transition : 1;             //!< [11]
+  ULONGLONG PageFileReserved : 1;       //!< [12]
+  ULONGLONG PageFileAllocated : 1;      //!< [13]
+  ULONGLONG UsedPageTableEntries : 10;  //!< [14:23]
+  ULONGLONG LocalPartition : 1;         //!< [24]
+  ULONGLONG Unused : 7;                 //!< [25:31]
+  ULONGLONG PageFileHigh : 32;          //!< [32:63]
+};
+
+struct MMPTE_SOFTWARE_X86_PAE {
+  ULONGLONG Valid : 1;                  //!< [0]
+  ULONGLONG PageFileLow : 4;            //!< [1:4]
+  ULONGLONG Protection : 5;             //!< [5:9]
+  ULONGLONG Prototype : 1;              //!< [10]
+  ULONGLONG Transition : 1;             //!< [11]
+  ULONGLONG PageFileReserved : 1;       //!< [12]
+  ULONGLONG PageFileAllocated : 1;      //!< [13]
+  ULONGLONG Unused : 18;                //!< [14:31]
+  ULONGLONG PageFileHigh : 32;          //!< [32:63]
+};
+
+#if defined(_X86_)
+using MMPTE_SOFTWARE = MMPTE_SOFTWARE_X86_PAE;
+#elif defined(_AMD64_)
+using MMPTE_SOFTWARE = MMPTE_SOFTWARE_X64;
+#endif
 
 union MmPte {
   HardwarePte Hard;
