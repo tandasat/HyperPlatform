@@ -19,7 +19,7 @@
 ### Specifications
 - Commit (eg, 2099af7): (Please fill in)
 
-- OS version (eg, Windows 10, Any): (Please fill in)
+- OS version (ie, outout of the "ver" command): (Please fill in)
 
 - Architecture: (Please choose: x86, x64, Both)
 
@@ -37,7 +37,7 @@ for fixing the issue.
 It is hugely helpful and speeds up investigation of a bug check or a hang issue
 if the following files are provided:
 - a Debug build version of a compiled SYS file and a PDB file
-- a full set of source code used to build the SYS file
+- a full set of source code used to build the SYS file if it has been modified
 - a log file (i.e., C:\Windows\HyperPlatform.log)
 - a system crash dump file (i.e., C:\Windows\MEMORY.DMP)
 
