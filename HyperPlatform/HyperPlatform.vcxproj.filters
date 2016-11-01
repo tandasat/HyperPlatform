@@ -86,9 +86,6 @@
     <ClInclude Include="vmm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="kernel_stl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
