@@ -14,16 +14,16 @@
 
 ### Steps to reproduce the problem
 
-(Please describe)
+(Please describe if applicable)
 
 ### Specifications
 - Commit (eg, 2099af7): (Please fill in)
 
-- OS version (ie, outout of the "ver" command): (Please fill in)
+- OS version (ie, outout of the "ver" command, or N/A): (Please fill in)
 
-- Architecture: (Please choose: x86, x64, Both)
+- Architecture: (Please choose: x86, x64, Both, or N/A)
 
-- Hardware (eg, Physical, VMware 11, Bochs): (Please fill in)
+- Hardware (eg, Physical, VMware 11, Bochs, or N/A): (Please fill in)
 
 - Details:
 
@@ -47,4 +47,3 @@ any free file hosting services, however. Here are some of those services:
 - DropBox
 - GoogleDrive
 - Sendspace
-
