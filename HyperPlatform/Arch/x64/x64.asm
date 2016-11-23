@@ -139,9 +139,27 @@ AsmVmmEntryPoint PROC
     PUSHAQ                  ; -8 * 16
     mov rcx, rsp
 
+    ; save volatile XMM registers
+    sub rsp, 60h
+    movaps xmmword ptr [rsp - 0], xmm0
+    movaps xmmword ptr [rsp - 10h], xmm1
+    movaps xmmword ptr [rsp - 20h], xmm2
+    movaps xmmword ptr [rsp - 30h], xmm3
+    movaps xmmword ptr [rsp - 40h], xmm4
+    movaps xmmword ptr [rsp - 50h], xmm5
+
     sub rsp, 20h
     call VmmVmExitHandler   ; bool vm_continue = VmmVmExitHandler(guest_context);
     add rsp, 20h
+
+    ; restore XMM registers
+    movaps xmm0, xmmword ptr [rsp - 0]
+    movaps xmm1, xmmword ptr [rsp - 10h]
+    movaps xmm2, xmmword ptr [rsp - 20h]
+    movaps xmm3, xmmword ptr [rsp - 30h]
+    movaps xmm4, xmmword ptr [rsp - 40h]
+    movaps xmm5, xmmword ptr [rsp - 50h]
+    add	rsp, 60h
 
     test al, al
     jz exitVm               ; if (!vm_continue) jmp exitVm

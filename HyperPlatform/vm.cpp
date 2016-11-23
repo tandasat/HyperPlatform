@@ -380,44 +380,6 @@ _Use_decl_annotations_ static void VmpInitializeVm(
     goto ReturnFalse;
   }
 
-  // Check if XSAVE/XRSTOR are available and save an instruction mask for all
-  // supported user state components
-  processor_data->xsave_inst_mask =
-      RtlGetEnabledExtendedFeatures(static_cast<ULONG64>(-1));
-  HYPERPLATFORM_LOG_DEBUG("xsave_inst_mask       = %p",
-                          processor_data->xsave_inst_mask);
-  if (processor_data->xsave_inst_mask) {
-    // Allocate a large enough XSAVE area to store all supported user state
-    // components. A size is round-up to multiple of the page size so that the
-    // address fulfills a requirement of 64K alignment.
-    //
-    // See: ENUMERATION OF CPU SUPPORT FOR XSAVE INSTRUCTIONS AND XSAVESUPPORTED
-    // FEATURES
-    int cpu_info[4] = {};
-    __cpuidex(cpu_info, 0xd, 0);
-    const auto xsave_area_size = ROUND_TO_PAGES(cpu_info[2]);  // ecx
-    processor_data->xsave_area = ExAllocatePoolWithTag(
-        NonPagedPool, xsave_area_size, kHyperPlatformCommonPoolTag);
-    if (!processor_data->xsave_area) {
-      goto ReturnFalse;
-    }
-    RtlZeroMemory(processor_data->xsave_area, xsave_area_size);
-  } else {
-    // Use FXSAVE/FXRSTOR instead.
-    int cpu_info[4] = {};
-    __cpuid(cpu_info, 1);
-    const CpuFeaturesEcx cpu_features_ecx = {static_cast<ULONG32>(cpu_info[2])};
-    const CpuFeaturesEdx cpu_features_edx = {static_cast<ULONG32>(cpu_info[3])};
-    if (cpu_features_ecx.fields.avx) {
-      HYPERPLATFORM_LOG_ERROR("A processor supports AVX but not XSAVE/XRSTOR.");
-      goto ReturnFalse;
-    }
-    if (!cpu_features_edx.fields.fxsr) {
-      HYPERPLATFORM_LOG_ERROR("A processor does not support FXSAVE/FXRSTOR.");
-      goto ReturnFalse;
-    }
-  }
-
   // Allocate other processor data fields
   processor_data->vmm_stack_limit =
       UtilAllocateContiguousMemory(KERNEL_STACK_SIZE);
@@ -970,9 +932,6 @@ _Use_decl_annotations_ static void VmpFreeProcessorData(
   }
   if (processor_data->ept_data) {
     EptTermination(processor_data->ept_data);
-  }
-  if (processor_data->xsave_area) {
-    ExFreePoolWithTag(processor_data->xsave_area, kHyperPlatformCommonPoolTag);
   }
 
   VmpFreeSharedData(processor_data);

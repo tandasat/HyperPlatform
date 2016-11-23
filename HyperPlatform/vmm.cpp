@@ -144,10 +144,6 @@ static void VmmpIoWrapper(_In_ bool to_memory, _In_ bool is_string,
                           _In_ SIZE_T size_of_access, _In_ unsigned short port,
                           _Inout_ void *address, _In_ unsigned long count);
 
-static void VmmpSaveExtendedProcessorState(_Inout_ GuestContext *guest_context);
-
-static void VmmpRestoreExtendedProcessorState(_In_ GuestContext *guest_context);
-
 static void VmmpIndicateSuccessfulVmcall(_In_ GuestContext *guest_context);
 
 static void VmmpIndicateUnsuccessfulVmcall(_In_ GuestContext *guest_context);
@@ -199,12 +195,8 @@ _Use_decl_annotations_ bool __stdcall VmmVmExitHandler(VmmInitialStack *stack) {
                                 true};
   guest_context.gp_regs->sp = UtilVmRead(VmcsField::kGuestRsp);
 
-  VmmpSaveExtendedProcessorState(&guest_context);
-
   // Dispatch the current VM-exit event
   VmmpHandleVmExit(&guest_context);
-
-  VmmpRestoreExtendedProcessorState(&guest_context);
 
   // See: Guidelines for Use of the INVVPID Instruction, and Guidelines for Use
   // of the INVEPT Instruction
@@ -1171,50 +1163,6 @@ _Use_decl_annotations_ void __stdcall VmmVmxFailureHandler(
                              : 0;
   HYPERPLATFORM_COMMON_BUG_CHECK(
       HyperPlatformBugCheck::kCriticalVmxInstructionFailure, vmx_error, 0, 0);
-}
-
-// Saves all supported user state components (x87, SSE, AVX states)
-_Use_decl_annotations_ static void VmmpSaveExtendedProcessorState(
-    GuestContext *guest_context) {
-  // Clear the TS flag temporarily since XSAVE/XRSTOR raise #NM
-  Cr0 cr0 = {__readcr0()};
-  const auto old_cr0 = cr0;
-  cr0.fields.ts = false;
-  __writecr0(cr0.all);
-  if (guest_context->stack->processor_data->xsave_inst_mask) {
-    _xsave(guest_context->stack->processor_data->xsave_area,
-           guest_context->stack->processor_data->xsave_inst_mask);
-  } else {
-    // Advances an address up to 15 bytes to be 16-byte aligned
-    auto alignment = reinterpret_cast<ULONG_PTR>(
-                         guest_context->stack->processor_data->fxsave_area) %
-                     16;
-    alignment = (alignment) ? 16 - alignment : 0;
-    _fxsave(guest_context->stack->processor_data->fxsave_area + alignment);
-  }
-  __writecr0(old_cr0.all);
-}
-
-// Restores all supported user state components (x87, SSE, AVX states)
-_Use_decl_annotations_ static void VmmpRestoreExtendedProcessorState(
-    GuestContext *guest_context) {
-  // Clear the TS flag temporarily since XSAVE/XRSTOR raise #NM
-  Cr0 cr0 = {__readcr0()};
-  const auto old_cr0 = cr0;
-  cr0.fields.ts = false;
-  __writecr0(cr0.all);
-  if (guest_context->stack->processor_data->xsave_inst_mask) {
-    _xrstor(guest_context->stack->processor_data->xsave_area,
-            guest_context->stack->processor_data->xsave_inst_mask);
-  } else {
-    // Advances an address up to 15 bytes to be 16-byte aligned
-    auto alignment = reinterpret_cast<ULONG_PTR>(
-                         guest_context->stack->processor_data->fxsave_area) %
-                     16;
-    alignment = (alignment) ? 16 - alignment : 0;
-    _fxsave(guest_context->stack->processor_data->fxsave_area + alignment);
-  }
-  __writecr0(old_cr0.all);
 }
 
 // Indicates successful VMCALL
