@@ -159,7 +159,7 @@ AsmVmmEntryPoint PROC
     movaps xmm3, xmmword ptr [rsp - 30h]
     movaps xmm4, xmmword ptr [rsp - 40h]
     movaps xmm5, xmmword ptr [rsp - 50h]
-    add	rsp, 60h
+    add rsp, 60h
 
     test al, al
     jz exitVm               ; if (!vm_continue) jmp exitVm

@@ -7,6 +7,8 @@
 ;
 .686p
 .model flat, stdcall
+.MMX
+.XMM
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -92,10 +94,28 @@ AsmVmmEntryPoint PROC
     ; No need to save the flag registers since it is restored from the VMCS at
     ; the time of vmresume.
     pushad                  ; -4 * 8
-
     mov ecx, esp
+
+    ; save volatile XMM registers
+    sub esp, 68h            ; +8 for alignment
+    movaps xmmword ptr [esp - 0], xmm0
+    movaps xmmword ptr [esp - 10h], xmm1
+    movaps xmmword ptr [esp - 20h], xmm2
+    movaps xmmword ptr [esp - 30h], xmm3
+    movaps xmmword ptr [esp - 40h], xmm4
+    movaps xmmword ptr [esp - 50h], xmm5
+
     push ecx
     call VmmVmExitHandler@4 ; bool vm_continue = VmmVmExitHandler(guest_context);
+
+    ; restore XMM registers
+    movaps xmm0, xmmword ptr [esp - 0]
+    movaps xmm1, xmmword ptr [esp - 10h]
+    movaps xmm2, xmmword ptr [esp - 20h]
+    movaps xmm3, xmmword ptr [esp - 30h]
+    movaps xmm4, xmmword ptr [esp - 40h]
+    movaps xmm5, xmmword ptr [esp - 50h]
+    add esp, 68h            ; +8 for alignment
 
     test al, al
     jz exitVm               ; if (!vm_continue) jmp exitVm

@@ -36,9 +36,6 @@ extern "C" {
 // prototypes
 //
 
-_IRQL_requires_max_(PASSIVE_LEVEL) NTSYSAPI ULONG64 NTAPI
-    RtlGetEnabledExtendedFeatures(_In_ ULONG64 FeatureMask);
-
 _IRQL_requires_max_(PASSIVE_LEVEL) static bool VmpIsVmxAvailable();
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
@@ -408,10 +405,10 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   //
   // (High)
   // +------------------+  <- vmm_stack_region_base      (eg, AED37000)
-  // | processor_data   |
-  // +------------------+  <- vmm_stack_data             (eg, AED36FFC)
-  // | MAXULONG_PTR     |
-  // +------------------+  <- vmm_stack_base (initial SP)(eg, AED36FF8)
+  // | processor_data   |  <- vmm_stack_data             (eg, AED36FFC)
+  // +------------------+
+  // | MAXULONG_PTR     |  <- vmm_stack_base (initial SP)(eg, AED36FF8)
+  // +------------------+    v
   // |                  |    v
   // | (VMM Stack)      |    v (grow)
   // |                  |    v
