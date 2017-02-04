@@ -526,6 +526,12 @@ _Use_decl_annotations_ static bool VmpEnterVmxMode(
   PAGED_CODE();
 
   // Apply FIXED bits
+  // See: VMX-FIXED BITS IN CR0
+
+  //        IA32_VMX_CRx_FIXED0 IA32_VMX_CRx_FIXED1 Meaning
+  // Values 1                   *                   bit of CRx is fixed to 1
+  // Values 0                   1                   bit of CRx is flexible
+  // Values *                   0                   bit of CRx is fixed to 0
   const Cr0 cr0_fixed0 = {UtilReadMsr(Msr::kIa32VmxCr0Fixed0)};
   const Cr0 cr0_fixed1 = {UtilReadMsr(Msr::kIa32VmxCr0Fixed1)};
   Cr0 cr0 = {__readcr0()};
@@ -652,6 +658,10 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   // VM-exit occurs when a guest modifies any of those fields
   Cr0 cr0_mask = {};
   Cr4 cr4_mask = {};
+  Cr4 cr4_shadow = {__readcr4()};
+  // For example, when we want to hide CR4.VMXE from the guest, comment in below
+  //cr4_mask.fields.vmxe = true;
+  //cr4_shadow.fields.vmxe = false;
 
   // See: PDPTE Registers
   // If PAE paging would be in use following an execution of MOV to CR0 or MOV
