@@ -573,10 +573,7 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
                             vm_pinctl_requested.all)};
 
   VmxProcessorBasedControls vm_procctl_requested = {};
-  vm_procctl_requested.fields.invlpg_exiting = false;
-  vm_procctl_requested.fields.rdtsc_exiting = false;
   vm_procctl_requested.fields.cr3_load_exiting = true;
-  vm_procctl_requested.fields.cr8_load_exiting = false;  // NB: very frequent
   vm_procctl_requested.fields.mov_dr_exiting = true;
   vm_procctl_requested.fields.use_io_bitmaps = true;
   vm_procctl_requested.fields.use_msr_bitmaps = true;
@@ -594,6 +591,12 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   vm_procctl2_requested.fields.enable_xsaves_xstors = true;  // for Win10
   VmxSecondaryProcessorBasedControls vm_procctl2 = {VmpAdjustControlValue(
       Msr::kIa32VmxProcBasedCtls2, vm_procctl2_requested.all)};
+
+  HYPERPLATFORM_LOG_DEBUG("VmEntryControls                  = %08x", vm_entryctl.all);
+  HYPERPLATFORM_LOG_DEBUG("VmExitControls                   = %08x", vm_exitctl.all);
+  HYPERPLATFORM_LOG_DEBUG("PinBasedControls                 = %08x", vm_pinctl.all);
+  HYPERPLATFORM_LOG_DEBUG("ProcessorBasedControls           = %08x", vm_procctl.all);
+  HYPERPLATFORM_LOG_DEBUG("SecondaryProcessorBasedControls  = %08x", vm_procctl2.all);
 
   // NOTE: Comment in any of those as needed
   const auto exception_bitmap =
@@ -765,13 +768,15 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
 _Use_decl_annotations_ static void VmpLaunchVm() {
   PAGED_CODE();
 
+  UtilDumpGuestState();
   auto error_code = UtilVmRead(VmcsField::kVmInstructionError);
   if (error_code) {
     HYPERPLATFORM_LOG_WARN("VM_INSTRUCTION_ERROR = %d", error_code);
   }
+
   auto vmx_status = static_cast<VmxStatus>(__vmx_vmlaunch());
 
-  // Here is not be executed with successful vmlaunch. Instead, the context
+  // Here should not executed with successful vmlaunch. Instead, the context
   // jumps to an address specified by GUEST_RIP.
   if (vmx_status == VmxStatus::kErrorWithStatus) {
     error_code = UtilVmRead(VmcsField::kVmInstructionError);

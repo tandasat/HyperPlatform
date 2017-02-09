@@ -887,4 +887,61 @@ _Use_decl_annotations_ NTSTATUS UtilForceCopyMemory(void *destination,
   return STATUS_SUCCESS;
 }
 
+/*_Use_decl_annotations_*/ void UtilDumpGuestState() {
+  // clang-format off
+  HYPERPLATFORM_LOG_DEBUG("Guest EsSelector   = %p", UtilVmRead(VmcsField::kGuestEsSelector));
+  HYPERPLATFORM_LOG_DEBUG("Guest CsSelector   = %p", UtilVmRead(VmcsField::kGuestCsSelector));
+  HYPERPLATFORM_LOG_DEBUG("Guest SsSelector   = %p", UtilVmRead(VmcsField::kGuestSsSelector));
+  HYPERPLATFORM_LOG_DEBUG("Guest DsSelector   = %p", UtilVmRead(VmcsField::kGuestDsSelector));
+  HYPERPLATFORM_LOG_DEBUG("Guest FsSelector   = %p", UtilVmRead(VmcsField::kGuestFsSelector));
+  HYPERPLATFORM_LOG_DEBUG("Guest GsSelector   = %p", UtilVmRead(VmcsField::kGuestGsSelector));
+  HYPERPLATFORM_LOG_DEBUG("Guest LdtrSelector = %p", UtilVmRead(VmcsField::kGuestLdtrSelector));
+  HYPERPLATFORM_LOG_DEBUG("Guest TrSelector   = %p", UtilVmRead(VmcsField::kGuestTrSelector));
+
+  HYPERPLATFORM_LOG_DEBUG("Guest Ia32Debugctl = %016llx", UtilVmRead64(VmcsField::kGuestIa32Debugctl));
+
+  HYPERPLATFORM_LOG_DEBUG("Guest EsLimit      = %p", UtilVmRead(VmcsField::kGuestEsLimit));
+  HYPERPLATFORM_LOG_DEBUG("Guest CsLimit      = %p", UtilVmRead(VmcsField::kGuestCsLimit));
+  HYPERPLATFORM_LOG_DEBUG("Guest SsLimit      = %p", UtilVmRead(VmcsField::kGuestSsLimit));
+  HYPERPLATFORM_LOG_DEBUG("Guest DsLimit      = %p", UtilVmRead(VmcsField::kGuestDsLimit));
+  HYPERPLATFORM_LOG_DEBUG("Guest FsLimit      = %p", UtilVmRead(VmcsField::kGuestFsLimit));
+  HYPERPLATFORM_LOG_DEBUG("Guest GsLimit      = %p", UtilVmRead(VmcsField::kGuestGsLimit));
+  HYPERPLATFORM_LOG_DEBUG("Guest LdtrLimit    = %p", UtilVmRead(VmcsField::kGuestLdtrLimit));
+  HYPERPLATFORM_LOG_DEBUG("Guest TrLimit      = %p", UtilVmRead(VmcsField::kGuestTrLimit));
+  HYPERPLATFORM_LOG_DEBUG("Guest GdtrLimit    = %p", UtilVmRead(VmcsField::kGuestGdtrLimit));
+  HYPERPLATFORM_LOG_DEBUG("Guest IdtrLimit    = %p", UtilVmRead(VmcsField::kGuestIdtrLimit));
+  HYPERPLATFORM_LOG_DEBUG("Guest EsArBytes    = %p", UtilVmRead(VmcsField::kGuestEsArBytes));
+  HYPERPLATFORM_LOG_DEBUG("Guest CsArBytes    = %p", UtilVmRead(VmcsField::kGuestCsArBytes));
+  HYPERPLATFORM_LOG_DEBUG("Guest SsArBytes    = %p", UtilVmRead(VmcsField::kGuestSsArBytes));
+  HYPERPLATFORM_LOG_DEBUG("Guest DsArBytes    = %p", UtilVmRead(VmcsField::kGuestDsArBytes));
+  HYPERPLATFORM_LOG_DEBUG("Guest FsArBytes    = %p", UtilVmRead(VmcsField::kGuestFsArBytes));
+  HYPERPLATFORM_LOG_DEBUG("Guest GsArBytes    = %p", UtilVmRead(VmcsField::kGuestGsArBytes));
+  HYPERPLATFORM_LOG_DEBUG("Guest LdtrArBytes  = %p", UtilVmRead(VmcsField::kGuestLdtrArBytes));
+  HYPERPLATFORM_LOG_DEBUG("Guest TrArBytes    = %p", UtilVmRead(VmcsField::kGuestTrArBytes));
+  HYPERPLATFORM_LOG_DEBUG("Guest SysenterCs   = %p", UtilVmRead(VmcsField::kGuestSysenterCs));
+
+  HYPERPLATFORM_LOG_DEBUG("Guest Cr0          = %p", UtilVmRead(VmcsField::kGuestCr0));
+  HYPERPLATFORM_LOG_DEBUG("Guest Cr3          = %p", UtilVmRead(VmcsField::kGuestCr3));
+  HYPERPLATFORM_LOG_DEBUG("Guest Cr4          = %p", UtilVmRead(VmcsField::kGuestCr4));
+
+  HYPERPLATFORM_LOG_DEBUG("Guest EsBase       = %p", UtilVmRead(VmcsField::kGuestEsBase));
+  HYPERPLATFORM_LOG_DEBUG("Guest CsBase       = %p", UtilVmRead(VmcsField::kGuestCsBase));
+  HYPERPLATFORM_LOG_DEBUG("Guest SsBase       = %p", UtilVmRead(VmcsField::kGuestSsBase));
+  HYPERPLATFORM_LOG_DEBUG("Guest DsBase       = %p", UtilVmRead(VmcsField::kGuestDsBase));
+  HYPERPLATFORM_LOG_DEBUG("Guest FsBase       = %p", UtilVmRead(VmcsField::kGuestFsBase));
+  HYPERPLATFORM_LOG_DEBUG("Guest GsBase       = %p", UtilVmRead(VmcsField::kGuestGsBase));
+
+  HYPERPLATFORM_LOG_DEBUG("Guest LdtrBase     = %p", UtilVmRead(VmcsField::kGuestLdtrBase));
+  HYPERPLATFORM_LOG_DEBUG("Guest TrBase       = %p", UtilVmRead(VmcsField::kGuestTrBase));
+  HYPERPLATFORM_LOG_DEBUG("Guest GdtrBase     = %p", UtilVmRead(VmcsField::kGuestGdtrBase));
+  HYPERPLATFORM_LOG_DEBUG("Guest IdtrBase     = %p", UtilVmRead(VmcsField::kGuestIdtrBase));
+  HYPERPLATFORM_LOG_DEBUG("Guest Dr7          = %p", UtilVmRead(VmcsField::kGuestDr7));
+  HYPERPLATFORM_LOG_DEBUG("Guest Rsp          = %p", UtilVmRead(VmcsField::kGuestRsp));
+  HYPERPLATFORM_LOG_DEBUG("Guest Rip          = %p", UtilVmRead(VmcsField::kGuestRip));
+  HYPERPLATFORM_LOG_DEBUG("Guest Rflags       = %p", UtilVmRead(VmcsField::kGuestRflags));
+  HYPERPLATFORM_LOG_DEBUG("Guest SysenterEsp  = %p", UtilVmRead(VmcsField::kGuestSysenterEsp));
+  HYPERPLATFORM_LOG_DEBUG("Guest SysenterEip  = %p", UtilVmRead(VmcsField::kGuestSysenterEip));
+  // clang-format on
+}
+
 }  // extern "C"

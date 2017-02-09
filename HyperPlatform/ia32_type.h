@@ -536,6 +536,7 @@ enum class VmcsField : unsigned __int32 {
   kGuestLdtrSelector = 0x0000080c,
   kGuestTrSelector = 0x0000080e,
   kGuestInterruptStatus = 0x00000810,
+  kPmlIndex = 0x00000812,
   // 16-Bit Host-State Fields
   kHostEsSelector = 0x00000c00,
   kHostCsSelector = 0x00000c02,
@@ -585,6 +586,10 @@ enum class VmcsField : unsigned __int32 {
   kVirtualizationExceptionInfoAddressHigh = 0x0000202b,
   kXssExitingBitmap = 0x0000202c,
   kXssExitingBitmapHigh = 0x0000202d,
+  kEnclsExitingBitmap = 0x0000202e,
+  kEnclsExitingBitmapHigh = 0x0000202f,
+  kTscMultiplier = 0x00002032,
+  kTscMultiplierHigh = 0x00002033,
   // 64-Bit Read-Only Data Field
   kGuestPhysicalAddress = 0x00002400,
   kGuestPhysicalAddressHigh = 0x00002401,
@@ -607,6 +612,8 @@ enum class VmcsField : unsigned __int32 {
   kGuestPdptr2High = 0x0000280f,
   kGuestPdptr3 = 0x00002810,
   kGuestPdptr3High = 0x00002811,
+  kGuestIa32Bndcfgs = 0x00002812,
+  kGuestIa32BndcfgsHigh = 0x00002813,
   // 64-Bit Host-State Fields
   kHostIa32Pat = 0x00002c00,
   kHostIa32PatHigh = 0x00002c01,
@@ -634,7 +641,7 @@ enum class VmcsField : unsigned __int32 {
   kPleGap = 0x00004020,
   kPleWindow = 0x00004022,
   // 32-Bit Read-Only Data Fields
-  kVmInstructionError = 0x00004400,
+  kVmInstructionError = 0x00004400,     // See: VM-Instruction Error Numbers
   kVmExitReason = 0x00004402,
   kVmExitIntrInfo = 0x00004404,
   kVmExitIntrErrorCode = 0x00004406,
@@ -891,29 +898,31 @@ static_assert(sizeof(VmxProcessorBasedControls) == 4, "Size check");
 union VmxSecondaryProcessorBasedControls {
   unsigned int all;
   struct {
-    unsigned virtualize_apic_accesses : 1;      //!< [0]
-    unsigned enable_ept : 1;                    //!< [1]
-    unsigned descriptor_table_exiting : 1;      //!< [2]
-    unsigned enable_rdtscp : 1;                 //!< [3]
-    unsigned virtualize_x2apic_mode : 1;        //!< [4]
-    unsigned enable_vpid : 1;                   //!< [5]
-    unsigned wbinvd_exiting : 1;                //!< [6]
-    unsigned unrestricted_guest : 1;            //!< [7]
-    unsigned apic_register_virtualization : 1;  //!< [8]
-    unsigned virtual_interrupt_delivery : 1;    //!< [9]
-    unsigned pause_loop_exiting : 1;            //!< [10]
-    unsigned rdrand_exiting : 1;                //!< [11]
-    unsigned enable_invpcid : 1;                //!< [12]
-    unsigned enable_vm_functions : 1;           //!< [13]
-    unsigned vmcs_shadowing : 1;                //!< [14]
-    unsigned reserved1 : 1;                     //!< [15]
-    unsigned rdseed_exiting : 1;                //!< [16]
-    unsigned reserved2 : 1;                     //!< [17]
-    unsigned ept_violation_ve : 1;              //!< [18]
-    unsigned reserved3 : 1;                     //!< [19]
-    unsigned enable_xsaves_xstors : 1;          //!< [20]
-    unsigned reserved4 : 4;                     //!< [21:24]
-    unsigned use_tsc_scaling : 1;               //!< [25]
+    unsigned virtualize_apic_accesses : 1;              //!< [0]
+    unsigned enable_ept : 1;                            //!< [1]
+    unsigned descriptor_table_exiting : 1;              //!< [2]
+    unsigned enable_rdtscp : 1;                         //!< [3]
+    unsigned virtualize_x2apic_mode : 1;                //!< [4]
+    unsigned enable_vpid : 1;                           //!< [5]
+    unsigned wbinvd_exiting : 1;                        //!< [6]
+    unsigned unrestricted_guest : 1;                    //!< [7]
+    unsigned apic_register_virtualization : 1;          //!< [8]
+    unsigned virtual_interrupt_delivery : 1;            //!< [9]
+    unsigned pause_loop_exiting : 1;                    //!< [10]
+    unsigned rdrand_exiting : 1;                        //!< [11]
+    unsigned enable_invpcid : 1;                        //!< [12]
+    unsigned enable_vm_functions : 1;                   //!< [13]
+    unsigned vmcs_shadowing : 1;                        //!< [14]
+    unsigned reserved1 : 1;                             //!< [15]
+    unsigned rdseed_exiting : 1;                        //!< [16]
+    unsigned reserved2 : 1;                             //!< [17]
+    unsigned ept_violation_ve : 1;                      //!< [18]
+    unsigned reserved3 : 1;                             //!< [19]
+    unsigned enable_xsaves_xstors : 1;                  //!< [20]
+    unsigned reserved4 : 1;                             //!< [21]
+    unsigned mode_based_execute_control_for_ept : 1;    //!< [22]
+    unsigned reserved5 : 2;                             //!< [23:24]
+    unsigned use_tsc_scaling : 1;                       //!< [25]
   } fields;
 };
 static_assert(sizeof(VmxSecondaryProcessorBasedControls) == 4, "Size check");
@@ -936,6 +945,8 @@ union VmxVmExitControls {
     unsigned save_ia32_efer : 1;                   //!< [20]
     unsigned load_ia32_efer : 1;                   //!< [21]
     unsigned save_vmx_preemption_timer_value : 1;  //!< [22]
+    unsigned clear_ia32_bndcfgs : 1;               //!< [23]
+    unsigned conceal_vmexits_from_intel_pt : 1;    //!< [24]
   } fields;
 };
 static_assert(sizeof(VmxVmExitControls) == 4, "Size check");
@@ -954,6 +965,8 @@ union VmxVmEntryControls {
     unsigned load_ia32_perf_global_ctrl : 1;         //!< [13]
     unsigned load_ia32_pat : 1;                      //!< [14]
     unsigned load_ia32_efer : 1;                     //!< [15]
+    unsigned load_ia32_bndcfgs : 1;                  //!< [16]
+    unsigned conceal_vmentries_from_intel_pt : 1;    //!< [17]
   } fields;
 };
 static_assert(sizeof(VmxVmExitControls) == 4, "Size check");
@@ -962,17 +975,17 @@ static_assert(sizeof(VmxVmExitControls) == 4, "Size check");
 union VmxRegmentDescriptorAccessRight {
   unsigned int all;
   struct {
-    unsigned type : 4;
-    unsigned system : 1;
-    unsigned dpl : 2;
-    unsigned present : 1;
-    unsigned reserved1 : 4;
-    unsigned avl : 1;
-    unsigned l : 1;  //!< Reserved (except for CS) 64-bit mode active (for CS)
-    unsigned db : 1;
-    unsigned gran : 1;
-    unsigned unusable : 1;  //!< Segment unusable (0 = usable; 1 = unusable)
-    unsigned reserved2 : 15;
+    unsigned type : 4;          //!< [0:3]
+    unsigned system : 1;        //!< [4]
+    unsigned dpl : 2;           //!< [5:6]
+    unsigned present : 1;       //!< [7]
+    unsigned reserved1 : 4;     //!< [8:11]
+    unsigned avl : 1;           //!< [12]
+    unsigned l : 1;             //!< [13] Reserved (except for CS) 64-bit mode
+    unsigned db : 1;            //!< [14]
+    unsigned gran : 1;          //!< [15]
+    unsigned unusable : 1;      //!< [16] Segment unusable
+    unsigned reserved2 : 15;    //!< [17:31]
   } fields;
 };
 static_assert(sizeof(VmxRegmentDescriptorAccessRight) == 4, "Size check");

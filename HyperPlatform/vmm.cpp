@@ -329,10 +329,11 @@ _Use_decl_annotations_ static void VmmpHandleTripleFault(
 // Unexpected VM-exit. Fatal error.
 _Use_decl_annotations_ static void VmmpHandleUnexpectedExit(
     GuestContext *guest_context) {
-  VmmpDumpGuestSelectors();
+  UtilDumpGuestState();
+  const auto qualification = UtilVmRead(VmcsField::kExitQualification);
   HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kUnexpectedVmExit,
-                                 reinterpret_cast<ULONG_PTR>(guest_context), 0,
-                                 0);
+                                 reinterpret_cast<ULONG_PTR>(guest_context),
+                                 qualification, 0);
 }
 
 // MTF VM-exit
