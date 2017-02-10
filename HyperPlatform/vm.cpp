@@ -768,7 +768,6 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
 _Use_decl_annotations_ static void VmpLaunchVm() {
   PAGED_CODE();
 
-  UtilDumpGuestState();
   auto error_code = UtilVmRead(VmcsField::kVmInstructionError);
   if (error_code) {
     HYPERPLATFORM_LOG_WARN("VM_INSTRUCTION_ERROR = %d", error_code);

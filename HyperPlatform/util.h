@@ -118,7 +118,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS
 /// @return STATUS_SUCCESS on success
 _IRQL_requires_max_(APC_LEVEL) NTSTATUS UtilSleep(_In_ LONG millisecond);
 
-/// Searchs a byte pattern from a given address range
+/// Searches a byte pattern from a given address range
 /// @param search_base  An address to start search
 /// @param search_size  A length to search in bytes
 /// @param pattern  A byte pattern to search
@@ -278,9 +278,6 @@ void UtilLoadPdptes(_In_ ULONG_PTR cr3_value);
 _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS
     UtilForceCopyMemory(_In_ void *destination, _In_ const void *source,
                         _In_ SIZE_T length);
-
-/// Dumps all VMCS fields specifies guest's state
-void UtilDumpGuestState();
 
 ////////////////////////////////////////////////////////////////////////////////
 //
