@@ -106,7 +106,7 @@ _IRQL_requires_max_(APC_LEVEL) NTSTATUS
 /// @return STATUS_SUCCESS on success
 _IRQL_requires_max_(APC_LEVEL) NTSTATUS UtilSleep(_In_ LONG millisecond);
 
-/// Searchs a byte pattern from a given address range
+/// Searches a byte pattern from a given address range
 /// @param search_base  An address to start search
 /// @param search_size  A length to search in bytes
 /// @param pattern  A byte pattern to search
