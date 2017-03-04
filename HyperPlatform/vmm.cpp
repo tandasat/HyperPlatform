@@ -1267,7 +1267,7 @@ _Use_decl_annotations_ static void VmmpRestoreExtendedProcessorState(
                          guest_context->stack->processor_data->fxsave_area) %
                      16;
     alignment = (alignment) ? 16 - alignment : 0;
-    _fxsave(guest_context->stack->processor_data->fxsave_area + alignment);
+    _fxrstor(guest_context->stack->processor_data->fxsave_area + alignment);
   }
   __writecr0(old_cr0.all);
 }
