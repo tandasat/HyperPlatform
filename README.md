@@ -6,7 +6,7 @@ Introduction
 HyperPlatform is an Intel VT-x based hypervisor (a.k.a. virtual machine monitor)
 aiming to provide a thin platform for research on Windows. HyperPlatform is
 capable of monitoring a wide range of events, including but not limited to,
-access to virtual/physical memory and system registers, occurrence of interrupts
+access to virtual/physical memory and system registers, occurrences of interrupts
 and execution of certain instructions.
 
 Researchers are free to selectively enable and/or disable any of those event
@@ -48,16 +48,21 @@ For more details, see the HyperPlatform User Document and Programmer's Reference
 Build
 ------
 To build HyperPlatform, the following are required.
-- Visual Studio Community 2015 Update 1 or 2
- - https://www.visualstudio.com/en-us/news/vs2015-update1-vs.aspx
-- Windows Software Development Kit (SDK) for Windows 10
- - https://dev.windows.com/en-us/downloads/windows-10-sdk
-- Windows Driver Kit (WDK) 10
- - https://msdn.microsoft.com/en-us/windows/hardware/hh852365.aspx
+- Visual Studio Community 2015 Update 3
+ - https://beta.visualstudio.com/downloads/
+- Windows Software Development Kit (SDK) for Windows 10 (10.0.10586.0 or later)
+ - https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk
+- Windows Driver Kit (WDK) 10 (10.0.10586.0 or later)
+ - https://developer.microsoft.com/en-us/windows/hardware/windows-driver-kit
 
 
 Installation and Uninstallation
 --------------------------------
+Clone full source code from Github with a below command and compile it on Visual
+Studio.
+
+    $ git clone --recursive https://github.com/tandasat/HyperPlatform.git
+
 On the x64 platform, you have to enable test signing to install the driver.
 To do that, open the command prompt with the administrator privilege and type
 the following command, and then restart the system to activate the change:
@@ -97,11 +102,30 @@ Supported Platforms
 
 Related Project(s)
 --------------------
-SimpleVisor is a very (very) simple and readable Windows-specific hypervisor. If
-HyperPlatform is still too large and complicated to learn VT-x for you, I would
-recommend to take a look at the project. It should give you a clearer
+- SimpleVisor
+ - http://ionescu007.github.io/SimpleVisor/
+
+SimpleVisor is a very (very) simple and readable Windows-specific hypervisor made
+up of only 1700 lines of code. I would recommend taking a look at the project to
+learn VT-x if you are new to hypervisor development. It should give you a clearer
 view of how a hypervisor is initialized and executed.
-- http://ionescu007.github.io/SimpleVisor/
+
+- ksm
+ - https://github.com/asamy/ksm
+
+ksm is other simple and lightweight x64 hypervisor written in C for Windows for
+Intel processors. It is just a half size of HyperPlatform in lines of code while
+demonstrating usage of EPT, as well as #VE and VMFUNC where HyperPlatform does
+not include.
+
+- Bareflank Hypervisor
+ - http://bareflank.github.io/hypervisor/
+
+Bareflank Hypervisor is an actively developed open source, lightweight hypervisor.
+It comes with rich documents, tests, and comments, supports Linux on Intel 64bit,
+and also aims to support Windows, OS X, and UEFI as well as ARM and AMD platforms.
+While a size of code is larger than that of HyperPlatform, ones look for a more
+complihensive yet still lightweight hypervisor will find it interesting.
 
 
 License

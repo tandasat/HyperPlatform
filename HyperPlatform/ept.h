@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2016, tandasat. All rights reserved.
+// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -32,13 +32,13 @@ struct EptData;
 union EptCommonEntry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;       ///< [0]
-    ULONG64 write_access : 1;      ///< [1]
-    ULONG64 execute_access : 1;    ///< [2]
-    ULONG64 memory_type : 3;       ///< [3:5]
-    ULONG64 reserved1 : 6;         ///< [6:11]
-    ULONG64 physial_address : 36;  ///< [12:48-1]
-    ULONG64 reserved2 : 16;        ///< [48:63]
+    ULONG64 read_access : 1;       //!< [0]
+    ULONG64 write_access : 1;      //!< [1]
+    ULONG64 execute_access : 1;    //!< [2]
+    ULONG64 memory_type : 3;       //!< [3:5]
+    ULONG64 reserved1 : 6;         //!< [6:11]
+    ULONG64 physial_address : 36;  //!< [12:48-1]
+    ULONG64 reserved2 : 16;        //!< [48:63]
   } fields;
 };
 static_assert(sizeof(EptCommonEntry) == 8, "Size check");
@@ -57,7 +57,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) bool EptIsEptAvailable();
 /// @return An EPT pointer
 ULONG64 EptGetEptPointer(_In_ EptData* ept_data);
 
-/// Builds EPT, allocates pre-allocated enties, initializes and returns EptData
+/// Builds EPT, allocates pre-allocated entires, initializes and returns EptData
 /// @return An allocated EptData on success, or nullptr
 ///
 /// A driver must call EptTermination() with a returned value when this function
@@ -76,7 +76,7 @@ _IRQL_requires_min_(DISPATCH_LEVEL) void EptHandleEptViolation(
 /// Returns an EPT entry corresponds to \a physical_address
 /// @param ept_data   EptData to get an EPT entry
 /// @param physical_address   Physical address to get an EPT entry
-/// @return An EPT entry
+/// @return An EPT entry, or nullptr if not allocated yet
 EptCommonEntry* EptGetEptPtEntry(_In_ EptData* ept_data,
                                  _In_ ULONG64 physical_address);
 

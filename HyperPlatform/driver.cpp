@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2016, tandasat. All rights reserved.
+// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -10,12 +10,12 @@
 #endif
 #include "driver.h"
 #include "common.h"
+#include "global_object.h"
+#include "hotplug_callback.h"
 #include "log.h"
+#include "power_callback.h"
 #include "util.h"
 #include "vm.h"
-#ifndef HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
-#define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
-#endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
 #include "../../EopMon/eopmon.h"
 
@@ -95,9 +95,17 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
     return STATUS_CANCELLED;
   }
 
+  // Initialize global variables
+  status = GlobalObjectInitialization();
+  if (!NT_SUCCESS(status)) {
+    LogTermination();
+    return status;
+  }
+
   // Initialize perf functions
   status = PerfInitialization();
   if (!NT_SUCCESS(status)) {
+    GlobalObjectTermination();
     LogTermination();
     return status;
   }
@@ -106,6 +114,28 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   status = UtilInitialization(driver_object);
   if (!NT_SUCCESS(status)) {
     PerfTermination();
+    GlobalObjectTermination();
+    LogTermination();
+    return status;
+  }
+
+  // Initialize power callback
+  status = PowerCallbackInitialization();
+  if (!NT_SUCCESS(status)) {
+    UtilTermination();
+    PerfTermination();
+    GlobalObjectTermination();
+    LogTermination();
+    return status;
+  }
+
+  // Initialize hot-plug callback
+  status = HotplugCallbackInitialization();
+  if (!NT_SUCCESS(status)) {
+    PowerCallbackTermination();
+    UtilTermination();
+    PerfTermination();
+    GlobalObjectTermination();
     LogTermination();
     return status;
   }
@@ -123,8 +153,11 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   status = VmInitialization();
   if (!NT_SUCCESS(status)) {
     EopmonTermination();
+    HotplugCallbackTermination();
+    PowerCallbackTermination();
     UtilTermination();
     PerfTermination();
+    GlobalObjectTermination();
     LogTermination();
     return status;
   }
@@ -148,8 +181,11 @@ _Use_decl_annotations_ static void DriverpDriverUnload(
 
   VmTermination();
   EopmonTermination();
+  HotplugCallbackTermination();
+  PowerCallbackTermination();
   UtilTermination();
   PerfTermination();
+  GlobalObjectTermination();
   LogTermination();
 }
 

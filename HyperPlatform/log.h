@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2016, tandasat. All rights reserved.
+// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -29,7 +29,7 @@ extern "C" {
 ///      working properly.
 ///  @li ERROR: info about issues may stop the program working properly.
 ///
-/// A message should not exceede 512 bytes after all string construction is
+/// A message should not exceed 512 bytes after all string construction is
 /// done; otherwise this macro fails to log and returns non STATUS_SUCCESS.
 #define HYPERPLATFORM_LOG_DEBUG(format, ...) \
   LogpPrint(kLogpLevelDebug, __FUNCTION__, (format), __VA_ARGS__)
@@ -81,10 +81,10 @@ extern "C" {
 /// Save this log to buffer and not try to write to a log file.
 static const auto kLogpLevelOptSafe = 0x1ul;
 
-static const auto kLogpLevelDebug = 0x10ul;  ///< Bit mask for DEBUG level logs
-static const auto kLogpLevelInfo = 0x20ul;   ///< Bit mask for INFO level logs
-static const auto kLogpLevelWarn = 0x40ul;   ///< Bit mask for WARN level logs
-static const auto kLogpLevelError = 0x80ul;  ///< Bit mask for ERROR level logs
+static const auto kLogpLevelDebug = 0x10ul;  //!< Bit mask for DEBUG level logs
+static const auto kLogpLevelInfo = 0x20ul;   //!< Bit mask for INFO level logs
+static const auto kLogpLevelWarn = 0x40ul;   //!< Bit mask for WARN level logs
+static const auto kLogpLevelError = 0x80ul;  //!< Bit mask for ERROR level logs
 
 /// For LogInitialization(). Enables all levels of logs
 static const auto kLogPutLevelDebug =
@@ -103,14 +103,17 @@ static const auto kLogPutLevelError = kLogpLevelError;
 /// For LogInitialization(). Disables all levels of logs
 static const auto kLogPutLevelDisable = 0x00ul;
 
-/// For LogInitialization(). Do not log a current time.
+/// For LogInitialization(). Do not log a current time
 static const auto kLogOptDisableTime = 0x100ul;
 
-/// For LogInitialization(). Do not log a current function name.
+/// For LogInitialization(). Do not log a current function name
 static const auto kLogOptDisableFunctionName = 0x200ul;
 
-/// For LogInitialization(). Do not log a current processor number.
+/// For LogInitialization(). Do not log a current processor number
 static const auto kLogOptDisableProcessorNumber = 0x400ul;
+
+/// For LogInitialization(). Do not log to debug buffer
+static const auto kLogOptDisableDbgPrint = 0x800ul;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -131,7 +134,7 @@ static const auto kLogOptDisableProcessorNumber = 0x400ul;
 ///
 /// Allocates internal log buffers, initializes related resources, starts a
 /// log flush thread and creates a log file if requested. This function returns
-/// STATUS_REINITIALIZATION_NEEDED if a file-syetem is not initialized yet. In
+/// STATUS_REINITIALIZATION_NEEDED if a file-system is not initialized yet. In
 /// that case, a driver must call LogRegisterReinitialization() for completing
 /// initialization.
 ///

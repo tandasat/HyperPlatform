@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2016, tandasat. All rights reserved.
+// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -8,6 +8,9 @@
 #include "log.h"
 #define NTSTRSAFE_NO_CB_FUNCTIONS
 #include <ntstrsafe.h>
+
+// See common.h for details
+#pragma prefast(disable : 30030)
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -112,6 +115,8 @@ static bool LogpIsLogFileActivated(_In_ const LogBufferInfo &info);
 
 static bool LogpIsLogNeeded(_In_ ULONG level);
 
+static bool LogpIsDbgPrintNeeded();
+
 static KSTART_ROUTINE LogpBufferFlushThreadRoutine;
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
@@ -212,14 +217,14 @@ _Use_decl_annotations_ static NTSTATUS LogpInitializeBufferInfo(
 
   // Allocate two log buffers on NonPagedPool.
   info->log_buffer1 = reinterpret_cast<char *>(
-      ExAllocatePoolWithTag(NonPagedPoolNx, kLogpBufferSize, kLogpPoolTag));
+      ExAllocatePoolWithTag(NonPagedPool, kLogpBufferSize, kLogpPoolTag));
   if (!info->log_buffer1) {
     LogpFinalizeBufferInfo(info);
     return STATUS_INSUFFICIENT_RESOURCES;
   }
 
   info->log_buffer2 = reinterpret_cast<char *>(
-      ExAllocatePoolWithTag(NonPagedPoolNx, kLogpBufferSize, kLogpPoolTag));
+      ExAllocatePoolWithTag(NonPagedPool, kLogpBufferSize, kLogpPoolTag));
   if (!info->log_buffer2) {
     LogpFinalizeBufferInfo(info);
     return STATUS_INSUFFICIENT_RESOURCES;
@@ -249,7 +254,7 @@ _Use_decl_annotations_ static NTSTATUS LogpInitializeBufferInfo(
   return status;
 }
 
-// Initializes a log file and startes a log buffer thread.
+// Initializes a log file and starts a log buffer thread.
 _Use_decl_annotations_ static NTSTATUS LogpInitializeLogFile(
     LogBufferInfo *info) {
   PAGED_CODE();
@@ -288,7 +293,7 @@ _Use_decl_annotations_ static NTSTATUS LogpInitializeLogFile(
     return status;
   }
 
-  // Wait until the thead has started
+  // Wait until the thread has started
   while (!info->buffer_flush_thread_started) {
     LogpSleep(100);
   }
@@ -401,9 +406,11 @@ _Use_decl_annotations_ NTSTATUS LogpPrint(ULONG level,
                                 args);
   va_end(args);
   if (!NT_SUCCESS(status)) {
+    LogpDbgBreak();
     return status;
   }
   if (log_message[0] == '\0') {
+    LogpDbgBreak();
     return STATUS_INVALID_PARAMETER;
   }
 
@@ -418,10 +425,15 @@ _Use_decl_annotations_ NTSTATUS LogpPrint(ULONG level,
   status = LogpMakePrefix(pure_level, function_name, log_message, message,
                           RTL_NUMBER_OF(message));
   if (!NT_SUCCESS(status)) {
+    LogpDbgBreak();
     return status;
   }
 
-  return LogpPut(message, attribute);
+  status = LogpPut(message, attribute);
+  if (!NT_SUCCESS(status)) {
+    LogpDbgBreak();
+  }
+  return status;
 }
 
 // Concatenates meta information such as the current time and a process ID to
@@ -546,7 +558,7 @@ _Use_decl_annotations_ static NTSTATUS LogpPut(char *message, ULONG attribute) {
       }
 #pragma warning(pop)
     } else {
-      // No, it cannot. Set the prited bit if needed, and then buffer it.
+      // No, it cannot. Set the printed bit if needed, and then buffer it.
       if (do_DbgPrint) {
         LogpSetPrintedBit(message, true);
       }
@@ -562,7 +574,7 @@ _Use_decl_annotations_ static NTSTATUS LogpPut(char *message, ULONG attribute) {
   return status;
 }
 
-// Switchs the current log buffer, saves the contents of old buffer to the log
+// Switches the current log buffer, saves the contents of old buffer to the log
 // file, and prints them out as necessary. This function does not flush the log
 // file, so code should call LogpWriteMessageToFile() or ZwFlushBuffersFile()
 // later.
@@ -686,6 +698,9 @@ _Use_decl_annotations_ static NTSTATUS LogpBufferMessage(const char *message,
 
 // Calls DbgPrintEx() while converting \r\n to \n\0
 _Use_decl_annotations_ static void LogpDoDbgPrint(char *message) {
+  if (!LogpIsDbgPrintNeeded()) {
+    return;
+  }
   const auto location_of_cr = strlen(message) - 2;
   message[location_of_cr] = '\n';
   message[location_of_cr + 1] = '\0';
@@ -724,6 +739,11 @@ _Use_decl_annotations_ static bool LogpIsLogFileActivated(
 // a set log level.
 _Use_decl_annotations_ static bool LogpIsLogNeeded(ULONG level) {
   return !!(g_logp_debug_flag & level);
+}
+
+// Returns true when DbgPrint is requested
+/*_Use_decl_annotations_*/ static bool LogpIsDbgPrintNeeded() {
+  return (g_logp_debug_flag & kLogOptDisableDbgPrint) == 0;
 }
 
 // A thread runs as long as info.buffer_flush_thread_should_be_alive is true and
@@ -786,8 +806,8 @@ _Use_decl_annotations_ static bool LogpIsPrinted(char *message) {
 // Provides an implementation of _vsnprintf as it fails to link when a include
 // directory setting is modified for using STL
 _Success_(return >= 0) _Check_return_opt_ int __cdecl __stdio_common_vsprintf(
-    _In_ unsigned __int64 _Options, _Out_writes_z_(_BufferCount) char *_Buffer,
-    _In_ size_t _BufferCount,
+    _In_ unsigned __int64 _Options,
+    _Out_writes_opt_z_(_BufferCount) char *_Buffer, _In_ size_t _BufferCount,
     _In_z_ _Printf_format_string_params_(2) char const *_Format,
     _In_opt_ _locale_t _Locale, va_list _ArgList) {
   UNREFERENCED_PARAMETER(_Options);
@@ -809,7 +829,7 @@ _Success_(return >= 0) _Check_return_opt_ int __cdecl __stdio_common_vsprintf(
 // directory setting is modified for using STL
 _Success_(return >= 0) _Check_return_opt_ int __cdecl __stdio_common_vswprintf(
     _In_ unsigned __int64 _Options,
-    _Out_writes_z_(_BufferCount) wchar_t *_Buffer, _In_ size_t _BufferCount,
+    _Out_writes_opt_z_(_BufferCount) wchar_t *_Buffer, _In_ size_t _BufferCount,
     _In_z_ _Printf_format_string_params_(2) wchar_t const *_Format,
     _In_opt_ _locale_t _Locale, va_list _ArgList) {
   UNREFERENCED_PARAMETER(_Options);

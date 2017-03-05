@@ -1,11 +1,11 @@
-// Copyright (c) 2015-2016, tandasat. All rights reserved.
+// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
 /// @file
 /// Defines page table related constants
 ///
-/// This file defienes platform depedent constants and is included only from a
+/// This file defines platform dependent constants and is included only from a
 /// function where initializes g_utilp_p*e_base, g_utilp_p*i_shift and
 /// g_utilp_p*i_mask global variables.
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2016, tandasat. All rights reserved.
+// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -56,7 +56,7 @@ _Use_decl_annotations_ NTSTATUS PerfInitialization() {
 
   const auto perf_collector =
       reinterpret_cast<PerfCollector*>(ExAllocatePoolWithTag(
-          NonPagedPoolNx, sizeof(PerfCollector), kHyperPlatformCommonPoolTag));
+          NonPagedPool, sizeof(PerfCollector), kHyperPlatformCommonPoolTag));
   if (!perf_collector) {
     return STATUS_MEMORY_NOT_ALLOCATED;
   }

@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2016, tandasat. All rights reserved.
+// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -137,6 +137,14 @@ void __stdcall AsmWriteCR2(_In_ ULONG_PTR cr2_value);
 unsigned char __stdcall AsmInvept(
     _In_ InvEptType invept_type,
     _In_ const InvEptDescriptor *invept_descriptor);
+
+/// Invalidate translations based on VPID
+/// @param invvpid_type  A type of invalidation
+/// @param invvpid_descriptor  A description of translations to invalidate
+/// @return 0 on success, 1 w/ an error code or 2 w/o an error code on failure
+unsigned char __stdcall AsmInvvpid(
+    _In_ InvVpidType invvpid_type,
+    _In_ const InvVpidDescriptor *invvpid_descriptor);
 
 ////////////////////////////////////////////////////////////////////////////////
 //

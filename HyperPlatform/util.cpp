@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2016, tandasat. All rights reserved.
+// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -24,7 +24,7 @@ extern "C" {
 
 // Use RtlPcToFileHeader if available. Using the API causes a broken font bug
 // on the 64 bit Windows 10 and should be avoided. This flag exist for only
-// futher investigation.
+// further investigation.
 static const auto kUtilpUseRtlPcToFileHeader = false;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -98,6 +98,7 @@ static HardwarePte *UtilpAddressToPte(_In_ const void *address);
 #pragma alloc_text(INIT, UtilpInitializeRtlPcToFileHeader)
 #pragma alloc_text(INIT, UtilpInitializePhysicalMemoryRanges)
 #pragma alloc_text(INIT, UtilpBuildPhysicalMemoryRanges)
+#pragma alloc_text(PAGE, UtilForEachProcessor)
 #pragma alloc_text(PAGE, UtilSleep)
 #pragma alloc_text(PAGE, UtilGetSystemProcAddress)
 #endif
@@ -189,7 +190,10 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
   }
 
   // Win 10 build 14316 is the first version implements randomized page tables
-  if (os_version.dwMajorVersion < 10 || os_version.dwBuildNumber < 14316) {
+  // Use fixed values if a systems is either: x86, older than Windows 7, or
+  // older than build 14316.
+  if (!IsX64() || os_version.dwMajorVersion < 10 ||
+      os_version.dwBuildNumber < 14316) {
     if (IsX64()) {
       g_utilp_pxe_base = kUtilpPxeBase;
       g_utilp_ppe_base = kUtilpPpeBase;
@@ -214,17 +218,6 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
       g_utilp_pti_mask = kUtilpPtiMask;
     }
     return status;
-  }
-
-  if (!IsX64()) {
-    HYPERPLATFORM_LOG_ERROR(
-        "Unsupported OS version was detected. Detected version %d.%d.%d.",
-        os_version.dwMajorVersion, os_version.dwMinorVersion,
-        os_version.dwBuildNumber);
-    HYPERPLATFORM_LOG_ERROR(
-        "Reason: Need of page table address relacation on x86 Win10 RS is not "
-        "investigated.");
-    return STATUS_UNSUCCESSFUL;
   }
 
   // Get PTE_BASE from MmGetVirtualForPhysical
@@ -265,10 +258,10 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
   g_utilp_pdi_shift = kUtilpPdiShift;
   g_utilp_pti_shift = kUtilpPtiShift;
 
-  g_utilp_pdi_mask = kUtilpPdiMask;
-  g_utilp_pti_mask = kUtilpPtiMask;
   g_utilp_pxi_mask = kUtilpPxiMask;
   g_utilp_ppi_mask = kUtilpPpiMask;
+  g_utilp_pdi_mask = kUtilpPdiMask;
+  g_utilp_pti_mask = kUtilpPtiMask;
   return status;
 }
 
@@ -298,7 +291,7 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializeRtlPcToFileHeader(
   return STATUS_SUCCESS;
 }
 
-// A fake RtlPcToFileHeader without accquireing PsLoadedModuleSpinLock. Thus, it
+// A fake RtlPcToFileHeader without acquiring PsLoadedModuleSpinLock. Thus, it
 // is unsafe and should be updated if we can locate PsLoadedModuleSpinLock.
 _Use_decl_annotations_ static PVOID NTAPI
 UtilpUnsafePcToFileHeader(PVOID pc_value, PVOID *base_of_image) {
@@ -382,7 +375,7 @@ UtilpBuildPhysicalMemoryRanges() {
       sizeof(PhysicalMemoryRun) * (number_of_runs - 1);
   const auto pm_block =
       reinterpret_cast<PhysicalMemoryDescriptor *>(ExAllocatePoolWithTag(
-          NonPagedPoolNx, memory_block_size, kHyperPlatformCommonPoolTag));
+          NonPagedPool, memory_block_size, kHyperPlatformCommonPoolTag));
   if (!pm_block) {
     ExFreePoolWithTag(pm_ranges, 'hPmM');
     return nullptr;
@@ -411,12 +404,14 @@ UtilGetPhysicalMemoryRanges() {
   return g_utilp_physical_memory_ranges;
 }
 
-// Execute a given callback routine on all processors in DPC_LEVEL. Returns
+// Execute a given callback routine on all processors in PASSIVE_LEVEL. Returns
 // STATUS_SUCCESS when all callback returned STATUS_SUCCESS as well. When
 // one of callbacks returns anything but STATUS_SUCCESS, this function stops
 // to call remaining callbacks and returns the value.
 _Use_decl_annotations_ NTSTATUS
 UtilForEachProcessor(NTSTATUS (*callback_routine)(void *), void *context) {
+  PAGED_CODE();
+
   const auto number_of_processors =
       KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
   for (ULONG processor_index = 0; processor_index < number_of_processors;
@@ -446,7 +441,39 @@ UtilForEachProcessor(NTSTATUS (*callback_routine)(void *), void *context) {
   return STATUS_SUCCESS;
 }
 
-// Sleep the current thread's execution for Millisecond milli-seconds.
+// Queues a given DPC routine on all processors. Returns STATUS_SUCCESS when DPC
+// is queued for all processors.
+_Use_decl_annotations_ NTSTATUS
+UtilForEachProcessorDpc(PKDEFERRED_ROUTINE deferred_routine, void *context) {
+  const auto number_of_processors =
+      KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
+  for (ULONG processor_index = 0; processor_index < number_of_processors;
+       processor_index++) {
+    PROCESSOR_NUMBER processor_number = {};
+    auto status =
+        KeGetProcessorNumberFromIndex(processor_index, &processor_number);
+    if (!NT_SUCCESS(status)) {
+      return status;
+    }
+
+    const auto dpc = reinterpret_cast<PRKDPC>(ExAllocatePoolWithTag(
+        NonPagedPool, sizeof(KDPC), kHyperPlatformCommonPoolTag));
+    if (!dpc) {
+      return STATUS_MEMORY_NOT_ALLOCATED;
+    }
+    KeInitializeDpc(dpc, deferred_routine, context);
+    KeSetImportanceDpc(dpc, HighImportance);
+    status = KeSetTargetProcessorDpcEx(dpc, &processor_number);
+    if (!NT_SUCCESS(status)) {
+      ExFreePoolWithTag(dpc, kHyperPlatformCommonPoolTag);
+      return status;
+    }
+    KeInsertQueueDpc(dpc, nullptr, nullptr);
+  }
+  return STATUS_SUCCESS;
+}
+
+// Sleep the current thread's execution for Millisecond milliseconds.
 _Use_decl_annotations_ NTSTATUS UtilSleep(LONG Millisecond) {
   PAGED_CODE();
 
@@ -486,8 +513,7 @@ _Use_decl_annotations_ void *UtilGetSystemProcAddress(
   return (!IsX64() && Cr4{__readcr4()}.fields.pae);
 }
 
-// Return true if the given address is accessible. It does not prevent a race
-// condition.
+// Return true if the given address is accessible.
 _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
   if (!UtilpIsCanonicalFormAddress(address)) {
     return false;
@@ -622,18 +648,15 @@ _Use_decl_annotations_ void UtilFreeContiguousMemory(void *base_address) {
 // Executes VMCALL
 _Use_decl_annotations_ NTSTATUS UtilVmCall(HypercallNumber hypercall_number,
                                            void *context) {
-  EXCEPTION_POINTERS *exp_info = nullptr;
   __try {
     const auto vmx_status = static_cast<VmxStatus>(
         AsmVmxCall(static_cast<ULONG>(hypercall_number), context));
     return (vmx_status == VmxStatus::kOk) ? STATUS_SUCCESS
                                           : STATUS_UNSUCCESSFUL;
-  } __except (exp_info = GetExceptionInformation(), EXCEPTION_EXECUTE_HANDLER) {
+  } __except (EXCEPTION_EXECUTE_HANDLER) {
     const auto status = GetExceptionCode();
     HYPERPLATFORM_COMMON_DBG_BREAK();
-    HYPERPLATFORM_LOG_WARN_SAFE("Exception %08x at %p",
-                                exp_info->ExceptionRecord->ExceptionCode,
-                                exp_info->ExceptionRecord->ExceptionAddress);
+    HYPERPLATFORM_LOG_WARN_SAFE("Exception thrown (code %08x)", status);
     return status;
   }
 }
@@ -682,9 +705,9 @@ _Use_decl_annotations_ ULONG_PTR UtilVmRead(VmcsField field) {
   const auto vmx_status = static_cast<VmxStatus>(
       __vmx_vmread(static_cast<size_t>(field), &field_value));
   if (vmx_status != VmxStatus::kOk) {
-    HYPERPLATFORM_LOG_ERROR_SAFE("__vmx_vmread(0x%08x) failed with an error %d",
-                                 field, vmx_status);
-    HYPERPLATFORM_COMMON_DBG_BREAK();
+    HYPERPLATFORM_COMMON_BUG_CHECK(
+        HyperPlatformBugCheck::kCriticalVmxInstructionFailure,
+        static_cast<ULONG_PTR>(vmx_status), static_cast<ULONG_PTR>(field), 0);
   }
   return field_value;
 }
@@ -695,8 +718,10 @@ _Use_decl_annotations_ ULONG64 UtilVmRead64(VmcsField field) {
   return UtilVmRead(field);
 #else
   // Only 64bit fields should be given on x86 because it access field + 1 too.
+  // Also, the field must be even number.
   NT_ASSERT(UtilIsInBounds(field, VmcsField::kIoBitmapA,
                            VmcsField::kHostIa32PerfGlobalCtrlHigh));
+  NT_ASSERT((static_cast<ULONG>(field) % 2) == 0);
 
   ULARGE_INTEGER value64 = {};
   value64.LowPart = UtilVmRead(field);
@@ -709,14 +734,8 @@ _Use_decl_annotations_ ULONG64 UtilVmRead64(VmcsField field) {
 // Writes natural-width VMCS
 _Use_decl_annotations_ VmxStatus UtilVmWrite(VmcsField field,
                                              ULONG_PTR field_value) {
-  const auto vmx_status = static_cast<VmxStatus>(
+  return static_cast<VmxStatus>(
       __vmx_vmwrite(static_cast<size_t>(field), field_value));
-  if (vmx_status != VmxStatus::kOk) {
-    HYPERPLATFORM_LOG_ERROR_SAFE(
-        "__vmx_vmwrite(0x%08x) failed with an error %d", field, vmx_status);
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-  }
-  return vmx_status;
 }
 
 // Writes 64bit-width VMCS
@@ -726,8 +745,10 @@ _Use_decl_annotations_ VmxStatus UtilVmWrite64(VmcsField field,
   return UtilVmWrite(field, field_value);
 #else
   // Only 64bit fields should be given on x86 because it access field + 1 too.
+  // Also, the field must be even number.
   NT_ASSERT(UtilIsInBounds(field, VmcsField::kIoBitmapA,
                            VmcsField::kHostIa32PerfGlobalCtrlHigh));
+  NT_ASSERT((static_cast<ULONG>(field) % 2) == 0);
 
   ULARGE_INTEGER value64 = {};
   value64.QuadPart = field_value;
@@ -761,16 +782,44 @@ _Use_decl_annotations_ void UtilWriteMsr64(Msr msr, ULONG64 value) {
 }
 
 // Executes the INVEPT instruction and invalidates EPT entry cache
-/*_Use_decl_annotations_*/ VmxStatus UtilInveptAll() {
+/*_Use_decl_annotations_*/ VmxStatus UtilInveptGlobal() {
   InvEptDescriptor desc = {};
-  const auto vmx_status =
-      static_cast<VmxStatus>(AsmInvept(InvEptType::kGlobalInvalidation, &desc));
-  if (vmx_status != VmxStatus::kOk) {
-    HYPERPLATFORM_LOG_ERROR_SAFE(
-        "UtilInveptAll(Global) failed with an error %d", vmx_status);
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-  }
-  return vmx_status;
+  return static_cast<VmxStatus>(
+      AsmInvept(InvEptType::kGlobalInvalidation, &desc));
+}
+
+// Executes the INVVPID instruction (type 0)
+_Use_decl_annotations_ VmxStatus UtilInvvpidIndividualAddress(USHORT vpid,
+                                                              void *address) {
+  InvVpidDescriptor desc = {};
+  desc.vpid = vpid;
+  desc.linear_address = reinterpret_cast<ULONG64>(address);
+  return static_cast<VmxStatus>(
+      AsmInvvpid(InvVpidType::kIndividualAddressInvalidation, &desc));
+}
+
+// Executes the INVVPID instruction (type 1)
+_Use_decl_annotations_ VmxStatus UtilInvvpidSingleContext(USHORT vpid) {
+  InvVpidDescriptor desc = {};
+  desc.vpid = vpid;
+  return static_cast<VmxStatus>(
+      AsmInvvpid(InvVpidType::kSingleContextInvalidation, &desc));
+}
+
+// Executes the INVVPID instruction (type 2)
+/*_Use_decl_annotations_*/ VmxStatus UtilInvvpidAllContext() {
+  InvVpidDescriptor desc = {};
+  return static_cast<VmxStatus>(
+      AsmInvvpid(InvVpidType::kAllContextInvalidation, &desc));
+}
+
+// Executes the INVVPID instruction (type 3)
+_Use_decl_annotations_ VmxStatus
+UtilInvvpidSingleContextExceptGlobal(USHORT vpid) {
+  InvVpidDescriptor desc = {};
+  desc.vpid = vpid;
+  return static_cast<VmxStatus>(
+      AsmInvvpid(InvVpidType::kSingleContextInvalidationExceptGlobal, &desc));
 }
 
 // Loads the PDPTE registers from CR3 to VMCS
@@ -780,7 +829,7 @@ _Use_decl_annotations_ void UtilLoadPdptes(ULONG_PTR cr3_value) {
   // Have to load cr3 to make UtilPfnFromVa() work properly.
   __writecr3(cr3_value);
 
-  // Gets PDPTEs fomr CR3
+  // Gets PDPTEs form CR3
   PdptrRegister pd_pointers[4] = {};
   for (auto i = 0ul; i < 4; ++i) {
     const auto pd_addr = g_utilp_pde_base + i * PAGE_SIZE;

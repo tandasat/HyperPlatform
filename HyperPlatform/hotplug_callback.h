@@ -3,10 +3,12 @@
 // found in the LICENSE file.
 
 /// @file
-/// @brief Declares interfaces to driver functions.
+/// @brief Declares interfaces to hot-plug functions.
 
-#ifndef HYPERPLATFORM_DRIVER_H_
-#define HYPERPLATFORM_DRIVER_H_
+#ifndef HYPERPLATFORM_HOTPLUG_CALLBACK_H_
+#define HYPERPLATFORM_HOTPLUG_CALLBACK_H_
+
+#include <fltKernel.h>
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -29,6 +31,10 @@ extern "C" {
 // prototypes
 //
 
+_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS HotplugCallbackInitialization();
+
+_IRQL_requires_max_(PASSIVE_LEVEL) void HotplugCallbackTermination();
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // variables
@@ -41,4 +47,4 @@ extern "C" {
 
 }  // extern "C"
 
-#endif  // HYPERPLATFORM_DRIVER_H_
+#endif  // HYPERPLATFORM_HOTPLUG_CALLBACK_H_

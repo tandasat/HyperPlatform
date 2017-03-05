@@ -1,4 +1,4 @@
-; Copyright (c) 2015-2016, tandasat. All rights reserved.
+; Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
 ; Use of this source code is governed by a MIT-style license that can be
 ; found in the LICENSE file.
 
@@ -76,11 +76,11 @@ ASM_DUMP_REGISTERS MACRO
     mov rcx, rsp                ; guest_context
     mov rdx, rsp
     add rdx, 8*17               ; stack_pointer
-    
+
     sub rsp, 28h                ; 28h for alignment
     call UtilDumpGpRegisters    ; UtilDumpGpRegisters(guest_context, stack_pointer);
     add rsp, 28h
-    
+
     POPAQ
     popfq
 ENDM
@@ -90,7 +90,7 @@ ENDM
 ;
 ; implementations
 ;
-.CODE INIT
+.CODE
 
 ; bool __stdcall AsmInitializeVm(
 ;     _In_ void (*vm_initialization_routine)(_In_ ULONG_PTR, _In_ ULONG_PTR,
@@ -101,7 +101,7 @@ AsmInitializeVm PROC
     ; number (17 times) of push makes RSP 16 bit aligned.
     pushfq
     PUSHAQ              ; -8 * 16
-    
+
     mov rax, rcx
     mov r8, rdx
     mov rdx, asmResumeVm
@@ -117,7 +117,7 @@ AsmInitializeVm PROC
     ret
 
     ; This is where the virtualized guest start to execute after successful
-    ; vmlaunch. 
+    ; vmlaunch.
 asmResumeVm:
     nop                 ; keep this nop for ease of debugging
     POPAQ
@@ -126,14 +126,11 @@ asmResumeVm:
     sub rsp, 8          ; align RSP
     ASM_DUMP_REGISTERS
     add rsp, 8          ; restore RSP
-    
+
     xor rax, rax
     inc rax             ; return true
     ret
 AsmInitializeVm ENDP
-
-
-.CODE
 
 ; void __stdcall AsmVmmEntryPoint();
 AsmVmmEntryPoint PROC
@@ -141,10 +138,28 @@ AsmVmmEntryPoint PROC
     ; the time of vmresume.
     PUSHAQ                  ; -8 * 16
     mov rcx, rsp
-    
+
+    ; save volatile XMM registers
+    sub rsp, 60h
+    movaps xmmword ptr [rsp - 0], xmm0
+    movaps xmmword ptr [rsp - 10h], xmm1
+    movaps xmmword ptr [rsp - 20h], xmm2
+    movaps xmmword ptr [rsp - 30h], xmm3
+    movaps xmmword ptr [rsp - 40h], xmm4
+    movaps xmmword ptr [rsp - 50h], xmm5
+
     sub rsp, 20h
     call VmmVmExitHandler   ; bool vm_continue = VmmVmExitHandler(guest_context);
     add rsp, 20h
+
+    ; restore XMM registers
+    movaps xmm0, xmmword ptr [rsp - 0]
+    movaps xmm1, xmmword ptr [rsp - 10h]
+    movaps xmm2, xmmword ptr [rsp - 20h]
+    movaps xmm3, xmmword ptr [rsp - 30h]
+    movaps xmm4, xmmword ptr [rsp - 40h]
+    movaps xmm5, xmmword ptr [rsp - 50h]
+    add rsp, 60h
 
     test al, al
     jz exitVm               ; if (!vm_continue) jmp exitVm
@@ -163,7 +178,7 @@ exitVm:
     jz vmxError             ; if (ZF) jmp
     jc vmxError             ; if (CF) jmp
     push rax
-    popfq                   ; rflags <= GurstFlags 
+    popfq                   ; rflags <= GurstFlags
     mov rsp, rdx            ; rsp <= GuestRsp
     push rcx
     ret                     ; jmp AddressToReturn
@@ -173,7 +188,7 @@ vmxError:
     pushfq
     PUSHAQ                      ; -8 * 16
     mov rcx, rsp                ; all_regs
-    
+
     sub rsp, 28h                ; 28h for alignment
     call VmmVmxFailureHandler   ; VmmVmxFailureHandler(all_regs);
     add rsp, 28h
@@ -324,8 +339,9 @@ AsmWriteCR2 PROC
     ret
 AsmWriteCR2 ENDP
 
-; unsigned char __stdcall AsmInvept(_In_ InvEptType invept_type,
-;                                   _In_ const InvEptDescriptor *invept_descriptor);
+; unsigned char __stdcall AsmInvept(
+;     _In_ InvEptType invept_type,
+;     _In_ const InvEptDescriptor *invept_descriptor);
 AsmInvept PROC
     ; invept  ecx, oword ptr [rdx]
     db  66h, 0fh, 38h, 80h, 0ah
@@ -342,6 +358,26 @@ errorWithCode:
     mov rax, VMX_ERROR_WITH_STATUS
     ret
 AsmInvept ENDP
+
+; unsigned char __stdcall AsmInvvpid(
+;     _In_ InvVpidType invvpid_type,
+;     _In_ const InvVpidDescriptor *invvpid_descriptor);
+AsmInvvpid PROC
+    ; invvpid  ecx, oword ptr [rdx]
+    db  66h, 0fh, 38h, 81h, 0ah
+    jz errorWithCode        ; if (ZF) jmp
+    jc errorWithoutCode     ; if (CF) jmp
+    xor rax, rax            ; return VMX_OK
+    ret
+
+errorWithoutCode:
+    mov rax, VMX_ERROR_WITHOUT_STATUS
+    ret
+
+errorWithCode:
+    mov rax, VMX_ERROR_WITH_STATUS
+    ret
+AsmInvvpid ENDP
 
 
 PURGE PUSHAQ

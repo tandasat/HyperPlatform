@@ -1,4 +1,4 @@
-; Copyright (c) 2015-2016, tandasat. All rights reserved.
+; Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
 ; Use of this source code is governed by a MIT-style license that can be
 ; found in the LICENSE file.
 
@@ -7,6 +7,8 @@
 ;
 .686p
 .model flat, stdcall
+.MMX
+.XMM
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -38,11 +40,11 @@ ASM_DUMP_REGISTERS MACRO
     mov ecx, esp                ; all_regs
     mov edx, esp
     add edx, 4*9                ; stack_pointer
-    
+
     push ecx
     push edx
     call UtilDumpGpRegisters@8  ; UtilDumpGpRegisters(all_regs, stack_pointer);
-    
+
     popad
     popfd
 ENDM
@@ -52,7 +54,7 @@ ENDM
 ;
 ; implementations
 ;
-.CODE INIT
+.CODE
 
 ; bool __stdcall AsmInitializeVm(
 ;     _In_ void (*vm_initialization_routine)(_In_ ULONG_PTR, _In_ ULONG_PTR,
@@ -63,7 +65,7 @@ AsmInitializeVm PROC vm_initialization_routine, context
     pushad                  ; -4 * 8
 
     mov ecx, esp            ; esp
-    
+
     ; vm_initialization_routine(rsp, asmResumeVm, context)
     push context
     push asmResumeVm
@@ -76,7 +78,7 @@ AsmInitializeVm PROC vm_initialization_routine, context
     ret
 
     ; This is where the virtualized guest start to execute after successful
-    ; vmlaunch. 
+    ; vmlaunch.
 asmResumeVm:
     nop                     ; keep this nop for ease of debugging
     popad
@@ -87,18 +89,45 @@ asmResumeVm:
     ret
 AsmInitializeVm ENDP
 
-
-.CODE
-
 ; void __stdcall AsmVmmEntryPoint();
 AsmVmmEntryPoint PROC
     ; No need to save the flag registers since it is restored from the VMCS at
     ; the time of vmresume.
     pushad                  ; -4 * 8
+    mov eax, esp
 
-    mov ecx, esp
-    push ecx
+    ; FIXME: issue #38
+    ; save volatile XMM registers
+    ;sub esp, 68h            ; +8 for alignment
+    ;mov ecx, cr0
+    ;mov edx, ecx            ; save original CR0
+    ;and cl, 0f1h            ; clear MP, EM, TS bits for floating point access
+    ;mov cr0, ecx            ; update CR0
+    ;movaps xmmword ptr [esp - 0], xmm0
+    ;movaps xmmword ptr [esp - 10h], xmm1
+    ;movaps xmmword ptr [esp - 20h], xmm2
+    ;movaps xmmword ptr [esp - 30h], xmm3
+    ;movaps xmmword ptr [esp - 40h], xmm4
+    ;movaps xmmword ptr [esp - 50h], xmm5
+    ;mov cr0, edx            ; restore the original CR0
+
+    push eax
     call VmmVmExitHandler@4 ; bool vm_continue = VmmVmExitHandler(guest_context);
+
+    ; FIXME: issue #38
+    ; restore XMM registers
+    ;mov ecx, cr0
+    ;mov edx, ecx            ; save original CR0
+    ;and cl, 0f1h            ; clear MP, EM, TS bits for floating point access
+    ;mov cr0, ecx            ; update CR0
+    ;movaps xmm0, xmmword ptr [esp - 0]
+    ;movaps xmm1, xmmword ptr [esp - 10h]
+    ;movaps xmm2, xmmword ptr [esp - 20h]
+    ;movaps xmm3, xmmword ptr [esp - 30h]
+    ;movaps xmm4, xmmword ptr [esp - 40h]
+    ;movaps xmm5, xmmword ptr [esp - 50h]
+    ;mov cr0, edx            ; restore the original CR0
+    ;add esp, 68h            ; +8 for alignment
 
     test al, al
     jz exitVm               ; if (!vm_continue) jmp exitVm
@@ -117,7 +146,7 @@ exitVm:
     jz vmxError             ; if (ZF) jmp
     jc vmxError             ; if (CF) jmp
     push eax
-    popfd                   ; eflags <= GurstFlags 
+    popfd                   ; eflags <= GurstFlags
     mov esp, edx            ; esp <= GuestRsp
     push ecx
     ret                     ; jmp AddressToReturn
@@ -291,8 +320,9 @@ AsmWriteCR2 PROC cr2_value
     ret
 AsmWriteCR2 ENDP
 
-; unsigned char __stdcall AsmInvept(_In_ InvEptType invept_type,
-;                                   _In_ const InvEptDescriptor *invept_descriptor);
+; unsigned char __stdcall AsmInvept(
+;     _In_ InvEptType invept_type,
+;     _In_ const InvEptDescriptor *invept_descriptor);
 AsmInvept PROC invept_type, invept_descriptor
     mov ecx, invept_type
     mov edx, invept_descriptor
@@ -311,6 +341,28 @@ errorWithCode:
     mov eax, VMX_ERROR_WITH_STATUS
     ret
 AsmInvept ENDP
+
+; unsigned char __stdcall AsmInvvpid(
+;     _In_ InvVpidType invvpid_type,
+;     _In_ const InvVpidDescriptor *invvpid_descriptor);
+AsmInvvpid PROC invvpid_type, invvpid_descriptor
+    mov ecx, invvpid_type
+    mov edx, invvpid_descriptor
+    ; invvpid  ecx, oword ptr [rdx]
+    db  66h, 0fh, 38h, 81h, 0ah
+    jz errorWithCode        ; if (ZF) jmp
+    jc errorWithoutCode     ; if (CF) jmp
+    xor eax, eax            ; return VMX_OK
+    ret
+
+errorWithoutCode:
+    mov eax, VMX_ERROR_WITHOUT_STATUS
+    ret
+
+errorWithCode:
+    mov eax, VMX_ERROR_WITH_STATUS
+    ret
+AsmInvvpid ENDP
 
 
 PURGE ASM_DUMP_REGISTERS

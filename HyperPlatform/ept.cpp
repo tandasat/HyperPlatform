@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2016, tandasat. All rights reserved.
+// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -10,9 +10,6 @@
 #include "common.h"
 #include "log.h"
 #include "util.h"
-#ifndef HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
-#define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 1
-#endif  // HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER
 #include "performance.h"
 
 extern "C" {
@@ -26,7 +23,8 @@ extern "C" {
 // constants and macros
 //
 
-// Followings are how 64bits of a pysical address is used to locate EPT entries:
+// Followings are how 64bits of a physical address is used to locate EPT
+// entries:
 //
 // EPT Page map level 4 selector           9 bits
 // EPT Page directory pointer selector     9 bits
@@ -35,23 +33,23 @@ extern "C" {
 // EPT Byte within page                   12 bits
 
 // Get the highest 25 bits
-static const auto kVmxpPxiShift = 39ull;
+static const auto kEptpPxiShift = 39ull;
 
 // Get the highest 34 bits
-static const auto kVmxpPpiShift = 30ull;
+static const auto kEptpPpiShift = 30ull;
 
 // Get the highest 43 bits
-static const auto kVmxpPdiShift = 21ull;
+static const auto kEptpPdiShift = 21ull;
 
 // Get the highest 52 bits
-static const auto kVmxpPtiShift = 12ull;
+static const auto kEptpPtiShift = 12ull;
 
 // Use 9 bits; 0b0000_0000_0000_0000_0000_0000_0001_1111_1111
-static const auto kVmxpPtxMask = 0x1ffull;
+static const auto kEptpPtxMask = 0x1ffull;
 
 // How many EPT entries are preallocated. When the number exceeds it, the
 // hypervisor issues a bugcheck.
-static const auto kVmxpNumberOfPreallocatedEntries = 50;
+static const auto kEptpNumberOfPreallocatedEntries = 50;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -115,9 +113,8 @@ static void EptpFreeUnusedPreAllocatedEntries(
     _In_ long used_count);
 
 #if defined(ALLOC_PRAGMA)
-#pragma alloc_text(INIT, EptIsEptAvailable)
-#pragma alloc_text(INIT, EptGetEptPointer)
-#pragma alloc_text(INIT, EptInitialization)
+#pragma alloc_text(PAGE, EptIsEptAvailable)
+#pragma alloc_text(PAGE, EptInitialization)
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -134,27 +131,22 @@ static void EptpFreeUnusedPreAllocatedEntries(
 _Use_decl_annotations_ bool EptIsEptAvailable() {
   PAGED_CODE();
 
-  int regs[4] = {};
-  __cpuidex(regs, 0x80000008, 0);
-  Cpuid80000008Eax cpuidEax = {static_cast<ULONG32>(regs[0])};
-  HYPERPLATFORM_LOG_DEBUG("Physical Address Range = %d bits",
-                          cpuidEax.fields.physical_address_bits);
-
-  // No processors supporting the Intel 64 architecture support more than 48
-  // physical-address bits
-  if (cpuidEax.fields.physical_address_bits > 48) {
-    return false;
-  }
-
-  // page walk length is 4 steps
-  // extended page tables can be laid out in write-back memory
-  // INVEPT instruction with all possible types is supported
-  Ia32VmxEptVpidCapMsr vpid = {UtilReadMsr64(Msr::kIa32VmxEptVpidCap)};
-  if (!vpid.fields.support_page_walk_length4 ||
-      !vpid.fields.support_write_back_memory_type ||
-      !vpid.fields.support_invept ||
-      !vpid.fields.support_single_context_invept ||
-      !vpid.fields.support_all_context_invept) {
+  // Check the followings:
+  // - page walk length is 4 steps
+  // - extended page tables can be laid out in write-back memory
+  // - INVEPT instruction with all possible types is supported
+  // - INVVPID instruction with all possible types is supported
+  Ia32VmxEptVpidCapMsr capability = {UtilReadMsr64(Msr::kIa32VmxEptVpidCap)};
+  if (!capability.fields.support_page_walk_length4 ||
+      !capability.fields.support_write_back_memory_type ||
+      !capability.fields.support_invept ||
+      !capability.fields.support_single_context_invept ||
+      !capability.fields.support_all_context_invept ||
+      !capability.fields.support_invvpid ||
+      !capability.fields.support_individual_address_invvpid ||
+      !capability.fields.support_single_context_invvpid ||
+      !capability.fields.support_all_context_invvpid ||
+      !capability.fields.support_single_context_retaining_globals_invvpid) {
     return false;
   }
   return true;
@@ -173,7 +165,7 @@ _Use_decl_annotations_ EptData *EptInitialization() {
 
   // Allocate ept_data
   const auto ept_data = reinterpret_cast<EptData *>(ExAllocatePoolWithTag(
-      NonPagedPoolNx, sizeof(EptData), kHyperPlatformCommonPoolTag));
+      NonPagedPool, sizeof(EptData), kHyperPlatformCommonPoolTag));
   if (!ept_data) {
     return nullptr;
   }
@@ -181,7 +173,7 @@ _Use_decl_annotations_ EptData *EptInitialization() {
 
   // Allocate EptPointer
   const auto ept_poiner = reinterpret_cast<EptPointer *>(ExAllocatePoolWithTag(
-      NonPagedPoolNx, PAGE_SIZE, kHyperPlatformCommonPoolTag));
+      NonPagedPool, PAGE_SIZE, kHyperPlatformCommonPoolTag));
   if (!ept_poiner) {
     ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
     return nullptr;
@@ -191,7 +183,7 @@ _Use_decl_annotations_ EptData *EptInitialization() {
   // Allocate EPT_PML4 and initialize EptPointer
   const auto ept_pml4 =
       reinterpret_cast<EptCommonEntry *>(ExAllocatePoolWithTag(
-          NonPagedPoolNx, PAGE_SIZE, kHyperPlatformCommonPoolTag));
+          NonPagedPool, PAGE_SIZE, kHyperPlatformCommonPoolTag));
   if (!ept_pml4) {
     ExFreePoolWithTag(ept_poiner, kHyperPlatformCommonPoolTag);
     ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
@@ -235,9 +227,9 @@ _Use_decl_annotations_ EptData *EptInitialization() {
 
   // Allocate preallocated_entries
   const auto preallocated_entries_size =
-      sizeof(EptCommonEntry *) * kVmxpNumberOfPreallocatedEntries;
+      sizeof(EptCommonEntry *) * kEptpNumberOfPreallocatedEntries;
   const auto preallocated_entries = reinterpret_cast<EptCommonEntry **>(
-      ExAllocatePoolWithTag(NonPagedPoolNx, preallocated_entries_size,
+      ExAllocatePoolWithTag(NonPagedPool, preallocated_entries_size,
                             kHyperPlatformCommonPoolTag));
   if (!preallocated_entries) {
     EptpDestructTables(ept_pml4, 4);
@@ -248,7 +240,7 @@ _Use_decl_annotations_ EptData *EptInitialization() {
   RtlZeroMemory(preallocated_entries, preallocated_entries_size);
 
   // And fill preallocated_entries with newly created entries
-  for (auto i = 0ul; i < kVmxpNumberOfPreallocatedEntries; ++i) {
+  for (auto i = 0ul; i < kEptpNumberOfPreallocatedEntries; ++i) {
     const auto ept_entry = EptpAllocateEptEntry(nullptr);
     if (!ept_entry) {
       EptpFreeUnusedPreAllocatedEntries(preallocated_entries, 0);
@@ -350,7 +342,7 @@ _Use_decl_annotations_ static EptCommonEntry *
 EptpAllocateEptEntryFromPreAllocated(EptData *ept_data) {
   const auto count =
       InterlockedIncrement(&ept_data->preallocated_entries_count);
-  if (count > kVmxpNumberOfPreallocatedEntries) {
+  if (count > kEptpNumberOfPreallocatedEntries) {
     HYPERPLATFORM_COMMON_BUG_CHECK(
         HyperPlatformBugCheck::kExhaustedPreallocatedEntries, count,
         reinterpret_cast<ULONG_PTR>(ept_data), 0);
@@ -364,7 +356,7 @@ _Use_decl_annotations_ static EptCommonEntry *EptpAllocateEptEntryFromPool() {
   static_assert(kAllocSize == PAGE_SIZE, "Size check");
 
   const auto entry = reinterpret_cast<EptCommonEntry *>(ExAllocatePoolWithTag(
-      NonPagedPoolNx, kAllocSize, kHyperPlatformCommonPoolTag));
+      NonPagedPool, kAllocSize, kHyperPlatformCommonPoolTag));
   if (!entry) {
     return nullptr;
   }
@@ -387,28 +379,28 @@ _Use_decl_annotations_ static void EptpInitTableEntry(
 // Return an address of PXE
 _Use_decl_annotations_ static ULONG64 EptpAddressToPxeIndex(
     ULONG64 physical_address) {
-  const auto index = (physical_address >> kVmxpPxiShift) & kVmxpPtxMask;
+  const auto index = (physical_address >> kEptpPxiShift) & kEptpPtxMask;
   return index;
 }
 
 // Return an address of PPE
 _Use_decl_annotations_ static ULONG64 EptpAddressToPpeIndex(
     ULONG64 physical_address) {
-  const auto index = (physical_address >> kVmxpPpiShift) & kVmxpPtxMask;
+  const auto index = (physical_address >> kEptpPpiShift) & kEptpPtxMask;
   return index;
 }
 
 // Return an address of PDE
 _Use_decl_annotations_ static ULONG64 EptpAddressToPdeIndex(
     ULONG64 physical_address) {
-  const auto index = (physical_address >> kVmxpPdiShift) & kVmxpPtxMask;
+  const auto index = (physical_address >> kEptpPdiShift) & kEptpPtxMask;
   return index;
 }
 
 // Return an address of PTE
 _Use_decl_annotations_ static ULONG64 EptpAddressToPteIndex(
     ULONG64 physical_address) {
-  const auto index = (physical_address >> kVmxpPtiShift) & kVmxpPtxMask;
+  const auto index = (physical_address >> kEptpPtiShift) & kEptpPtxMask;
   return index;
 }
 
@@ -418,28 +410,30 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
       UtilVmRead(VmcsField::kExitQualification)};
 
   const auto fault_pa = UtilVmRead64(VmcsField::kGuestPhysicalAddress);
-  const auto fault_va =
+  const auto fault_va = reinterpret_cast<void *>(
       exit_qualification.fields.valid_guest_linear_address
-          ? reinterpret_cast<void *>(UtilVmRead(VmcsField::kGuestLinearAddress))
-          : nullptr;
+          ? UtilVmRead(VmcsField::kGuestLinearAddress)
+          : 0);
 
   if (!exit_qualification.fields.ept_readable &&
       !exit_qualification.fields.ept_writeable &&
       !exit_qualification.fields.ept_executable) {
-    // EPT entry miss. It should be device memory.
-    HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+    const auto ept_entry = EptGetEptPtEntry(ept_data, fault_pa);
+    if (!ept_entry || !ept_entry->all) {
+      // EPT entry miss. It should be device memory.
+      HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
 
-    if (!IsReleaseBuild()) {
-      NT_VERIFY(EptpIsDeviceMemory(fault_pa));
+      if (!IsReleaseBuild()) {
+        NT_VERIFY(EptpIsDeviceMemory(fault_pa));
+      }
+      EptpConstructTables(ept_data->ept_pml4, 4, fault_pa, ept_data);
+
+      UtilInveptGlobal();
+      return;
     }
-    EptpConstructTables(ept_data->ept_pml4, 4, fault_pa, ept_data);
-
-    UtilInveptAll();
-
-  } else {
-    HYPERPLATFORM_LOG_DEBUG_SAFE("[IGNR] OTH VA = %p, PA = %016llx", fault_va,
-                                 fault_pa);
   }
+  HYPERPLATFORM_LOG_DEBUG_SAFE("[IGNR] OTH VA = %p, PA = %016llx", fault_va,
+                               fault_pa);
 }
 
 // Returns if the physical_address is device memory (which could not have a
@@ -468,11 +462,17 @@ _Use_decl_annotations_ EptCommonEntry *EptGetEptPtEntry(
 // Returns an EPT entry corresponds to the physical_address
 _Use_decl_annotations_ static EptCommonEntry *EptpGetEptPtEntry(
     EptCommonEntry *table, ULONG table_level, ULONG64 physical_address) {
+  if (!table) {
+    return nullptr;
+  }
   switch (table_level) {
     case 4: {
       // table == PML4
       const auto pxe_index = EptpAddressToPxeIndex(physical_address);
       const auto ept_pml4_entry = &table[pxe_index];
+      if (!ept_pml4_entry->all) {
+        return nullptr;
+      }
       return EptpGetEptPtEntry(reinterpret_cast<EptCommonEntry *>(UtilVaFromPfn(
                                    ept_pml4_entry->fields.physial_address)),
                                table_level - 1, physical_address);
@@ -481,6 +481,9 @@ _Use_decl_annotations_ static EptCommonEntry *EptpGetEptPtEntry(
       // table == PDPT
       const auto ppe_index = EptpAddressToPpeIndex(physical_address);
       const auto ept_pdpt_entry = &table[ppe_index];
+      if (!ept_pdpt_entry->all) {
+        return nullptr;
+      }
       return EptpGetEptPtEntry(reinterpret_cast<EptCommonEntry *>(UtilVaFromPfn(
                                    ept_pdpt_entry->fields.physial_address)),
                                table_level - 1, physical_address);
@@ -489,6 +492,9 @@ _Use_decl_annotations_ static EptCommonEntry *EptpGetEptPtEntry(
       // table == PDT
       const auto pde_index = EptpAddressToPdeIndex(physical_address);
       const auto ept_pdt_entry = &table[pde_index];
+      if (!ept_pdt_entry->all) {
+        return nullptr;
+      }
       return EptpGetEptPtEntry(reinterpret_cast<EptCommonEntry *>(UtilVaFromPfn(
                                    ept_pdt_entry->fields.physial_address)),
                                table_level - 1, physical_address);
@@ -509,7 +515,7 @@ _Use_decl_annotations_ static EptCommonEntry *EptpGetEptPtEntry(
 _Use_decl_annotations_ void EptTermination(EptData *ept_data) {
   HYPERPLATFORM_LOG_DEBUG("Used pre-allocated entries  = %2d / %2d",
                           ept_data->preallocated_entries_count,
-                          kVmxpNumberOfPreallocatedEntries);
+                          kEptpNumberOfPreallocatedEntries);
 
   EptpFreeUnusedPreAllocatedEntries(ept_data->preallocated_entries,
                                     ept_data->preallocated_entries_count);
@@ -522,7 +528,7 @@ _Use_decl_annotations_ void EptTermination(EptData *ept_data) {
 // freed with EptpDestructTables().
 _Use_decl_annotations_ static void EptpFreeUnusedPreAllocatedEntries(
     EptCommonEntry **preallocated_entries, long used_count) {
-  for (auto i = used_count; i < kVmxpNumberOfPreallocatedEntries; ++i) {
+  for (auto i = used_count; i < kEptpNumberOfPreallocatedEntries; ++i) {
     if (!preallocated_entries[i]) {
       break;
     }
