@@ -1311,121 +1311,131 @@ static_assert(sizeof(EptPointer) == 8, "Size check");
 // can determine a processor's physical-address width by executing CPUID with
 // 80000008H in EAX.The physical - address width is returned in bits 7:0 of EAX.
 
-/// See:
-/// EPT PML4 Entry (PML4E) that References an EPT Page-Directory-Pointer Table
+/// See: Format of an EPT PML4 Entry (PML4E) that References an EPT
+///      Page-Directory-Pointer Table
 union EptPml4Entry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;     //!< [0]
-    ULONG64 write_access : 1;    //!< [1]
-    ULONG64 execute_access : 1;  //!< [2]
-    ULONG64 reserved1 : 5;       //!< [3:7]
-    ULONG64 accessed : 1;        //!< [8]
-    ULONG64 ignored1 : 3;        //!< [9:11]
-    ULONG64 pdpt_address : 36;   //!< [12:48-1]
-    ULONG64 reserved2 : 4;       //!< [48:51]
-    ULONG64 ignored2 : 12;       //!< [52:63]
+    ULONG64 read_access : 1;                                    //!< [0]
+    ULONG64 write_access : 1;                                   //!< [1]
+    ULONG64 execute_access : 1;                                 //!< [2]
+    ULONG64 reserved1 : 5;                                      //!< [3:7]
+    ULONG64 accessed : 1;                                       //!< [8]
+    ULONG64 ignored1 : 1;                                       //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;    //!< [10]
+    ULONG64 ignored2 : 1;                                       //!< [11]
+    ULONG64 pdpt_address : 36;                                  //!< [12:48-1]
+    ULONG64 reserved2 : 4;                                      //!< [48:51]
+    ULONG64 ignored3 : 12;                                      //!< [52:63]
   } fields;
 };
 static_assert(sizeof(EptPml4Entry) == 8, "Size check");
 
-/// See: EPT Page-Directory-Pointer-Table Entry (PDPTE) that Maps a 1-GByte Page
+/// See: Format of an EPT Page-Directory-Pointer-Table Entry (PDPTE) that Maps
+///      a 1-GByte Page
 union EptPdptSuperPageEntry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;             //!< [0]
-    ULONG64 write_access : 1;            //!< [1]
-    ULONG64 execute_access : 1;          //!< [2]
-    ULONG64 memory_type : 3;             //!< [3:5]
-    ULONG64 ignore_pat_memory_type : 1;  //!< [6]
-    ULONG64 must_be1 : 1;                //!< [7]
-    ULONG64 accessed : 1;                //!< [8]
-    ULONG64 written : 1;                 //!< [9]
-    ULONG64 ignored1 : 2;                //!< [10:11]
-    ULONG64 reserved1 : 18;              //!< [12:29]
-    ULONG64 physial_address : 18;        //!< [30:48-1]
-    ULONG64 reserved2 : 4;               //!< [48:51]
-    ULONG64 ignored2 : 11;               //!< [52:62]
-    ULONG64 suppress_ve : 1;             //!< [63]
+    ULONG64 read_access : 1;                                    //!< [0]
+    ULONG64 write_access : 1;                                   //!< [1]
+    ULONG64 execute_access : 1;                                 //!< [2]
+    ULONG64 memory_type : 3;                                    //!< [3:5]
+    ULONG64 ignore_pat_memory_type : 1;                         //!< [6]
+    ULONG64 must_be1 : 1;                                       //!< [7]
+    ULONG64 accessed : 1;                                       //!< [8]
+    ULONG64 written : 1;                                        //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;    //!< [10]
+    ULONG64 ignored1 : 1;                                       //!< [11]
+    ULONG64 reserved1 : 18;                                     //!< [12:29]
+    ULONG64 physial_address : 18;                               //!< [30:48-1]
+    ULONG64 reserved2 : 4;                                      //!< [48:51]
+    ULONG64 ignored2 : 11;                                      //!< [52:62]
+    ULONG64 suppress_ve : 1;                                    //!< [63]
   } fields;
 };
 static_assert(sizeof(EptPdptSuperPageEntry) == 8, "Size check");
 
-/// See: EPT Page-Directory-Pointer-Table Entry (PDPTE) that References an EPT
-/// Page Directory
+/// See: Format of an EPT Page-Directory-Pointer-Table Entry (PDPTE) that
+///      References an EPT Page Directory
 union EptPdptEntry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;     //!< [0]
-    ULONG64 write_access : 1;    //!< [1]
-    ULONG64 execute_access : 1;  //!< [2]
-    ULONG64 reserved1 : 5;       //!< [3:7]
-    ULONG64 accessed : 1;        //!< [8]
-    ULONG64 ignored1 : 3;        //!< [9:11]
-    ULONG64 pd_address : 36;     //!< [12:48-1]
-    ULONG64 reserved2 : 4;       //!< [48:51]
-    ULONG64 ignored2 : 12;       //!< [52:63]
+    ULONG64 read_access : 1;                                    //!< [0]
+    ULONG64 write_access : 1;                                   //!< [1]
+    ULONG64 execute_access : 1;                                 //!< [2]
+    ULONG64 reserved1 : 5;                                      //!< [3:7]
+    ULONG64 accessed : 1;                                       //!< [8]
+    ULONG64 ignored1 : 1;                                       //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;    //!< [10]
+    ULONG64 ignored2 : 1;                                       //!< [11]
+    ULONG64 pd_address : 36;                                    //!< [12:48-1]
+    ULONG64 reserved2 : 4;                                      //!< [48:51]
+    ULONG64 ignored3 : 12;                                      //!< [52:63]
   } fields;
 };
 static_assert(sizeof(EptPdptEntry) == 8, "Size check");
 
-/// See: EPT Page-Directory Entry (PDE) that Maps a 2-MByte Page
+/// See: Format of an EPT Page-Directory Entry (PDE) that Maps a 2-MByte Page
 union EptPdLargePageEntry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;             //!< [0]
-    ULONG64 write_access : 1;            //!< [1]
-    ULONG64 execute_access : 1;          //!< [2]
-    ULONG64 memory_type : 3;             //!< [3:5]
-    ULONG64 ignore_pat_memory_type : 1;  //!< [6]
-    ULONG64 must_be1 : 1;                //!< [7]
-    ULONG64 accessed : 1;                //!< [8]
-    ULONG64 written : 1;                 //!< [9]
-    ULONG64 ignored1 : 2;                //!< [10:11]
-    ULONG64 reserved1 : 9;               //!< [12:20]
-    ULONG64 physial_address : 27;        //!< [21:48-1]
-    ULONG64 reserved2 : 4;               //!< [48:51]
-    ULONG64 ignored2 : 11;               //!< [52:62]
-    ULONG64 suppress_ve : 1;             //!< [63]
+    ULONG64 read_access : 1;                                    //!< [0]
+    ULONG64 write_access : 1;                                   //!< [1]
+    ULONG64 execute_access : 1;                                 //!< [2]
+    ULONG64 memory_type : 3;                                    //!< [3:5]
+    ULONG64 ignore_pat_memory_type : 1;                         //!< [6]
+    ULONG64 must_be1 : 1;                                       //!< [7]
+    ULONG64 accessed : 1;                                       //!< [8]
+    ULONG64 written : 1;                                        //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;    //!< [10]
+    ULONG64 ignored1 : 1;                                       //!< [11]
+    ULONG64 reserved1 : 9;                                      //!< [12:20]
+    ULONG64 physial_address : 27;                               //!< [21:48-1]
+    ULONG64 reserved2 : 4;                                      //!< [48:51]
+    ULONG64 ignored2 : 11;                                      //!< [52:62]
+    ULONG64 suppress_ve : 1;                                    //!< [63]
   } fields;
 };
 static_assert(sizeof(EptPdLargePageEntry) == 8, "Size check");
 
-/// See: EPT Page-Directory Entry (PDE) that References an EPT Page Table
+/// See: Format of an EPT Page-Directory Entry (PDE) that References an EPT Page Table
 union EptPdEntry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;     //!< [0]
-    ULONG64 write_access : 1;    //!< [1]
-    ULONG64 execute_access : 1;  //!< [2]
-    ULONG64 reserved1 : 4;       //!< [3:6]
-    ULONG64 must_be0 : 1;        //!< [7]
-    ULONG64 accessed : 1;        //!< [8]
-    ULONG64 ignored1 : 3;        //!< [9:11]
-    ULONG64 pt_address : 36;     //!< [12:48-1]
-    ULONG64 reserved2 : 4;       //!< [48:51]
-    ULONG64 ignored2 : 12;       //!< [52:63]
+    ULONG64 read_access : 1;                                    //!< [0]
+    ULONG64 write_access : 1;                                   //!< [1]
+    ULONG64 execute_access : 1;                                 //!< [2]
+    ULONG64 reserved1 : 4;                                      //!< [3:6]
+    ULONG64 must_be0 : 1;                                       //!< [7]
+    ULONG64 accessed : 1;                                       //!< [8]
+    ULONG64 ignored1 : 1;                                       //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;    //!< [10]
+    ULONG64 ignored2 : 1;                                       //!< [11]
+    ULONG64 pt_address : 36;                                    //!< [12:48-1]
+    ULONG64 reserved2 : 4;                                      //!< [48:51]
+    ULONG64 ignored3 : 12;                                      //!< [52:63]
   } fields;
 };
 static_assert(sizeof(EptPdEntry) == 8, "Size check");
 
-/// See: EPT Page-Table Entry that Maps a 4-KByte Page
+/// See: Format of an EPT Page-Table Entry that Maps a 4-KByte Page
 union EptPtEntry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;             //!< [0]
-    ULONG64 write_access : 1;            //!< [1]
-    ULONG64 execute_access : 1;          //!< [2]
-    ULONG64 memory_type : 3;             //!< [3:5]
-    ULONG64 ignore_pat_memory_type : 1;  //!< [6]
-    ULONG64 ignored1 : 1;                //!< [7]
-    ULONG64 accessed : 1;                //!< [8]
-    ULONG64 written : 1;                 //!< [9]
-    ULONG64 ignored2 : 2;                //!< [10:11]
-    ULONG64 physial_address : 36;        //!< [12:48-1]
-    ULONG64 reserved1 : 4;               //!< [48:51]
-    ULONG64 Ignored3 : 11;               //!< [52:62]
-    ULONG64 suppress_ve : 1;             //!< [63]
+    ULONG64 read_access : 1;                                    //!< [0]
+    ULONG64 write_access : 1;                                   //!< [1]
+    ULONG64 execute_access : 1;                                 //!< [2]
+    ULONG64 memory_type : 3;                                    //!< [3:5]
+    ULONG64 ignore_pat_memory_type : 1;                         //!< [6]
+    ULONG64 ignored1 : 1;                                       //!< [7]
+    ULONG64 accessed : 1;                                       //!< [8]
+    ULONG64 written : 1;                                        //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;    //!< [10]
+    ULONG64 ignored2 : 1;                                       //!< [11]
+    ULONG64 physial_address : 36;                               //!< [12:48-1]
+    ULONG64 reserved1 : 4;                                      //!< [48:51]
+    ULONG64 Ignored3 : 11;                                      //!< [52:62]
+    ULONG64 suppress_ve : 1;                                    //!< [63]
   } fields;
 };
 static_assert(sizeof(EptPtEntry) == 8, "Size check");
@@ -1434,17 +1444,19 @@ static_assert(sizeof(EptPtEntry) == 8, "Size check");
 union EptViolationQualification {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;                 //!< [0]
-    ULONG64 write_access : 1;                //!< [1]
-    ULONG64 execute_access : 1;              //!< [2]
-    ULONG64 ept_readable : 1;                //!< [3]
-    ULONG64 ept_writeable : 1;               //!< [4]
-    ULONG64 ept_executable : 1;              //!< [5]
-    ULONG64 reserved1 : 1;                   //!< [6]
-    ULONG64 valid_guest_linear_address : 1;  //!< [7]
-    ULONG64 caused_by_translation : 1;       //!< [8]
-    ULONG64 reserved2 : 3;                   //!< [9:11]
-    ULONG64 nmi_unblocking : 1;              //!< [12]
+    ULONG64 read_access : 1;                    //!< [0]
+    ULONG64 write_access : 1;                   //!< [1]
+    ULONG64 execute_access : 1;                 //!< [2]
+    ULONG64 ept_readable : 1;                   //!< [3]
+    ULONG64 ept_writeable : 1;                  //!< [4]
+    ULONG64 ept_executable : 1;                 //!< [5]
+    ULONG64 ept_executable_for_user_mode : 1;   //!< [6]
+    ULONG64 valid_guest_linear_address : 1;     //!< [7]
+    ULONG64 caused_by_translation : 1;          //!< [8]
+    ULONG64 user_mode_linear_address : 1;       //!< [9]
+    ULONG64 readable_writable_page : 1;         //!< [10]
+    ULONG64 execute_disable_page : 1;           //!< [11]
+    ULONG64 nmi_unblocking : 1;                 //!< [12]
   } fields;
 };
 static_assert(sizeof(EptViolationQualification) == 8, "Size check");
