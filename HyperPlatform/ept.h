@@ -57,6 +57,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL) bool EptIsEptAvailable();
 /// @return An EPT pointer
 ULONG64 EptGetEptPointer(_In_ EptData* ept_data);
 
+/// Reads and stores all MTRRs to set a correct memory type for EPT
+_IRQL_requires_max_(PASSIVE_LEVEL) void EptInitializeMtrrEntries();
+
 /// Builds EPT, allocates pre-allocated entires, initializes and returns EptData
 /// @return An allocated EptData on success, or nullptr
 ///

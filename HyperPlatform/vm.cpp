@@ -156,6 +156,9 @@ _Use_decl_annotations_ NTSTATUS VmInitialization() {
     return STATUS_MEMORY_NOT_ALLOCATED;
   }
 
+  // Read and store all MTRRs to set a correct memory type for EPT
+  EptInitializeMtrrEntries();
+
   // Virtualize all processors
   auto status = UtilForEachProcessor(VmpStartVm, shared_data);
   if (!NT_SUCCESS(status)) {

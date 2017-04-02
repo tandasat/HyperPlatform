@@ -51,12 +51,36 @@ static const auto kEptpPtxMask = 0x1ffull;
 // hypervisor issues a bugcheck.
 static const auto kEptpNumberOfPreallocatedEntries = 50;
 
+// Architecture defined number of variable range MTRRs
+static const auto kEptpNumOfMaxVariableRangeMtrrs = 255;
+
+// Architecture defined number of fixed range MTRRs (1 for 64k, 2 for 16k, 8
+// for 4k)
+static const auto kEptpNumOfFixedRangeMtrrs = 1 + 2 + 8;
+
+// A size of array to store all possible MTRRs
+static const auto kEptpMtrrEntriesSize =
+    kEptpNumOfMaxVariableRangeMtrrs + kEptpNumOfFixedRangeMtrrs;
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // types
 //
 
-// EPT related data stored in ProcessorSharedData
+#include <pshpack1.h>
+struct MtrrData {
+  bool enabled;        //<! Whether this entry is valid
+  bool fixedMtrr;      //<! Whether this entry manages a fixed range MTRR
+  UCHAR type;          //<! Memory Type (such as WB, UC)
+  bool reserverd1;     //<! Padding
+  ULONG reserverd2;    //<! Padding
+  ULONG64 range_base;  //<! A base address of a range managed by this entry
+  ULONG64 range_end;   //<! An end address of a range managed by this entry
+};
+#include <poppack.h>
+static_assert(sizeof(MtrrData) == 24, "Size check");
+
+// EPT related data stored in ProcessorData
 struct EptData {
   EptPointer *ept_pointer;
   EptCommonEntry *ept_pml4;
@@ -69,6 +93,8 @@ struct EptData {
 //
 // prototypes
 //
+
+static memory_type EptpGetMemoryType(_In_ ULONG64 physical_address);
 
 _When_(ept_data == nullptr,
        _IRQL_requires_max_(DISPATCH_LEVEL)) static EptCommonEntry
@@ -115,12 +141,16 @@ static void EptpFreeUnusedPreAllocatedEntries(
 #if defined(ALLOC_PRAGMA)
 #pragma alloc_text(PAGE, EptIsEptAvailable)
 #pragma alloc_text(PAGE, EptInitialization)
+#pragma alloc_text(PAGE, EptInitializeMtrrEntries)
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
 //
 // variables
 //
+
+static MtrrData g_eptp_mtrr_entries[kEptpMtrrEntriesSize];
+static UCHAR g_eptp_mtrr_default_type;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -157,7 +187,232 @@ _Use_decl_annotations_ ULONG64 EptGetEptPointer(EptData *ept_data) {
   return ept_data->ept_pointer->all;
 }
 
-// Builds EPT, allocates pre-allocated enties, initializes and returns EptData
+// Reads and stores all MTRRs to set a correct memory type for EPT
+_Use_decl_annotations_ void EptInitializeMtrrEntries() {
+  PAGED_CODE();
+
+  HYPERPLATFORM_COMMON_DBG_BREAK();
+
+  int index = 0;
+  MtrrData *mtrr_entries = g_eptp_mtrr_entries;
+
+  // Get and store the default memory type
+  Ia32MtrrDefaultTypeMsr default_type = {UtilReadMsr64(Msr::kIa32MtrrDefType)};
+  g_eptp_mtrr_default_type = default_type.fields.default_mtemory_type;
+
+  // Read MTRR capability
+  Ia32MtrrCapabilitiesMsr mtrr_capabilities = {
+      UtilReadMsr64(Msr::kIa32MtrrCap)};
+  HYPERPLATFORM_LOG_DEBUG(
+      "MTRR Default=%lld, VariableCount=%lld, FixedSupported=%lld, FixedEnabled=%lld",
+      default_type.fields.default_mtemory_type,
+      mtrr_capabilities.fields.variable_range_count,
+      mtrr_capabilities.fields.fixed_range_supported,
+      default_type.fields.fixed_mtrrs_enabled);
+
+  // Read fixed range MTRRs if supported
+  if (mtrr_capabilities.fields.fixed_range_supported &&
+      default_type.fields.fixed_mtrrs_enabled) {
+    static const auto k64kBase = 0x0;
+    static const auto k64kManagedSize = 0x10000;
+    static const auto k16kBase = 0x80000;
+    static const auto k16kManagedSize = 0x4000;
+    static const auto k4kBase = 0xC0000;
+    static const auto k4kManagedSize = 0x1000;
+
+    // The kIa32MtrrFix64k00000 manages 8 ranges of memory. The first range
+    // starts at 0x0, and each range manages a 64k (0x10000) range. For example,
+    //  entry[0]:     0x0 : 0x10000 - 1
+    //  entry[1]: 0x10000 : 0x20000 - 1
+    //  ...
+    //  entry[7]: 0x70000 : 0x80000 - 1
+    ULONG64 offset = 0;
+    Ia32MtrrFixedRangeMsr fixed_range = {
+        UtilReadMsr64(Msr::kIa32MtrrFix64k00000)};
+    for (auto memory_type : fixed_range.fields.types) {
+      // Each entry manages 64k (0x10000) length.
+      ULONG64 base = k64kBase + offset;
+      offset += k64kManagedSize;
+
+      // Saves the MTRR
+      mtrr_entries[index].enabled = true;
+      mtrr_entries[index].fixedMtrr = true;
+      mtrr_entries[index].type = memory_type;
+      mtrr_entries[index].range_base = base;
+      mtrr_entries[index].range_end = base + k64kManagedSize - 1;
+      index++;
+    }
+    NT_ASSERT(k64kBase + offset == k16kBase);
+
+    // kIa32MtrrFix16k80000 manages 8 ranges of memory. The first range starts
+    // at 0x80000, and each range manages a 16k (0x4000) range. For example,
+    //  entry[0]: 0x80000 : 0x84000 - 1
+    //  entry[1]: 0x88000 : 0x8C000 - 1
+    //  ...
+    //  entry[7]: 0x9C000 : 0xA0000 - 1
+    // Also, subsequent memory ranges are managed by other MSR,
+    // kIa32MtrrFix16kA0000, which manages 8 ranges of memory starting at
+    // 0xA0000 in the same fashion. For example,
+    //  entry[0]: 0xA0000 : 0xA4000 - 1
+    //  entry[1]: 0xA8000 : 0xAC000 - 1
+    //  ...
+    //  entry[7]: 0xBC000 : 0xC0000 - 1
+    offset = 0;
+    for (auto msr = static_cast<ULONG>(Msr::kIa32MtrrFix16k80000);
+         msr <= static_cast<ULONG>(Msr::kIa32MtrrFix16kA0000); msr++) {
+      fixed_range.all = UtilReadMsr64(static_cast<Msr>(msr));
+      for (auto memory_type : fixed_range.fields.types) {
+        // Each entry manages 16k (0x4000) length.
+        ULONG64 base = k16kBase + offset;
+        offset += k16kManagedSize;
+
+        // Saves the MTRR
+        mtrr_entries[index].enabled = true;
+        mtrr_entries[index].fixedMtrr = true;
+        mtrr_entries[index].type = memory_type;
+        mtrr_entries[index].range_base = base;
+        mtrr_entries[index].range_end = base + k16kManagedSize - 1;
+        index++;
+      }
+    }
+    NT_ASSERT(k16kBase + offset == k4kBase);
+
+    // kIa32MtrrFix4kC0000 manages 8 ranges of memory. The first range starts
+    // at 0xC0000, and each range manages a 4k (0x1000) range. For example,
+    //  entry[0]: 0xC0000 : 0xC1000 - 1
+    //  entry[1]: 0xC1000 : 0xC2000 - 1
+    //  ...
+    //  entry[7]: 0xC7000 : 0xC8000 - 1
+    // Also, subsequent memory ranges are managed by other MSRs such as
+    // kIa32MtrrFix4kC8000, kIa32MtrrFix4kD0000, and kIa32MtrrFix4kF8000. Each
+    // MSR manages 8 ranges of memory in the same fashion up to 0x100000.
+    offset = 0;
+    for (auto msr = static_cast<ULONG>(Msr::kIa32MtrrFix4kC0000);
+         msr <= static_cast<ULONG>(Msr::kIa32MtrrFix4kF8000); msr++) {
+      fixed_range.all = UtilReadMsr64(static_cast<Msr>(msr));
+      for (auto memory_type : fixed_range.fields.types) {
+        // Each entry manages 4k (0x1000) length.
+        ULONG64 base = k4kBase + offset;
+        offset += k4kManagedSize;
+
+        // Saves the MTRR
+        mtrr_entries[index].enabled = true;
+        mtrr_entries[index].fixedMtrr = true;
+        mtrr_entries[index].type = memory_type;
+        mtrr_entries[index].range_base = base;
+        mtrr_entries[index].range_end = base + k4kManagedSize - 1;
+        index++;
+      }
+    }
+    NT_ASSERT(k4kBase + offset == 0x100000);
+  }
+
+  // Read all variable range MTRRs
+  for (auto i = 0; i < mtrr_capabilities.fields.variable_range_count; i++) {
+    // Read MTRR mask and check if it is in use
+    const auto phy_mask = static_cast<ULONG>(Msr::kIa32MtrrPhysMaskN) + i * 2;
+    Ia32MtrrPhysMaskMsr mtrr_mask = {UtilReadMsr64(static_cast<Msr>(phy_mask))};
+    if (!mtrr_mask.fields.valid) {
+      continue;
+    }
+
+    // Get a length this MTRR manages
+    ULONG length;
+    BitScanForward64(&length, mtrr_mask.fields.phys_mask * PAGE_SIZE);
+
+    // Read MTRR base and calculate a range this MTRR manages
+    const auto phy_base = static_cast<ULONG>(Msr::kIa32MtrrPhysBaseN) + i * 2;
+    Ia32MtrrPhysBaseMsr mtrr_base = {UtilReadMsr64(static_cast<Msr>(phy_base))};
+    ULONG64 base = mtrr_base.fields.phys_base * PAGE_SIZE;
+    ULONG64 end = base + (1ull << length) - 1;
+
+    // Save it
+    mtrr_entries[index].enabled = true;
+    mtrr_entries[index].fixedMtrr = false;
+    mtrr_entries[index].type = mtrr_base.fields.type;
+    mtrr_entries[index].range_base = base;
+    mtrr_entries[index].range_end = end;
+    index++;
+  }
+
+  // Dump all stored MTRRs
+  for (const auto mtrr_entry : g_eptp_mtrr_entries) {
+    if (!mtrr_entry.enabled) {
+      // Reached out the end
+      break;
+    }
+    HYPERPLATFORM_LOG_DEBUG(
+        "MTRR[%s]: %016llx - %016llx : %d", mtrr_entry.fixedMtrr ? "F" : "V",
+        mtrr_entry.range_base, mtrr_entry.range_end + 1, mtrr_entry.type);
+  }
+}
+
+// Returns a memory type based on MTRRs
+_Use_decl_annotations_ static memory_type EptpGetMemoryType(
+    ULONG64 physical_address) {
+  // Indicate that MTRR is not defined (as a default)
+  UCHAR result_type = MAXUCHAR;
+
+  // Looks for MTRR that includes the specified physical_address
+  for (const auto mtrr_entry : g_eptp_mtrr_entries) {
+    if (!mtrr_entry.enabled) {
+      // Reached out the end of stored MTRRs
+      break;
+    }
+
+    if (!UtilIsInBounds(physical_address, mtrr_entry.range_base,
+                        mtrr_entry.range_end)) {
+      // This MTRR does not describe a memory type of the physical_address
+      continue;
+    }
+
+    // See: MTRR Precedences
+    if (mtrr_entry.fixedMtrr) {
+      // If a fixed MTRR describes a memory type, it is priority
+      result_type = mtrr_entry.type;
+      break;
+    }
+
+    if (mtrr_entry.type == static_cast<UCHAR>(memory_type::kUncacheable)) {
+      // If a memory type is UC, it is priority. Do not continue to search as
+      // UC has the highest priority
+      result_type = mtrr_entry.type;
+      break;
+    }
+
+    if (result_type == static_cast<UCHAR>(memory_type::kWriteThrough) ||
+        mtrr_entry.type == static_cast<UCHAR>(memory_type::kWriteThrough)) {
+      if (result_type == static_cast<UCHAR>(memory_type::kWriteBack)) {
+        // If two or more MTRRs describes an over-wrapped memory region, and
+        // one is WT and the other one is WB, use WT. However, look for other
+        // MTRRs, as the other MTRR specifies the memory address as UC, which is
+        // priority.
+        result_type = static_cast<UCHAR>(memory_type::kWriteThrough);
+        continue;
+      }
+    }
+
+    // Otherwise, processor behavior is undefined. We just use the last MTRR
+    // describes the memory address.
+    result_type = mtrr_entry.type;
+  }
+
+  // Use the default MTRR if no MTRR entry is found
+  if (result_type == MAXUCHAR) {
+    result_type = g_eptp_mtrr_default_type;
+  }
+
+  const auto type = static_cast<memory_type>(result_type);
+
+  // Log if the memory type is not WB, as it is a bit more uncommon
+  if (type != memory_type::kWriteBack) {
+    HYPERPLATFORM_LOG_DEBUG_SAFE("PA = %016llx, MemoryType = %d",
+                                 physical_address, result_type);
+  }
+  return type;
+}
+
+// Builds EPT, allocates pre-allocated entires, initializes and returns EptData
 _Use_decl_annotations_ EptData *EptInitialization() {
   PAGED_CODE();
 
@@ -191,7 +446,7 @@ _Use_decl_annotations_ EptData *EptInitialization() {
   }
   RtlZeroMemory(ept_pml4, PAGE_SIZE);
   ept_poiner->fields.memory_type =
-      static_cast<ULONG64>(memory_type::kWriteBack);
+      static_cast<ULONG64>(EptpGetMemoryType(UtilPaFromVa(ept_pml4)));
   ept_poiner->fields.page_walk_length = kEptPageWalkLevel - 1;
   ept_poiner->fields.pml4_address = UtilPfnFromPa(UtilPaFromVa(ept_pml4));
 
@@ -372,7 +627,8 @@ _Use_decl_annotations_ static void EptpInitTableEntry(
   entry->fields.execute_access = true;
   entry->fields.physial_address = UtilPfnFromPa(physical_address);
   if (table_level == 1) {
-    entry->fields.memory_type = static_cast<ULONG64>(memory_type::kWriteBack);
+    entry->fields.memory_type =
+        static_cast<ULONG64>(EptpGetMemoryType(physical_address));
   }
 }
 

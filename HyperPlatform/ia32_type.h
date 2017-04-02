@@ -358,11 +358,11 @@ struct HardwarePteX86Pae {
   ULONG64 valid : 1;               //!< [0]
   ULONG64 write : 1;               //!< [1]
   ULONG64 owner : 1;               //!< [2]
-  ULONG64 write_through : 1;       //!< [3]
-  ULONG64 cache_disable : 1;       //!< [4]
+  ULONG64 write_through : 1;       //!< [3]     PWT
+  ULONG64 cache_disable : 1;       //!< [4]     PCD
   ULONG64 accessed : 1;            //!< [5]
   ULONG64 dirty : 1;               //!< [6]
-  ULONG64 large_page : 1;          //!< [7]
+  ULONG64 large_page : 1;          //!< [7]     PAT
   ULONG64 global : 1;              //!< [8]
   ULONG64 copy_on_write : 1;       //!< [9]
   ULONG64 prototype : 1;           //!< [10]
@@ -378,11 +378,11 @@ struct HardwarePteX64 {
   ULONG64 valid : 1;               //!< [0]
   ULONG64 write : 1;               //!< [1]
   ULONG64 owner : 1;               //!< [2]
-  ULONG64 write_through : 1;       //!< [3]
-  ULONG64 cache_disable : 1;       //!< [4]
+  ULONG64 write_through : 1;       //!< [3]     PWT
+  ULONG64 cache_disable : 1;       //!< [4]     PCD
   ULONG64 accessed : 1;            //!< [5]
   ULONG64 dirty : 1;               //!< [6]
-  ULONG64 large_page : 1;          //!< [7]
+  ULONG64 large_page : 1;          //!< [7]     PAT
   ULONG64 global : 1;              //!< [8]
   ULONG64 copy_on_write : 1;       //!< [9]
   ULONG64 prototype : 1;           //!< [10]
@@ -450,6 +450,64 @@ union Cpuid80000008Eax {
   } fields;
 };
 
+/// See: IA32_MTRRCAP Register
+union Ia32MtrrCapabilitiesMsr {
+  ULONG64 all;
+  struct {
+    ULONG64 variable_range_count : 8;   //<! [0:7]
+    ULONG64 fixed_range_supported : 1;  //<! [8]
+    ULONG64 reserved : 1;               //<! [9]
+    ULONG64 write_combining : 1;        //<! [10]
+    ULONG64 smrr : 1;                   //<! [11]
+  } fields;
+};
+static_assert(sizeof(Ia32MtrrCapabilitiesMsr) == 8, "Size check");
+
+/// See: IA32_MTRR_DEF_TYPE MSR
+union Ia32MtrrDefaultTypeMsr {
+  ULONG64 all;
+  struct {
+    ULONG64 default_mtemory_type : 8;  //<! [0:7]
+    ULONG64 reserved : 2;              //<! [8:9]
+    ULONG64 fixed_mtrrs_enabled : 1;   //<! [10]
+    ULONG64 mtrrs_enabled : 1;         //<! [11]
+  } fields;
+};
+static_assert(sizeof(Ia32MtrrDefaultTypeMsr) == 8, "Size check");
+
+/// See: Fixed Range MTRRs
+union Ia32MtrrFixedRangeMsr {
+  ULONG64 all;
+  struct {
+    UCHAR types[8];
+  } fields;
+};
+static_assert(sizeof(Ia32MtrrFixedRangeMsr) == 8, "Size check");
+
+/// See: IA32_MTRR_PHYSBASEn and IA32_MTRR_PHYSMASKn Variable-Range Register
+/// Pair
+union Ia32MtrrPhysBaseMsr {
+  ULONG64 all;
+  struct {
+    ULONG64 type : 8;        //!< [0:7]
+    ULONG64 reserved : 4;    //!< [8:11]
+    ULONG64 phys_base : 36;  //!< [12:MAXPHYADDR]
+  } fields;
+};
+static_assert(sizeof(Ia32MtrrPhysBaseMsr) == 8, "Size check");
+
+/// See: IA32_MTRR_PHYSBASEn and IA32_MTRR_PHYSMASKn Variable-Range Register
+/// Pair
+union Ia32MtrrPhysMaskMsr {
+  ULONG64 all;
+  struct {
+    ULONG64 reserved : 11;   //!< [0:10]
+    ULONG64 valid : 1;       //!< [11]
+    ULONG64 phys_mask : 36;  //!< [12:MAXPHYADDR]
+  } fields;
+};
+static_assert(sizeof(Ia32MtrrPhysMaskMsr) == 8, "Size check");
+
 /// See: IA32_APIC_BASE MSR Supporting x2APIC
 union Ia32ApicBaseMsr {
   ULONG64 all;
@@ -475,6 +533,22 @@ enum class Msr : unsigned int {
   kIa32SysenterEip = 0x176,
 
   kIa32Debugctl = 0x1D9,
+
+  kIa32MtrrCap = 0xFE,
+  kIa32MtrrDefType = 0x2FF,
+  kIa32MtrrPhysBaseN = 0x200,
+  kIa32MtrrPhysMaskN = 0x201,
+  kIa32MtrrFix64k00000 = 0x250,
+  kIa32MtrrFix16k80000 = 0x258,
+  kIa32MtrrFix16kA0000 = 0x259,
+  kIa32MtrrFix4kC0000 = 0x268,
+  kIa32MtrrFix4kC8000 = 0x269,
+  kIa32MtrrFix4kD0000 = 0x26A,
+  kIa32MtrrFix4kD8000 = 0x26B,
+  kIa32MtrrFix4kE0000 = 0x26C,
+  kIa32MtrrFix4kE8000 = 0x26D,
+  kIa32MtrrFix4kF0000 = 0x26E,
+  kIa32MtrrFix4kF8000 = 0x26F,
 
   kIa32VmxBasic = 0x480,
   kIa32VmxPinbasedCtls = 0x481,
@@ -641,7 +715,7 @@ enum class VmcsField : unsigned __int32 {
   kPleGap = 0x00004020,
   kPleWindow = 0x00004022,
   // 32-Bit Read-Only Data Fields
-  kVmInstructionError = 0x00004400,     // See: VM-Instruction Error Numbers
+  kVmInstructionError = 0x00004400,  // See: VM-Instruction Error Numbers
   kVmExitReason = 0x00004402,
   kVmExitIntrInfo = 0x00004404,
   kVmExitIntrErrorCode = 0x00004406,
@@ -898,31 +972,31 @@ static_assert(sizeof(VmxProcessorBasedControls) == 4, "Size check");
 union VmxSecondaryProcessorBasedControls {
   unsigned int all;
   struct {
-    unsigned virtualize_apic_accesses : 1;              //!< [0]
-    unsigned enable_ept : 1;                            //!< [1]
-    unsigned descriptor_table_exiting : 1;              //!< [2]
-    unsigned enable_rdtscp : 1;                         //!< [3]
-    unsigned virtualize_x2apic_mode : 1;                //!< [4]
-    unsigned enable_vpid : 1;                           //!< [5]
-    unsigned wbinvd_exiting : 1;                        //!< [6]
-    unsigned unrestricted_guest : 1;                    //!< [7]
-    unsigned apic_register_virtualization : 1;          //!< [8]
-    unsigned virtual_interrupt_delivery : 1;            //!< [9]
-    unsigned pause_loop_exiting : 1;                    //!< [10]
-    unsigned rdrand_exiting : 1;                        //!< [11]
-    unsigned enable_invpcid : 1;                        //!< [12]
-    unsigned enable_vm_functions : 1;                   //!< [13]
-    unsigned vmcs_shadowing : 1;                        //!< [14]
-    unsigned reserved1 : 1;                             //!< [15]
-    unsigned rdseed_exiting : 1;                        //!< [16]
-    unsigned reserved2 : 1;                             //!< [17]
-    unsigned ept_violation_ve : 1;                      //!< [18]
-    unsigned reserved3 : 1;                             //!< [19]
-    unsigned enable_xsaves_xstors : 1;                  //!< [20]
-    unsigned reserved4 : 1;                             //!< [21]
-    unsigned mode_based_execute_control_for_ept : 1;    //!< [22]
-    unsigned reserved5 : 2;                             //!< [23:24]
-    unsigned use_tsc_scaling : 1;                       //!< [25]
+    unsigned virtualize_apic_accesses : 1;            //!< [0]
+    unsigned enable_ept : 1;                          //!< [1]
+    unsigned descriptor_table_exiting : 1;            //!< [2]
+    unsigned enable_rdtscp : 1;                       //!< [3]
+    unsigned virtualize_x2apic_mode : 1;              //!< [4]
+    unsigned enable_vpid : 1;                         //!< [5]
+    unsigned wbinvd_exiting : 1;                      //!< [6]
+    unsigned unrestricted_guest : 1;                  //!< [7]
+    unsigned apic_register_virtualization : 1;        //!< [8]
+    unsigned virtual_interrupt_delivery : 1;          //!< [9]
+    unsigned pause_loop_exiting : 1;                  //!< [10]
+    unsigned rdrand_exiting : 1;                      //!< [11]
+    unsigned enable_invpcid : 1;                      //!< [12]
+    unsigned enable_vm_functions : 1;                 //!< [13]
+    unsigned vmcs_shadowing : 1;                      //!< [14]
+    unsigned reserved1 : 1;                           //!< [15]
+    unsigned rdseed_exiting : 1;                      //!< [16]
+    unsigned reserved2 : 1;                           //!< [17]
+    unsigned ept_violation_ve : 1;                    //!< [18]
+    unsigned reserved3 : 1;                           //!< [19]
+    unsigned enable_xsaves_xstors : 1;                //!< [20]
+    unsigned reserved4 : 1;                           //!< [21]
+    unsigned mode_based_execute_control_for_ept : 1;  //!< [22]
+    unsigned reserved5 : 2;                           //!< [23:24]
+    unsigned use_tsc_scaling : 1;                     //!< [25]
   } fields;
 };
 static_assert(sizeof(VmxSecondaryProcessorBasedControls) == 4, "Size check");
@@ -975,17 +1049,17 @@ static_assert(sizeof(VmxVmExitControls) == 4, "Size check");
 union VmxRegmentDescriptorAccessRight {
   unsigned int all;
   struct {
-    unsigned type : 4;          //!< [0:3]
-    unsigned system : 1;        //!< [4]
-    unsigned dpl : 2;           //!< [5:6]
-    unsigned present : 1;       //!< [7]
-    unsigned reserved1 : 4;     //!< [8:11]
-    unsigned avl : 1;           //!< [12]
-    unsigned l : 1;             //!< [13] Reserved (except for CS) 64-bit mode
-    unsigned db : 1;            //!< [14]
-    unsigned gran : 1;          //!< [15]
-    unsigned unusable : 1;      //!< [16] Segment unusable
-    unsigned reserved2 : 15;    //!< [17:31]
+    unsigned type : 4;        //!< [0:3]
+    unsigned system : 1;      //!< [4]
+    unsigned dpl : 2;         //!< [5:6]
+    unsigned present : 1;     //!< [7]
+    unsigned reserved1 : 4;   //!< [8:11]
+    unsigned avl : 1;         //!< [12]
+    unsigned l : 1;           //!< [13] Reserved (except for CS) 64-bit mode
+    unsigned db : 1;          //!< [14]
+    unsigned gran : 1;        //!< [15]
+    unsigned unusable : 1;    //!< [16] Segment unusable
+    unsigned reserved2 : 15;  //!< [17:31]
   } fields;
 };
 static_assert(sizeof(VmxRegmentDescriptorAccessRight) == 4, "Size check");
@@ -1316,17 +1390,17 @@ static_assert(sizeof(EptPointer) == 8, "Size check");
 union EptPml4Entry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;                                    //!< [0]
-    ULONG64 write_access : 1;                                   //!< [1]
-    ULONG64 execute_access : 1;                                 //!< [2]
-    ULONG64 reserved1 : 5;                                      //!< [3:7]
-    ULONG64 accessed : 1;                                       //!< [8]
-    ULONG64 ignored1 : 1;                                       //!< [9]
-    ULONG64 execute_access_for_user_mode_linear_address : 1;    //!< [10]
-    ULONG64 ignored2 : 1;                                       //!< [11]
-    ULONG64 pdpt_address : 36;                                  //!< [12:48-1]
-    ULONG64 reserved2 : 4;                                      //!< [48:51]
-    ULONG64 ignored3 : 12;                                      //!< [52:63]
+    ULONG64 read_access : 1;                                  //!< [0]
+    ULONG64 write_access : 1;                                 //!< [1]
+    ULONG64 execute_access : 1;                               //!< [2]
+    ULONG64 reserved1 : 5;                                    //!< [3:7]
+    ULONG64 accessed : 1;                                     //!< [8]
+    ULONG64 ignored1 : 1;                                     //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;  //!< [10]
+    ULONG64 ignored2 : 1;                                     //!< [11]
+    ULONG64 pdpt_address : 36;                                //!< [12:48-1]
+    ULONG64 reserved2 : 4;                                    //!< [48:51]
+    ULONG64 ignored3 : 12;                                    //!< [52:63]
   } fields;
 };
 static_assert(sizeof(EptPml4Entry) == 8, "Size check");
@@ -1336,21 +1410,21 @@ static_assert(sizeof(EptPml4Entry) == 8, "Size check");
 union EptPdptSuperPageEntry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;                                    //!< [0]
-    ULONG64 write_access : 1;                                   //!< [1]
-    ULONG64 execute_access : 1;                                 //!< [2]
-    ULONG64 memory_type : 3;                                    //!< [3:5]
-    ULONG64 ignore_pat_memory_type : 1;                         //!< [6]
-    ULONG64 must_be1 : 1;                                       //!< [7]
-    ULONG64 accessed : 1;                                       //!< [8]
-    ULONG64 written : 1;                                        //!< [9]
-    ULONG64 execute_access_for_user_mode_linear_address : 1;    //!< [10]
-    ULONG64 ignored1 : 1;                                       //!< [11]
-    ULONG64 reserved1 : 18;                                     //!< [12:29]
-    ULONG64 physial_address : 18;                               //!< [30:48-1]
-    ULONG64 reserved2 : 4;                                      //!< [48:51]
-    ULONG64 ignored2 : 11;                                      //!< [52:62]
-    ULONG64 suppress_ve : 1;                                    //!< [63]
+    ULONG64 read_access : 1;                                  //!< [0]
+    ULONG64 write_access : 1;                                 //!< [1]
+    ULONG64 execute_access : 1;                               //!< [2]
+    ULONG64 memory_type : 3;                                  //!< [3:5]
+    ULONG64 ignore_pat_memory_type : 1;                       //!< [6]
+    ULONG64 must_be1 : 1;                                     //!< [7]
+    ULONG64 accessed : 1;                                     //!< [8]
+    ULONG64 written : 1;                                      //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;  //!< [10]
+    ULONG64 ignored1 : 1;                                     //!< [11]
+    ULONG64 reserved1 : 18;                                   //!< [12:29]
+    ULONG64 physial_address : 18;                             //!< [30:48-1]
+    ULONG64 reserved2 : 4;                                    //!< [48:51]
+    ULONG64 ignored2 : 11;                                    //!< [52:62]
+    ULONG64 suppress_ve : 1;                                  //!< [63]
   } fields;
 };
 static_assert(sizeof(EptPdptSuperPageEntry) == 8, "Size check");
@@ -1360,17 +1434,17 @@ static_assert(sizeof(EptPdptSuperPageEntry) == 8, "Size check");
 union EptPdptEntry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;                                    //!< [0]
-    ULONG64 write_access : 1;                                   //!< [1]
-    ULONG64 execute_access : 1;                                 //!< [2]
-    ULONG64 reserved1 : 5;                                      //!< [3:7]
-    ULONG64 accessed : 1;                                       //!< [8]
-    ULONG64 ignored1 : 1;                                       //!< [9]
-    ULONG64 execute_access_for_user_mode_linear_address : 1;    //!< [10]
-    ULONG64 ignored2 : 1;                                       //!< [11]
-    ULONG64 pd_address : 36;                                    //!< [12:48-1]
-    ULONG64 reserved2 : 4;                                      //!< [48:51]
-    ULONG64 ignored3 : 12;                                      //!< [52:63]
+    ULONG64 read_access : 1;                                  //!< [0]
+    ULONG64 write_access : 1;                                 //!< [1]
+    ULONG64 execute_access : 1;                               //!< [2]
+    ULONG64 reserved1 : 5;                                    //!< [3:7]
+    ULONG64 accessed : 1;                                     //!< [8]
+    ULONG64 ignored1 : 1;                                     //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;  //!< [10]
+    ULONG64 ignored2 : 1;                                     //!< [11]
+    ULONG64 pd_address : 36;                                  //!< [12:48-1]
+    ULONG64 reserved2 : 4;                                    //!< [48:51]
+    ULONG64 ignored3 : 12;                                    //!< [52:63]
   } fields;
 };
 static_assert(sizeof(EptPdptEntry) == 8, "Size check");
@@ -1379,41 +1453,42 @@ static_assert(sizeof(EptPdptEntry) == 8, "Size check");
 union EptPdLargePageEntry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;                                    //!< [0]
-    ULONG64 write_access : 1;                                   //!< [1]
-    ULONG64 execute_access : 1;                                 //!< [2]
-    ULONG64 memory_type : 3;                                    //!< [3:5]
-    ULONG64 ignore_pat_memory_type : 1;                         //!< [6]
-    ULONG64 must_be1 : 1;                                       //!< [7]
-    ULONG64 accessed : 1;                                       //!< [8]
-    ULONG64 written : 1;                                        //!< [9]
-    ULONG64 execute_access_for_user_mode_linear_address : 1;    //!< [10]
-    ULONG64 ignored1 : 1;                                       //!< [11]
-    ULONG64 reserved1 : 9;                                      //!< [12:20]
-    ULONG64 physial_address : 27;                               //!< [21:48-1]
-    ULONG64 reserved2 : 4;                                      //!< [48:51]
-    ULONG64 ignored2 : 11;                                      //!< [52:62]
-    ULONG64 suppress_ve : 1;                                    //!< [63]
+    ULONG64 read_access : 1;                                  //!< [0]
+    ULONG64 write_access : 1;                                 //!< [1]
+    ULONG64 execute_access : 1;                               //!< [2]
+    ULONG64 memory_type : 3;                                  //!< [3:5]
+    ULONG64 ignore_pat_memory_type : 1;                       //!< [6]
+    ULONG64 must_be1 : 1;                                     //!< [7]
+    ULONG64 accessed : 1;                                     //!< [8]
+    ULONG64 written : 1;                                      //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;  //!< [10]
+    ULONG64 ignored1 : 1;                                     //!< [11]
+    ULONG64 reserved1 : 9;                                    //!< [12:20]
+    ULONG64 physial_address : 27;                             //!< [21:48-1]
+    ULONG64 reserved2 : 4;                                    //!< [48:51]
+    ULONG64 ignored2 : 11;                                    //!< [52:62]
+    ULONG64 suppress_ve : 1;                                  //!< [63]
   } fields;
 };
 static_assert(sizeof(EptPdLargePageEntry) == 8, "Size check");
 
-/// See: Format of an EPT Page-Directory Entry (PDE) that References an EPT Page Table
+/// See: Format of an EPT Page-Directory Entry (PDE) that References an EPT Page
+/// Table
 union EptPdEntry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;                                    //!< [0]
-    ULONG64 write_access : 1;                                   //!< [1]
-    ULONG64 execute_access : 1;                                 //!< [2]
-    ULONG64 reserved1 : 4;                                      //!< [3:6]
-    ULONG64 must_be0 : 1;                                       //!< [7]
-    ULONG64 accessed : 1;                                       //!< [8]
-    ULONG64 ignored1 : 1;                                       //!< [9]
-    ULONG64 execute_access_for_user_mode_linear_address : 1;    //!< [10]
-    ULONG64 ignored2 : 1;                                       //!< [11]
-    ULONG64 pt_address : 36;                                    //!< [12:48-1]
-    ULONG64 reserved2 : 4;                                      //!< [48:51]
-    ULONG64 ignored3 : 12;                                      //!< [52:63]
+    ULONG64 read_access : 1;                                  //!< [0]
+    ULONG64 write_access : 1;                                 //!< [1]
+    ULONG64 execute_access : 1;                               //!< [2]
+    ULONG64 reserved1 : 4;                                    //!< [3:6]
+    ULONG64 must_be0 : 1;                                     //!< [7]
+    ULONG64 accessed : 1;                                     //!< [8]
+    ULONG64 ignored1 : 1;                                     //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;  //!< [10]
+    ULONG64 ignored2 : 1;                                     //!< [11]
+    ULONG64 pt_address : 36;                                  //!< [12:48-1]
+    ULONG64 reserved2 : 4;                                    //!< [48:51]
+    ULONG64 ignored3 : 12;                                    //!< [52:63]
   } fields;
 };
 static_assert(sizeof(EptPdEntry) == 8, "Size check");
@@ -1422,20 +1497,20 @@ static_assert(sizeof(EptPdEntry) == 8, "Size check");
 union EptPtEntry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;                                    //!< [0]
-    ULONG64 write_access : 1;                                   //!< [1]
-    ULONG64 execute_access : 1;                                 //!< [2]
-    ULONG64 memory_type : 3;                                    //!< [3:5]
-    ULONG64 ignore_pat_memory_type : 1;                         //!< [6]
-    ULONG64 ignored1 : 1;                                       //!< [7]
-    ULONG64 accessed : 1;                                       //!< [8]
-    ULONG64 written : 1;                                        //!< [9]
-    ULONG64 execute_access_for_user_mode_linear_address : 1;    //!< [10]
-    ULONG64 ignored2 : 1;                                       //!< [11]
-    ULONG64 physial_address : 36;                               //!< [12:48-1]
-    ULONG64 reserved1 : 4;                                      //!< [48:51]
-    ULONG64 Ignored3 : 11;                                      //!< [52:62]
-    ULONG64 suppress_ve : 1;                                    //!< [63]
+    ULONG64 read_access : 1;                                  //!< [0]
+    ULONG64 write_access : 1;                                 //!< [1]
+    ULONG64 execute_access : 1;                               //!< [2]
+    ULONG64 memory_type : 3;                                  //!< [3:5]
+    ULONG64 ignore_pat_memory_type : 1;                       //!< [6]
+    ULONG64 ignored1 : 1;                                     //!< [7]
+    ULONG64 accessed : 1;                                     //!< [8]
+    ULONG64 written : 1;                                      //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;  //!< [10]
+    ULONG64 ignored2 : 1;                                     //!< [11]
+    ULONG64 physial_address : 36;                             //!< [12:48-1]
+    ULONG64 reserved1 : 4;                                    //!< [48:51]
+    ULONG64 Ignored3 : 11;                                    //!< [52:62]
+    ULONG64 suppress_ve : 1;                                  //!< [63]
   } fields;
 };
 static_assert(sizeof(EptPtEntry) == 8, "Size check");
@@ -1444,19 +1519,19 @@ static_assert(sizeof(EptPtEntry) == 8, "Size check");
 union EptViolationQualification {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;                    //!< [0]
-    ULONG64 write_access : 1;                   //!< [1]
-    ULONG64 execute_access : 1;                 //!< [2]
-    ULONG64 ept_readable : 1;                   //!< [3]
-    ULONG64 ept_writeable : 1;                  //!< [4]
-    ULONG64 ept_executable : 1;                 //!< [5]
-    ULONG64 ept_executable_for_user_mode : 1;   //!< [6]
-    ULONG64 valid_guest_linear_address : 1;     //!< [7]
-    ULONG64 caused_by_translation : 1;          //!< [8]
-    ULONG64 user_mode_linear_address : 1;       //!< [9]
-    ULONG64 readable_writable_page : 1;         //!< [10]
-    ULONG64 execute_disable_page : 1;           //!< [11]
-    ULONG64 nmi_unblocking : 1;                 //!< [12]
+    ULONG64 read_access : 1;                   //!< [0]
+    ULONG64 write_access : 1;                  //!< [1]
+    ULONG64 execute_access : 1;                //!< [2]
+    ULONG64 ept_readable : 1;                  //!< [3]
+    ULONG64 ept_writeable : 1;                 //!< [4]
+    ULONG64 ept_executable : 1;                //!< [5]
+    ULONG64 ept_executable_for_user_mode : 1;  //!< [6]
+    ULONG64 valid_guest_linear_address : 1;    //!< [7]
+    ULONG64 caused_by_translation : 1;         //!< [8]
+    ULONG64 user_mode_linear_address : 1;      //!< [9]
+    ULONG64 readable_writable_page : 1;        //!< [10]
+    ULONG64 execute_disable_page : 1;          //!< [11]
+    ULONG64 nmi_unblocking : 1;                //!< [12]
   } fields;
 };
 static_assert(sizeof(EptViolationQualification) == 8, "Size check");
