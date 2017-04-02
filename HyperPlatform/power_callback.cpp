@@ -93,6 +93,8 @@ _Use_decl_annotations_ static void PowerCallbackpCallbackRoutine(
   UNREFERENCED_PARAMETER(callback_context);
   PAGED_CODE();
 
+  HYPERPLATFORM_LOG_DEBUG("PowerCallback %p:%p", argument1, argument2);
+
   if (argument1 != reinterpret_cast<void*>(PO_CB_SYSTEM_STATE_LOCK)) {
     return;
   }

@@ -905,9 +905,9 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
           if (UtilIsX86Pae()) {
             UtilLoadPdptes(UtilVmRead(VmcsField::kGuestCr3));
           }
-          const Cr0 cr0_fixed0 = { UtilReadMsr(Msr::kIa32VmxCr0Fixed0) };
-          const Cr0 cr0_fixed1 = { UtilReadMsr(Msr::kIa32VmxCr0Fixed1) };
-          Cr0 cr0 = { *register_used };
+          const Cr0 cr0_fixed0 = {UtilReadMsr(Msr::kIa32VmxCr0Fixed0)};
+          const Cr0 cr0_fixed1 = {UtilReadMsr(Msr::kIa32VmxCr0Fixed1)};
+          Cr0 cr0 = {*register_used};
           cr0.all &= cr0_fixed1.all;
           cr0.all |= cr0_fixed0.all;
           UtilVmWrite(VmcsField::kGuestCr0, cr0.all);
@@ -934,9 +934,9 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
             UtilLoadPdptes(UtilVmRead(VmcsField::kGuestCr3));
           }
           UtilInvvpidAllContext();
-          const Cr4 cr4_fixed0 = { UtilReadMsr(Msr::kIa32VmxCr4Fixed0) };
-          const Cr4 cr4_fixed1 = { UtilReadMsr(Msr::kIa32VmxCr4Fixed1) };
-          Cr4 cr4 = { *register_used };
+          const Cr4 cr4_fixed0 = {UtilReadMsr(Msr::kIa32VmxCr4Fixed0)};
+          const Cr4 cr4_fixed1 = {UtilReadMsr(Msr::kIa32VmxCr4Fixed1)};
+          Cr4 cr4 = {*register_used};
           cr4.all &= cr4_fixed1.all;
           cr4.all |= cr4_fixed0.all;
           UtilVmWrite(VmcsField::kGuestCr4, cr4.all);
@@ -995,7 +995,7 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
 // VMX instructions except for VMCALL
 _Use_decl_annotations_ static void VmmpHandleVmx(GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
-  // See "CONVENTIONS"
+  // See: CONVENTIONS
   guest_context->flag_reg.fields.cf = true;  // Error without status
   guest_context->flag_reg.fields.pf = false;
   guest_context->flag_reg.fields.af = false;
@@ -1116,7 +1116,7 @@ _Use_decl_annotations_ static ULONG_PTR *VmmpSelectRegister(
 
 // Dumps guest state VMCS fields
 /*_Use_decl_annotations_*/ static void VmmpDumpGuestState() {
-    // clang-format off
+  // clang-format off
     HYPERPLATFORM_LOG_DEBUG_SAFE("Guest EsSelector   = %p", UtilVmRead(VmcsField::kGuestEsSelector));
     HYPERPLATFORM_LOG_DEBUG_SAFE("Guest CsSelector   = %p", UtilVmRead(VmcsField::kGuestCsSelector));
     HYPERPLATFORM_LOG_DEBUG_SAFE("Guest SsSelector   = %p", UtilVmRead(VmcsField::kGuestSsSelector));
@@ -1169,7 +1169,7 @@ _Use_decl_annotations_ static ULONG_PTR *VmmpSelectRegister(
     HYPERPLATFORM_LOG_DEBUG_SAFE("Guest Rflags       = %p", UtilVmRead(VmcsField::kGuestRflags));
     HYPERPLATFORM_LOG_DEBUG_SAFE("Guest SysenterEsp  = %p", UtilVmRead(VmcsField::kGuestSysenterEsp));
     HYPERPLATFORM_LOG_DEBUG_SAFE("Guest SysenterEip  = %p", UtilVmRead(VmcsField::kGuestSysenterEip));
-    // clang-format on
+  // clang-format on
 }
 
 // Advances guest's IP to the next instruction
@@ -1201,7 +1201,7 @@ _Use_decl_annotations_ void __stdcall VmmVmxFailureHandler(
 // Indicates successful VMCALL
 _Use_decl_annotations_ static void VmmpIndicateSuccessfulVmcall(
     GuestContext *guest_context) {
-  // See "CONVENTIONS"
+  // See: CONVENTIONS
   guest_context->flag_reg.fields.cf = false;
   guest_context->flag_reg.fields.pf = false;
   guest_context->flag_reg.fields.af = false;
@@ -1254,7 +1254,7 @@ _Use_decl_annotations_ static void VmmpHandleVmCallTermination(
 
   // Since the flag register is overwritten after VMXOFF, we should manually
   // indicates that VMCALL was successful by clearing those flags.
-  // See "CONVENTIONS"
+  // See: CONVENTIONS
   guest_context->flag_reg.fields.cf = false;
   guest_context->flag_reg.fields.pf = false;
   guest_context->flag_reg.fields.af = false;

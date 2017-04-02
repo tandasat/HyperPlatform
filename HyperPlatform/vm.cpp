@@ -551,9 +551,8 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   __sidt(&idtr);
 
   // See: Algorithms for Determining VMX Capabilities
-  const auto use_true_msrs = Ia32VmxBasicMsr{
-      UtilReadMsr64(
-          Msr::kIa32VmxBasic)}.fields.vmx_capability_hint;
+  const auto use_true_msrs = Ia32VmxBasicMsr{UtilReadMsr64(Msr::kIa32VmxBasic)}
+                                 .fields.vmx_capability_hint;
 
   VmxVmEntryControls vm_entryctl_requested = {};
   vm_entryctl_requested.fields.load_debug_controls = true;
@@ -595,11 +594,16 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   VmxSecondaryProcessorBasedControls vm_procctl2 = {VmpAdjustControlValue(
       Msr::kIa32VmxProcBasedCtls2, vm_procctl2_requested.all)};
 
-  HYPERPLATFORM_LOG_DEBUG("VmEntryControls                  = %08x", vm_entryctl.all);
-  HYPERPLATFORM_LOG_DEBUG("VmExitControls                   = %08x", vm_exitctl.all);
-  HYPERPLATFORM_LOG_DEBUG("PinBasedControls                 = %08x", vm_pinctl.all);
-  HYPERPLATFORM_LOG_DEBUG("ProcessorBasedControls           = %08x", vm_procctl.all);
-  HYPERPLATFORM_LOG_DEBUG("SecondaryProcessorBasedControls  = %08x", vm_procctl2.all);
+  HYPERPLATFORM_LOG_DEBUG("VmEntryControls                  = %08x",
+                          vm_entryctl.all);
+  HYPERPLATFORM_LOG_DEBUG("VmExitControls                   = %08x",
+                          vm_exitctl.all);
+  HYPERPLATFORM_LOG_DEBUG("PinBasedControls                 = %08x",
+                          vm_pinctl.all);
+  HYPERPLATFORM_LOG_DEBUG("ProcessorBasedControls           = %08x",
+                          vm_procctl.all);
+  HYPERPLATFORM_LOG_DEBUG("SecondaryProcessorBasedControls  = %08x",
+                          vm_procctl2.all);
 
   // NOTE: Comment in any of those as needed
   const auto exception_bitmap =
@@ -618,8 +622,8 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   Cr4 cr4_mask = {};
   Cr4 cr4_shadow = {__readcr4()};
   // For example, when we want to hide CR4.VMXE from the guest, comment in below
-  //cr4_mask.fields.vmxe = true;
-  //cr4_shadow.fields.vmxe = false;
+  // cr4_mask.fields.vmxe = true;
+  // cr4_shadow.fields.vmxe = false;
 
   // See: PDPTE Registers
   // If PAE paging would be in use following an execution of MOV to CR0 or MOV

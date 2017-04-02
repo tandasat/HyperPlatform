@@ -671,25 +671,33 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
           ? UtilVmRead(VmcsField::kGuestLinearAddress)
           : 0);
 
-  if (!exit_qualification.fields.ept_readable &&
-      !exit_qualification.fields.ept_writeable &&
-      !exit_qualification.fields.ept_executable) {
-    const auto ept_entry = EptGetEptPtEntry(ept_data, fault_pa);
-    if (!ept_entry || !ept_entry->all) {
-      // EPT entry miss. It should be device memory.
-      HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
-
-      if (!IsReleaseBuild()) {
-        NT_VERIFY(EptpIsDeviceMemory(fault_pa));
-      }
-      EptpConstructTables(ept_data->ept_pml4, 4, fault_pa, ept_data);
-
-      UtilInveptGlobal();
-      return;
-    }
+  if (exit_qualification.fields.ept_readable ||
+      exit_qualification.fields.ept_writeable ||
+      exit_qualification.fields.ept_executable) {
+    HYPERPLATFORM_COMMON_DBG_BREAK();
+    HYPERPLATFORM_LOG_ERROR_SAFE("[UNK1] VA = %p, PA = %016llx", fault_va,
+                                 fault_pa);
+    return;
   }
-  HYPERPLATFORM_LOG_DEBUG_SAFE("[IGNR] OTH VA = %p, PA = %016llx", fault_va,
+
+  const auto ept_entry = EptGetEptPtEntry(ept_data, fault_pa);
+  if (ept_entry && ept_entry->all) {
+    HYPERPLATFORM_COMMON_DBG_BREAK();
+    HYPERPLATFORM_LOG_ERROR_SAFE("[UNK2] VA = %p, PA = %016llx", fault_va,
+                                 fault_pa);
+    return;
+  }
+
+  // EPT entry miss. It should be device memory.
+  HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+  HYPERPLATFORM_LOG_DEBUG_SAFE("[MMIO] VA = %p, PA = %016llx", fault_va,
                                fault_pa);
+  if (!IsReleaseBuild()) {
+    NT_VERIFY(EptpIsDeviceMemory(fault_pa));
+  }
+  EptpConstructTables(ept_data->ept_pml4, 4, fault_pa, ept_data);
+
+  UtilInveptGlobal();
 }
 
 // Returns if the physical_address is device memory (which could not have a
