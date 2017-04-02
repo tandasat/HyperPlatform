@@ -334,17 +334,6 @@ _Use_decl_annotations_ void EptInitializeMtrrEntries() {
     mtrr_entries[index].range_end = end;
     index++;
   }
-
-  // Dump all stored MTRRs
-  for (const auto mtrr_entry : g_eptp_mtrr_entries) {
-    if (!mtrr_entry.enabled) {
-      // Reached out the end
-      break;
-    }
-    HYPERPLATFORM_LOG_DEBUG(
-        "MTRR[%s]: %016llx - %016llx : %d", mtrr_entry.fixedMtrr ? "F" : "V",
-        mtrr_entry.range_base, mtrr_entry.range_end + 1, mtrr_entry.type);
-  }
 }
 
 // Returns a memory type based on MTRRs
@@ -402,14 +391,7 @@ _Use_decl_annotations_ static memory_type EptpGetMemoryType(
     result_type = g_eptp_mtrr_default_type;
   }
 
-  const auto type = static_cast<memory_type>(result_type);
-
-  // Log if the memory type is not WB, as it is a bit more uncommon
-  if (type != memory_type::kWriteBack) {
-    HYPERPLATFORM_LOG_DEBUG_SAFE("PA = %016llx, MemoryType = %d",
-                                 physical_address, result_type);
-  }
-  return type;
+  return static_cast<memory_type>(result_type);
 }
 
 // Builds EPT, allocates pre-allocated entires, initializes and returns EptData
@@ -690,8 +672,6 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
 
   // EPT entry miss. It should be device memory.
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
-  HYPERPLATFORM_LOG_DEBUG_SAFE("[MMIO] VA = %p, PA = %016llx", fault_va,
-                               fault_pa);
   if (!IsReleaseBuild()) {
     NT_VERIFY(EptpIsDeviceMemory(fault_pa));
   }
