@@ -88,26 +88,27 @@ static DRIVER_REINITIALIZE LogpReinitializationRoutine;
 _IRQL_requires_max_(PASSIVE_LEVEL) static void LogpFinalizeBufferInfo(
     _In_ LogBufferInfo *info);
 
-static NTSTATUS LogpMakePrefix(_In_ ULONG level, _In_ const char *function_name,
-                               _In_ const char *log_message,
+static NTSTATUS LogpMakePrefix(_In_ ULONG level,
+                               _In_z_ const char *function_name,
+                               _In_z_ const char *log_message,
                                _Out_ char *log_buffer,
                                _In_ SIZE_T log_buffer_length);
 
-static const char *LogpFindBaseFunctionName(_In_ const char *function_name);
+static const char *LogpFindBaseFunctionName(_In_z_ const char *function_name);
 
-static NTSTATUS LogpPut(_In_ char *message, _In_ ULONG attribute);
+static NTSTATUS LogpPut(_In_z_ char *message, _In_ ULONG attribute);
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     LogpFlushLogBuffer(_Inout_ LogBufferInfo *info);
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
-    LogpWriteMessageToFile(_In_ const char *message,
+    LogpWriteMessageToFile(_In_z_ const char *message,
                            _In_ const LogBufferInfo &info);
 
-static NTSTATUS LogpBufferMessage(_In_ const char *message,
+static NTSTATUS LogpBufferMessage(_In_z_ const char *message,
                                   _Inout_ LogBufferInfo *info);
 
-static void LogpDoDbgPrint(_In_ char *message);
+static void LogpDoDbgPrint(_In_z_ char *message);
 
 static bool LogpIsLogFileEnabled(_In_ const LogBufferInfo &info);
 
@@ -122,9 +123,9 @@ static KSTART_ROUTINE LogpBufferFlushThreadRoutine;
 _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     LogpSleep(_In_ LONG millisecond);
 
-static void LogpSetPrintedBit(_In_ char *message, _In_ bool on);
+static void LogpSetPrintedBit(_In_z_ char *message, _In_ bool on);
 
-static bool LogpIsPrinted(_In_ char *message);
+static bool LogpIsPrinted(_In_z_ char *message);
 
 static void LogpDbgBreak();
 
@@ -329,8 +330,9 @@ _Use_decl_annotations_ VOID static LogpReinitializationRoutine(
 _Use_decl_annotations_ void LogIrpShutdownHandler() {
   PAGED_CODE();
 
-  HYPERPLATFORM_LOG_DEBUG("Flushing... (Max log usage = %08x bytes)",
-                          g_logp_log_buffer_info.log_max_usage);
+  HYPERPLATFORM_LOG_DEBUG("Flushing... (Max log usage = %08x/%08x bytes)",
+                          g_logp_log_buffer_info.log_max_usage,
+                          kLogpBufferSize);
   HYPERPLATFORM_LOG_INFO("Bye!");
   g_logp_debug_flag = kLogPutLevelDisable;
 
@@ -345,8 +347,9 @@ _Use_decl_annotations_ void LogIrpShutdownHandler() {
 _Use_decl_annotations_ void LogTermination() {
   PAGED_CODE();
 
-  HYPERPLATFORM_LOG_DEBUG("Finalizing... (Max log usage = %08x bytes)",
-                          g_logp_log_buffer_info.log_max_usage);
+  HYPERPLATFORM_LOG_DEBUG("Finalizing... (Max log usage = %08x/%08x bytes)",
+                          g_logp_log_buffer_info.log_max_usage,
+                          kLogpBufferSize);
   HYPERPLATFORM_LOG_INFO("Bye!");
   g_logp_debug_flag = kLogPutLevelDisable;
   LogpFinalizeBufferInfo(&g_logp_log_buffer_info);

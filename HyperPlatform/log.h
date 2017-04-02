@@ -166,8 +166,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL) void LogTermination();
 /// @return STATUS_SUCCESS on success
 /// @see HYPERPLATFORM_LOG_DEBUG
 /// @see HYPERPLATFORM_LOG_DEBUG_SAFE
-NTSTATUS LogpPrint(_In_ ULONG level, _In_ const char *function_name,
-                   _In_ const char *format, ...);
+NTSTATUS LogpPrint(_In_ ULONG level, _In_z_ const char *function_name,
+                   _In_z_ _Printf_format_string_ const char *format, ...);
 
 ////////////////////////////////////////////////////////////////////////////////
 //
