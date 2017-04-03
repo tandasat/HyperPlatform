@@ -424,13 +424,13 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   const auto vmm_stack_base = vmm_stack_data - sizeof(void *);
   HYPERPLATFORM_LOG_DEBUG("vmm_stack_limit       = %p",
                           processor_data->vmm_stack_limit);
-  HYPERPLATFORM_LOG_DEBUG("vmm_stack_region_base = %p", vmm_stack_region_base);
-  HYPERPLATFORM_LOG_DEBUG("vmm_stack_data        = %p", vmm_stack_data);
-  HYPERPLATFORM_LOG_DEBUG("vmm_stack_base        = %p", vmm_stack_base);
-  HYPERPLATFORM_LOG_DEBUG("processor_data        = %p stored at %p",
+  HYPERPLATFORM_LOG_DEBUG("vmm_stack_region_base = %016Ix", vmm_stack_region_base);
+  HYPERPLATFORM_LOG_DEBUG("vmm_stack_data        = %016Ix", vmm_stack_data);
+  HYPERPLATFORM_LOG_DEBUG("vmm_stack_base        = %016Ix", vmm_stack_base);
+  HYPERPLATFORM_LOG_DEBUG("processor_data        = %p stored at %016Ix",
                           processor_data, vmm_stack_data);
-  HYPERPLATFORM_LOG_DEBUG("guest_stack_pointer   = %p", guest_stack_pointer);
-  HYPERPLATFORM_LOG_DEBUG("guest_inst_pointer    = %p",
+  HYPERPLATFORM_LOG_DEBUG("guest_stack_pointer   = %016Ix", guest_stack_pointer);
+  HYPERPLATFORM_LOG_DEBUG("guest_inst_pointer    = %016Ix",
                           guest_instruction_pointer);
   *reinterpret_cast<ULONG_PTR *>(vmm_stack_base) = MAXULONG_PTR;
   *reinterpret_cast<ProcessorData **>(vmm_stack_data) = processor_data;
@@ -480,10 +480,10 @@ _Use_decl_annotations_ static bool VmpEnterVmxMode(
   cr0.all |= cr0_fixed0.all;
   __writecr0(cr0.all);
 
-  HYPERPLATFORM_LOG_DEBUG("IA32_VMX_CR0_FIXED0   = %08x", cr0_fixed0.all);
-  HYPERPLATFORM_LOG_DEBUG("IA32_VMX_CR0_FIXED1   = %08x", cr0_fixed1.all);
-  HYPERPLATFORM_LOG_DEBUG("Original CR0          = %08x", cr0_original.all);
-  HYPERPLATFORM_LOG_DEBUG("Fixed CR0             = %08x", cr0.all);
+  HYPERPLATFORM_LOG_DEBUG("IA32_VMX_CR0_FIXED0   = %08Ix", cr0_fixed0.all);
+  HYPERPLATFORM_LOG_DEBUG("IA32_VMX_CR0_FIXED1   = %08Ix", cr0_fixed1.all);
+  HYPERPLATFORM_LOG_DEBUG("Original CR0          = %08Ix", cr0_original.all);
+  HYPERPLATFORM_LOG_DEBUG("Fixed CR0             = %08Ix", cr0.all);
 
   // See: VMX-FIXED BITS IN CR4
   const Cr4 cr4_fixed0 = {UtilReadMsr(Msr::kIa32VmxCr4Fixed0)};
@@ -494,10 +494,10 @@ _Use_decl_annotations_ static bool VmpEnterVmxMode(
   cr4.all |= cr4_fixed0.all;
   __writecr4(cr4.all);
 
-  HYPERPLATFORM_LOG_DEBUG("IA32_VMX_CR4_FIXED0   = %08x", cr4_fixed0.all);
-  HYPERPLATFORM_LOG_DEBUG("IA32_VMX_CR4_FIXED1   = %08x", cr4_fixed1.all);
-  HYPERPLATFORM_LOG_DEBUG("Original CR4          = %08x", cr4_original.all);
-  HYPERPLATFORM_LOG_DEBUG("Fixed CR4             = %08x", cr4.all);
+  HYPERPLATFORM_LOG_DEBUG("IA32_VMX_CR4_FIXED0   = %08Ix", cr4_fixed0.all);
+  HYPERPLATFORM_LOG_DEBUG("IA32_VMX_CR4_FIXED1   = %08Ix", cr4_fixed1.all);
+  HYPERPLATFORM_LOG_DEBUG("Original CR4          = %08Ix", cr4_original.all);
+  HYPERPLATFORM_LOG_DEBUG("Fixed CR4             = %08Ix", cr4.all);
 
   // Write a VMCS revision identifier
   const Ia32VmxBasicMsr vmx_basic_msr = {UtilReadMsr64(Msr::kIa32VmxBasic)};
@@ -777,7 +777,7 @@ _Use_decl_annotations_ static void VmpLaunchVm() {
 
   auto error_code = UtilVmRead(VmcsField::kVmInstructionError);
   if (error_code) {
-    HYPERPLATFORM_LOG_WARN("VM_INSTRUCTION_ERROR = %d", error_code);
+    HYPERPLATFORM_LOG_WARN("VM_INSTRUCTION_ERROR = %Iu", error_code);
   }
 
   auto vmx_status = static_cast<VmxStatus>(__vmx_vmlaunch());
@@ -786,7 +786,7 @@ _Use_decl_annotations_ static void VmpLaunchVm() {
   // jumps to an address specified by GUEST_RIP.
   if (vmx_status == VmxStatus::kErrorWithStatus) {
     error_code = UtilVmRead(VmcsField::kVmInstructionError);
-    HYPERPLATFORM_LOG_ERROR("VM_INSTRUCTION_ERROR = %d", error_code);
+    HYPERPLATFORM_LOG_ERROR("VM_INSTRUCTION_ERROR = %Iu", error_code);
   }
   HYPERPLATFORM_COMMON_DBG_BREAK();
 }

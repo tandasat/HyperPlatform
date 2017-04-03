@@ -191,8 +191,6 @@ _Use_decl_annotations_ ULONG64 EptGetEptPointer(EptData *ept_data) {
 _Use_decl_annotations_ void EptInitializeMtrrEntries() {
   PAGED_CODE();
 
-  HYPERPLATFORM_COMMON_DBG_BREAK();
-
   int index = 0;
   MtrrData *mtrr_entries = g_eptp_mtrr_entries;
 

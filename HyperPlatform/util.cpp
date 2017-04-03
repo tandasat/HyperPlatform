@@ -143,7 +143,7 @@ UtilInitialization(PDRIVER_OBJECT driver_object) {
   PAGED_CODE();
 
   auto status = UtilpInitializePageTableVariables();
-  HYPERPLATFORM_LOG_DEBUG("PXE at %p, PPE at %p, PDE at %p, PTE at %p",
+  HYPERPLATFORM_LOG_DEBUG("PXE at %016Ix, PPE at %016Ix, PDE at %016Ix, PTE at %016Ix",
                           g_utilp_pxe_base, g_utilp_ppe_base, g_utilp_pde_base,
                           g_utilp_pte_base);
   if (!NT_SUCCESS(status)) {
@@ -240,7 +240,7 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
   }
 
   found += sizeof(kPatternWin10x64);
-  HYPERPLATFORM_LOG_DEBUG("Found a hard coded PTE_BASE at %p", found);
+  HYPERPLATFORM_LOG_DEBUG("Found a hard coded PTE_BASE at %016Ix", found);
 
   const auto pte_base = *reinterpret_cast<ULONG_PTR *>(found);
   const auto index = (pte_base >> kUtilpPxiShift) & kUtilpPxiMask;
@@ -672,12 +672,12 @@ _Use_decl_annotations_ void UtilDumpGpRegisters(const AllRegisters *all_regs,
 #if defined(_AMD64_)
   HYPERPLATFORM_LOG_DEBUG_SAFE(
       "Context at %p: "
-      "rax= %p rbx= %p rcx= %p "
-      "rdx= %p rsi= %p rdi= %p "
-      "rsp= %p rbp= %p "
-      " r8= %p  r9= %p r10= %p "
-      "r11= %p r12= %p r13= %p "
-      "r14= %p r15= %p efl= %08x",
+      "rax= %016Ix rbx= %016Ix rcx= %016Ix "
+      "rdx= %016Ix rsi= %016Ix rdi= %016Ix "
+      "rsp= %016Ix rbp= %016Ix "
+      " r8= %016Ix  r9= %016Ix r10= %016Ix "
+      "r11= %016Ix r12= %016Ix r13= %016Ix "
+      "r14= %016Ix r15= %016Ix efl= %08Ix",
       _ReturnAddress(), all_regs->gp.ax, all_regs->gp.bx, all_regs->gp.cx,
       all_regs->gp.dx, all_regs->gp.si, all_regs->gp.di, stack_pointer,
       all_regs->gp.bp, all_regs->gp.r8, all_regs->gp.r9, all_regs->gp.r10,
@@ -686,9 +686,9 @@ _Use_decl_annotations_ void UtilDumpGpRegisters(const AllRegisters *all_regs,
 #else
   HYPERPLATFORM_LOG_DEBUG_SAFE(
       "Context at %p: "
-      "eax= %p ebx= %p ecx= %p "
-      "edx= %p esi= %p edi= %p "
-      "esp= %p ebp= %p efl= %08x",
+      "eax= %08Ix ebx= %08Ix ecx= %08Ix "
+      "edx= %08Ix esi= %08Ix edi= %08Ix "
+      "esp= %08Ix ebp= %08Ix efl= %08x",
       _ReturnAddress(), all_regs->gp.ax, all_regs->gp.bx, all_regs->gp.cx,
       all_regs->gp.dx, all_regs->gp.si, all_regs->gp.di, stack_pointer,
       all_regs->gp.bp, all_regs->flags.all);

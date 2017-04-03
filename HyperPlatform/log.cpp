@@ -330,7 +330,7 @@ _Use_decl_annotations_ VOID static LogpReinitializationRoutine(
 _Use_decl_annotations_ void LogIrpShutdownHandler() {
   PAGED_CODE();
 
-  HYPERPLATFORM_LOG_DEBUG("Flushing... (Max log usage = %08x/%08x bytes)",
+  HYPERPLATFORM_LOG_DEBUG("Flushing... (Max log usage = %Iu/%lu bytes)",
                           g_logp_log_buffer_info.log_max_usage,
                           kLogpBufferSize);
   HYPERPLATFORM_LOG_INFO("Bye!");
@@ -347,7 +347,7 @@ _Use_decl_annotations_ void LogIrpShutdownHandler() {
 _Use_decl_annotations_ void LogTermination() {
   PAGED_CODE();
 
-  HYPERPLATFORM_LOG_DEBUG("Finalizing... (Max log usage = %08x/%08x bytes)",
+  HYPERPLATFORM_LOG_DEBUG("Finalizing... (Max log usage = %Iu/%lu bytes)",
                           g_logp_log_buffer_info.log_max_usage,
                           kLogpBufferSize);
   HYPERPLATFORM_LOG_INFO("Bye!");
