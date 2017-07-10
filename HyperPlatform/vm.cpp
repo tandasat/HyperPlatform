@@ -14,8 +14,8 @@
 #include "log.h"
 #include "util.h"
 #include "vmm.h"
-#include "../../DdiMon/ddi_mon.h"
-#include "../../DdiMon/shadow_hook.h"
+#include "../../Hypervisor/Hypervisor.h"
+#include "../../Hypervisor/shadow_hook.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////

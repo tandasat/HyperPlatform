@@ -13,7 +13,7 @@
 #include "log.h"
 #include "util.h"
 #include "performance.h"
-#include "../../DdiMon/shadow_hook.h"
+#include "../../Hypervisor/shadow_hook.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////

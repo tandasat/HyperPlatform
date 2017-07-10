@@ -17,7 +17,7 @@
 #include "util.h"
 #include "vm.h"
 #include "performance.h"
-#include "../../DdiMon/ddi_mon.h"
+#include "../../Hypervisor/Hypervisor.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -68,7 +68,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   UNREFERENCED_PARAMETER(registry_path);
   PAGED_CODE();
 
-  static const wchar_t kLogFilePath[] = L"\\SystemRoot\\DdiMon.log";
+  static const wchar_t kLogFilePath[] = L"\\SystemRoot\\Hypervisor.log";
   static const auto kLogLevel =
       (IsReleaseBuild()) ? kLogPutLevelInfo | kLogOptDisableFunctionName
                          : kLogPutLevelDebug | kLogOptDisableFunctionName;
