@@ -25,7 +25,7 @@ extern "C" {
 // Use RtlPcToFileHeader if available. Using the API causes a broken font bug
 // on the 64 bit Windows 10 and should be avoided. This flag exist for only
 // further investigation.
-static const auto kUtilpUseRtlPcToFileHeader = false;
+static const auto kUtilpUseRtlPcToFileHeader = true;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -70,7 +70,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     UtilpInitializePageTableVariables();
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
-    UtilpInitializeRtlPcToFileHeader(_In_ PDRIVER_OBJECT driver_object);
+    UtilpInitializeRtlPcToFileHeader();
 
 _Success_(return != nullptr) static PVOID NTAPI
     UtilpUnsafePcToFileHeader(_In_ PVOID pc_value, _Out_ PVOID *base_of_image);
@@ -139,7 +139,7 @@ static ULONG_PTR g_utilp_pti_mask = 0;
 
 // Initializes utility functions
 _Use_decl_annotations_ NTSTATUS
-UtilInitialization(PDRIVER_OBJECT driver_object) {
+UtilInitialization() {
   PAGED_CODE();
 
   auto status = UtilpInitializePageTableVariables();
@@ -150,7 +150,7 @@ UtilInitialization(PDRIVER_OBJECT driver_object) {
     return status;
   }
 
-  status = UtilpInitializeRtlPcToFileHeader(driver_object);
+  status = UtilpInitializeRtlPcToFileHeader();
   if (!NT_SUCCESS(status)) {
     return status;
   }
@@ -266,8 +266,7 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
 }
 
 // Locates RtlPcToFileHeader
-_Use_decl_annotations_ static NTSTATUS UtilpInitializeRtlPcToFileHeader(
-    PDRIVER_OBJECT driver_object) {
+_Use_decl_annotations_ static NTSTATUS UtilpInitializeRtlPcToFileHeader() {
   PAGED_CODE();
 
   if (kUtilpUseRtlPcToFileHeader) {
@@ -280,15 +279,17 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializeRtlPcToFileHeader(
     }
   }
 
-#pragma warning(push)
-#pragma warning(disable : 28175)
-  auto module =
-      reinterpret_cast<LdrDataTableEntry *>(driver_object->DriverSection);
-#pragma warning(pop)
+//#pragma warning(push)
+//#pragma warning(disable : 28175)
+//  auto module =
+//      reinterpret_cast<LdrDataTableEntry *>(driver_object->DriverSection);
+//#pragma warning(pop)
 
-  g_utilp_PsLoadedModuleList = module->in_load_order_links.Flink;
-  g_utilp_RtlPcToFileHeader = UtilpUnsafePcToFileHeader;
-  return STATUS_SUCCESS;
+//  g_utilp_PsLoadedModuleList = module->in_load_order_links.Flink;
+//  g_utilp_RtlPcToFileHeader = UtilpUnsafePcToFileHeader;
+//  return STATUS_SUCCESS;
+
+	return STATUS_UNHANDLED_EXCEPTION;
 }
 
 // A fake RtlPcToFileHeader without acquiring PsLoadedModuleSpinLock. Thus, it

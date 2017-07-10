@@ -79,10 +79,9 @@ enum class HypercallNumber : unsigned __int32 {
 //
 
 /// Makes the Util functions ready for use
-/// @param driver_object   The current driver's driver object
 /// @return STATUS_SUCCESS on success
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
-    UtilInitialization(_In_ PDRIVER_OBJECT driver_object);
+    UtilInitialization();
 
 /// Frees all resources allocated for the sake of the Util functions
 _IRQL_requires_max_(PASSIVE_LEVEL) void UtilTermination();

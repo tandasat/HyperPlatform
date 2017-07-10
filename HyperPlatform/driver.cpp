@@ -111,7 +111,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   }
 
   // Initialize utility functions
-  status = UtilInitialization(driver_object);
+  status = UtilInitialization();
   if (!NT_SUCCESS(status)) {
     PerfTermination();
     GlobalObjectTermination();
@@ -153,9 +153,9 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   }
 
   // Register re-initialization for the log functions if needed
-  if (need_reinitialization) {
-    LogRegisterReinitialization(driver_object);
-  }
+//  if (need_reinitialization) {
+//    LogRegisterReinitialization(driver_object);
+//  }
 
   HYPERPLATFORM_LOG_INFO("The VMM has been installed.");
   return status;
