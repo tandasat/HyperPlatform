@@ -280,6 +280,8 @@ _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS
     UtilForceCopyMemory(_In_ void *destination, _In_ const void *source,
                         _In_ SIZE_T length);
 
+HANDLE GetCsrssProcessId(VOID);
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // variables
