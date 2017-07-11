@@ -74,8 +74,6 @@ struct LogBufferInfo {
 // prototypes
 //
 
-NTKERNELAPI UCHAR *NTAPI PsGetProcessImageFileName(_In_ PEPROCESS process);
-
 _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     LogpInitializeBufferInfo(_In_ const wchar_t *log_file_path,
                              _Inout_ LogBufferInfo *info);

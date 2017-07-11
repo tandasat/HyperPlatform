@@ -166,6 +166,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL) void LogTermination();
 NTSTATUS LogpPrint(_In_ ULONG level, _In_ const char *function_name,
                    _In_ const char *format, ...);
 
+NTKERNELAPI UCHAR *NTAPI PsGetProcessImageFileName(_In_ PEPROCESS process);
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // variables
