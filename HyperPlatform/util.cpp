@@ -10,7 +10,6 @@
 #include "asm.h"
 #include "common.h"
 #include "log.h"
-#include "NativeStructs.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -892,82 +891,4 @@ _Use_decl_annotations_ NTSTATUS UtilForceCopyMemory(void *destination,
   return STATUS_SUCCESS;
 }
 
-NTSYSAPI NTSTATUS NTAPI ZwQuerySystemInformation(
-	IN undocumented::SYSTEM_INFORMATION_CLASS SystemInformationClass,
-	OUT PVOID SystemInformation,
-	IN ULONG SystemInformationLength,
-	OUT PULONG ReturnLength OPTIONAL);
-
-NTSYSAPI NTSTATUS NTAPI ZwQueryInformationProcess(
-	IN  HANDLE ProcessHandle,
-	IN  PROCESSINFOCLASS ProcessInformationClass,
-	OUT PVOID ProcessInformation,
-	IN  ULONG ProcessInformationLength,
-	IN  PULONG ReturnLength
-);
-
-
-HANDLE GetCsrssProcessId(VOID)
-{
-	static HANDLE CsrssPID = NULL;
-	ULONG bytes = 0;
-	PVOID pBuf = NULL;
-	UNICODE_STRING ustrCsrss;
-
-	if (CsrssPID)
-		return CsrssPID;
-
-	RtlInitUnicodeString(&ustrCsrss, L"csrss.exe");
-
-	NTSTATUS status = ZwQuerySystemInformation(undocumented::SystemProcessInformation, 0, bytes, &bytes);
-	if (bytes == 0)
-		return NULL;
-
-	pBuf = ExAllocatePoolWithTag(PagedPool, bytes, 'TXSB');
-	RtlZeroMemory(pBuf, bytes);
-
-	status = ZwQuerySystemInformation(undocumented::SystemProcessInformation, pBuf, bytes, &bytes);
-	if (NT_SUCCESS(status))
-	{
-		PSYSTEM_PROCESS_INFORMATION_EX pInfo = (PSYSTEM_PROCESS_INFORMATION_EX)pBuf;
-
-		while (pInfo)
-		{
-			if (0 == RtlCompareUnicodeString(&pInfo->ImageName, &ustrCsrss, TRUE))
-			{
-				PROCESS_SESSION_INFORMATION psi = { 0 };
-				ULONG BreakOnTermination = 0;//out
-				CLIENT_ID ClientId;
-				ClientId.UniqueProcess = pInfo->UniqueProcessId;
-				ClientId.UniqueThread = NULL;
-				OBJECT_ATTRIBUTES oa;
-				InitializeObjectAttributes(&oa, NULL, OBJ_KERNEL_HANDLE, 0, 0);
-				HANDLE ProcessHandle = NULL;
-				if (NT_SUCCESS(ZwOpenProcess(&ProcessHandle, PROCESS_QUERY_INFORMATION, &oa, &ClientId)))
-				{
-					ZwQueryInformationProcess(ProcessHandle, ProcessBreakOnTermination, &BreakOnTermination, sizeof(BreakOnTermination), NULL);
-					ZwQueryInformationProcess(ProcessHandle, ProcessSessionInformation, &psi, sizeof(psi), NULL);
-					ZwClose(ProcessHandle);
-				}
-
-				if (psi.SessionId != 0 && BreakOnTermination != 0)
-				{
-					CsrssPID = pInfo->UniqueProcessId;
-				}
-			}
-
-			if (pInfo->NextEntryOffset == 0)
-				break;
-
-			pInfo = (PSYSTEM_PROCESS_INFORMATION_EX)(((PUCHAR)pInfo) + pInfo->NextEntryOffset);
-		}
-	}
-
-	ExFreePoolWithTag(pBuf, 'TXSB');
-
-	return CsrssPID;
-}
-
 }  // extern "C"
-
-
