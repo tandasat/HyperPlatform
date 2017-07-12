@@ -65,6 +65,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) bool DriverpIsSuppoetedOS();
 // A driver entry point
 NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
                                             PUNICODE_STRING registry_path) {
+  UNREFERENCED_PARAMETER(driver_object);
   UNREFERENCED_PARAMETER(registry_path);
   PAGED_CODE();
 
@@ -77,7 +78,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
                          : kLogPutLevelDebug | kLogOptDisableFunctionName;
 
   auto status = STATUS_UNSUCCESSFUL;
-  driver_object->DriverUnload = DriverpDriverUnload;
+//  driver_object->DriverUnload = DriverpDriverUnload;
   HYPERPLATFORM_COMMON_DBG_BREAK();
 
   // Request NX Non-Paged Pool when available
