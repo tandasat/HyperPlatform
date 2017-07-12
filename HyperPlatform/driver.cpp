@@ -63,10 +63,13 @@ _IRQL_requires_max_(PASSIVE_LEVEL) bool DriverpIsSuppoetedOS();
 //
 
 // A driver entry point
-_Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
+NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
                                             PUNICODE_STRING registry_path) {
   UNREFERENCED_PARAMETER(registry_path);
   PAGED_CODE();
+
+  HYPERPLATFORM_LOG_INFO("DriverEntry");
+
 
   static const wchar_t kLogFilePath[] = L"\\SystemRoot\\Hypervisor.log";
   static const auto kLogLevel =

@@ -255,27 +255,27 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
   HYPERPLATFORM_LOG_DEBUG("shared_data           = %p", shared_data);
 
   // Setup MSR bitmap
-  shared_data->msr_bitmap = VmpBuildMsrBitmap();
-  if (!shared_data->msr_bitmap) {
-    ExFreePoolWithTag(shared_data, kHyperPlatformCommonPoolTag);
-    return nullptr;
-  }
+//  shared_data->msr_bitmap = VmpBuildMsrBitmap();
+//  if (!shared_data->msr_bitmap) {
+//    ExFreePoolWithTag(shared_data, kHyperPlatformCommonPoolTag);
+//    return nullptr;
+//  }
 
   // Setup IO bitmaps
-  const auto io_bitmaps = VmpBuildIoBitmaps();
-  if (!io_bitmaps) {
-    ExFreePoolWithTag(shared_data->msr_bitmap, kHyperPlatformCommonPoolTag);
-    ExFreePoolWithTag(shared_data, kHyperPlatformCommonPoolTag);
-    return nullptr;
-  }
-  shared_data->io_bitmap_a = io_bitmaps;
-  shared_data->io_bitmap_b = io_bitmaps + PAGE_SIZE;
+//  const auto io_bitmaps = VmpBuildIoBitmaps();
+//  if (!io_bitmaps) {
+//    ExFreePoolWithTag(shared_data->msr_bitmap, kHyperPlatformCommonPoolTag);
+//    ExFreePoolWithTag(shared_data, kHyperPlatformCommonPoolTag);
+//    return nullptr;
+//  }
+  //shared_data->io_bitmap_a = io_bitmaps;
+  //shared_data->io_bitmap_b = io_bitmaps + PAGE_SIZE;
 
   // Set up shared shadow hook data
   shared_data->shared_sh_data = ShAllocateSharedShaowHookData();
   if (!shared_data->shared_sh_data) {
     ExFreePoolWithTag(shared_data->io_bitmap_a, kHyperPlatformCommonPoolTag);
-    ExFreePoolWithTag(shared_data->msr_bitmap, kHyperPlatformCommonPoolTag);
+    //ExFreePoolWithTag(shared_data->msr_bitmap, kHyperPlatformCommonPoolTag);
     ExFreePoolWithTag(shared_data, kHyperPlatformCommonPoolTag);
     return nullptr;
   }
@@ -292,34 +292,6 @@ _Use_decl_annotations_ static void *VmpBuildMsrBitmap() {
     return nullptr;
   }
   RtlZeroMemory(msr_bitmap, PAGE_SIZE);
-
-  // Activate VM-exit for RDMSR against all MSRs
-  const auto bitmap_read_low = reinterpret_cast<UCHAR *>(msr_bitmap);
-  const auto bitmap_read_high = bitmap_read_low + 1024;
-  RtlFillMemory(bitmap_read_low, 1024, 0xff);   // read        0 -     1fff
-  RtlFillMemory(bitmap_read_high, 1024, 0xff);  // read c0000000 - c0001fff
-
-  // Ignore IA32_MPERF (000000e7) and IA32_APERF (000000e8)
-  RTL_BITMAP bitmap_read_low_header = {};
-  RtlInitializeBitMap(&bitmap_read_low_header,
-                      reinterpret_cast<PULONG>(bitmap_read_low), 1024 * 8);
-  RtlClearBits(&bitmap_read_low_header, 0xe7, 2);
-
-  // Checks MSRs that cause #GP from 0 to 0xfff, and ignore all of them
-  for (auto msr = 0ul; msr < 0x1000; ++msr) {
-    __try {
-      UtilReadMsr(static_cast<Msr>(msr));
-    } __except (EXCEPTION_EXECUTE_HANDLER) {
-      RtlClearBits(&bitmap_read_low_header, msr, 1);
-    }
-  }
-
-  // Ignore IA32_GS_BASE (c0000101) and IA32_KERNEL_GS_BASE (c0000102)
-  RTL_BITMAP bitmap_read_high_header = {};
-  RtlInitializeBitMap(&bitmap_read_high_header,
-                      reinterpret_cast<PULONG>(bitmap_read_high),
-                      1024 * CHAR_BIT);
-  RtlClearBits(&bitmap_read_high_header, 0x101, 2);
 
   return msr_bitmap;
 }
@@ -707,7 +679,6 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   /* 64-Bit Control Fields */
   error |= UtilVmWrite64(VmcsField::kIoBitmapA, UtilPaFromVa(processor_data->shared_data->io_bitmap_a));
   error |= UtilVmWrite64(VmcsField::kIoBitmapB, UtilPaFromVa(processor_data->shared_data->io_bitmap_b));
-  error |= UtilVmWrite64(VmcsField::kMsrBitmap, UtilPaFromVa(processor_data->shared_data->msr_bitmap));
   error |= UtilVmWrite64(VmcsField::kEptPointer, EptGetEptPointer(processor_data->ept_data));
 
   /* 64-Bit Guest-State Fields */

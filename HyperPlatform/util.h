@@ -71,6 +71,7 @@ enum class HypercallNumber : unsigned __int32 {
   kGetSharedProcessorData,  //!< Terminates VMM
   kShEnablePageShadowing,   //!< Calls ShEnablePageShadowing()
   kShDisablePageShadowing,  //!< Calls ShVmCallDisablePageShadowing()
+  kShEnablePageShadowingSingle
 };
 
 ////////////////////////////////////////////////////////////////////////////////

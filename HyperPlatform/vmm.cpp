@@ -1064,6 +1064,16 @@ _Use_decl_annotations_ static void VmmpHandleVmCall(
         guest_context->stack->processor_data->shared_data->shared_sh_data);
       VmmpIndicateSuccessfulVmcall(guest_context);
       break;
+	case HypercallNumber::kShEnablePageShadowingSingle:
+	{
+		ShEnablePageShadowingSingle(
+			guest_context->stack->processor_data->ept_data,
+			guest_context->stack->processor_data->shared_data->shared_sh_data
+		);
+		VmmpIndicateSuccessfulVmcall(guest_context);
+		break;
+	}
+		break;
     default:
       // Unsupported hypercall
       VmmpIndicateUnsuccessfulVmcall(guest_context);

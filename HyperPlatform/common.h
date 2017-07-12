@@ -136,7 +136,7 @@ constexpr bool IsReleaseBuild() {
 #if defined(DBG)
   return false;
 #else
-  return true;
+  return false;
 #endif
 }
 
