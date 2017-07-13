@@ -325,14 +325,17 @@ USHORT ReadMSRs(PUSHORT* table)
 	{
 		*table = (PUSHORT)ExAllocatePoolWithTag(NonPagedPool, size * sizeof(USHORT), kHyperPlatformCommonPoolTag);
 
-		if (!NT_SUCCESS(ZwReadFile(hFileHandle, NULL, NULL, NULL, &ioStatusBlock, *table, sizeof(USHORT) * size, NULL, NULL)))
+		status = ZwReadFile(hFileHandle, NULL, NULL, NULL, &ioStatusBlock, *table, sizeof(USHORT) * size, NULL, NULL);
+
+		if (!NT_SUCCESS(status))
 		{
-			HYPERPLATFORM_LOG_INFO("Failed to read bytes from file.");
+			HYPERPLATFORM_LOG_INFO("Failed to read bytes from file. Status: 0x%X",status);
 			NtClose(hFileHandle);
 			return 0;
 		}
 	}
 
+	NtClose(hFileHandle);
 	return size;
 }
 // Build MSR bitmap
@@ -361,14 +364,16 @@ _Use_decl_annotations_ static void *VmpBuildMsrBitmap() {
    // Checks MSRs that cause #GP from 0 to 0xfff, and ignore all of them
    PUSHORT msr_table = NULL;
    USHORT size = ReadMSRs(&msr_table);
-   for (auto msr = 0ul; msr < size-1; ++msr) {		
-     //__try {		
-     //  UtilReadMsr(static_cast<Msr>(msr));		
-     //} __except (EXCEPTION_EXECUTE_HANDLER) {	
-       RtlClearBits(&bitmap_read_low_header, msr_table[msr], 1);		
+   if (size > 1) {
+	   for (auto msr = 0ul; msr < size - 1; ++msr) {
+		   //__try {		
+		   //  UtilReadMsr(static_cast<Msr>(msr));		
+		   //} __except (EXCEPTION_EXECUTE_HANDLER) {	
+		   RtlClearBits(&bitmap_read_low_header, msr_table[msr], 1);
 
-   	 //}		
-   }		
+		   //}		
+	   }
+   }
  		
    // Ignore IA32_GS_BASE (c0000101) and IA32_KERNEL_GS_BASE (c0000102)		
    RTL_BITMAP bitmap_read_high_header = {};		
