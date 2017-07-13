@@ -282,7 +282,7 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
   return shared_data;
 }
 
-USHORT ReadMSRs(PUSHORT table)
+USHORT ReadMSRs(PUSHORT* table)
 {
 	USHORT size;
 	HANDLE hFileHandle;
@@ -323,9 +323,9 @@ USHORT ReadMSRs(PUSHORT table)
 
 	if (size > 0)
 	{
-		table = (PUSHORT)ExAllocatePoolWithTag(NonPagedPool, size * sizeof(USHORT), kHyperPlatformCommonPoolTag);
+		*table = (PUSHORT)ExAllocatePoolWithTag(NonPagedPool, size * sizeof(USHORT), kHyperPlatformCommonPoolTag);
 
-		if (!NT_SUCCESS(ZwReadFile(hFileHandle, NULL, NULL, NULL, &ioStatusBlock, table, sizeof(USHORT) * size, NULL, NULL)))
+		if (!NT_SUCCESS(ZwReadFile(hFileHandle, NULL, NULL, NULL, &ioStatusBlock, *table, sizeof(USHORT) * size, NULL, NULL)))
 		{
 			HYPERPLATFORM_LOG_INFO("Failed to read bytes from file.");
 			NtClose(hFileHandle);
@@ -360,14 +360,13 @@ _Use_decl_annotations_ static void *VmpBuildMsrBitmap() {
  		
    // Checks MSRs that cause #GP from 0 to 0xfff, and ignore all of them
    PUSHORT msr_table = NULL;
-   USHORT size = ReadMSRs(msr_table);
-   HYPERPLATFORM_LOG_INFO("msr_table %p", msr_table);
+   USHORT size = ReadMSRs(&msr_table);
    for (auto msr = 0ul; msr < size-1; ++msr) {		
      //__try {		
      //  UtilReadMsr(static_cast<Msr>(msr));		
-     //} __except (EXCEPTION_EXECUTE_HANDLER) {		
+     //} __except (EXCEPTION_EXECUTE_HANDLER) {	
        RtlClearBits(&bitmap_read_low_header, msr_table[msr], 1);		
-       
+
    	 //}		
    }		
  		
