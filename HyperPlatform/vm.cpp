@@ -377,6 +377,9 @@ _Use_decl_annotations_ static void *VmpBuildMsrBitmap() {
                        1024 * CHAR_BIT);		
    RtlClearBits(&bitmap_read_high_header, 0x101, 2);
 
+   HYPERPLATFORM_LOG_INFO("MSR bitmap initialized.");
+
+
   return msr_bitmap;
 }
 
