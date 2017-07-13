@@ -129,25 +129,25 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   }
 
   // Initialize power callback
-  status = PowerCallbackInitialization();
-  if (!NT_SUCCESS(status)) {
-    UtilTermination();
-    PerfTermination();
-    GlobalObjectTermination();
-    LogTermination();
-    return status;
-  }
+  //status = PowerCallbackInitialization();
+  //if (!NT_SUCCESS(status)) {
+  //  UtilTermination();
+  //  PerfTermination();
+  //  GlobalObjectTermination();
+  //  LogTermination();
+  //  return status;
+  //}
 
-  // Initialize hot-plug callback
-  status = HotplugCallbackInitialization();
-  if (!NT_SUCCESS(status)) {
-    PowerCallbackTermination();
-    UtilTermination();
-    PerfTermination();
-    GlobalObjectTermination();
-    LogTermination();
-    return status;
-  }
+  //// Initialize hot-plug callback
+  //status = HotplugCallbackInitialization();
+  //if (!NT_SUCCESS(status)) {
+  //  PowerCallbackTermination();
+  //  UtilTermination();
+  //  PerfTermination();
+  //  GlobalObjectTermination();
+  //  LogTermination();
+  //  return status;
+  //}
 
   // Virtualize all processors
   status = VmInitialization();
