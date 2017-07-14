@@ -69,7 +69,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) bool DriverpIsSuppoetedOS();
 NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING registry_path) 
 {
 
-#ifndef _DEBUG
+#ifndef _DRIVEROBJECT
   UNREFERENCED_PARAMETER(driver_object);
 #endif
 
@@ -87,7 +87,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING registry_path
 
 
   auto status = STATUS_UNSUCCESSFUL;
-#ifdef _DEBUG
+#ifdef _DRIVEROBJECT
   driver_object->DriverUnload = DriverpDriverUnload;
 #endif
   HYPERPLATFORM_COMMON_DBG_BREAK();
