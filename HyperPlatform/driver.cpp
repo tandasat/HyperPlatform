@@ -66,9 +66,13 @@ _IRQL_requires_max_(PASSIVE_LEVEL) bool DriverpIsSuppoetedOS();
 
 
 
-NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
-                                            PUNICODE_STRING registry_path) {
+NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING registry_path) 
+{
+
+#ifndef _DEBUG
   UNREFERENCED_PARAMETER(driver_object);
+#endif
+
   UNREFERENCED_PARAMETER(registry_path);
   PAGED_CODE();
 
@@ -83,7 +87,9 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
 
 
   auto status = STATUS_UNSUCCESSFUL;
-  //driver_object->DriverUnload = DriverpDriverUnload;
+#ifdef _DEBUG
+  driver_object->DriverUnload = DriverpDriverUnload;
+#endif
   HYPERPLATFORM_COMMON_DBG_BREAK();
 
   // Request NX Non-Paged Pool when available
@@ -91,6 +97,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
 
   // Initialize log functions
   bool need_reinitialization = false;
+
   status = LogInitialization(kLogLevel, kLogFilePath);
   if (status == STATUS_REINITIALIZATION_NEEDED) {
     need_reinitialization = true;
