@@ -71,6 +71,7 @@ enum class HypercallNumber : unsigned __int32 {
   kGetSharedProcessorData,  //!< Terminates VMM
   kShEnablePageShadowing,   //!< Calls ShEnablePageShadowing()
   kShDisablePageShadowing,  //!< Calls ShVmCallDisablePageShadowing()
+  kShEnablePageShadowingSingle
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -79,10 +80,9 @@ enum class HypercallNumber : unsigned __int32 {
 //
 
 /// Makes the Util functions ready for use
-/// @param driver_object   The current driver's driver object
 /// @return STATUS_SUCCESS on success
 _IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
-    UtilInitialization(_In_ PDRIVER_OBJECT driver_object);
+    UtilInitialization();
 
 /// Frees all resources allocated for the sake of the Util functions
 _IRQL_requires_max_(PASSIVE_LEVEL) void UtilTermination();
@@ -280,6 +280,8 @@ void UtilLoadPdptes(_In_ ULONG_PTR cr3_value);
 _IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS
     UtilForceCopyMemory(_In_ void *destination, _In_ const void *source,
                         _In_ SIZE_T length);
+
+HANDLE GetCsrssProcessId(VOID);
 
 ////////////////////////////////////////////////////////////////////////////////
 //

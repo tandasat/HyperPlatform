@@ -17,7 +17,7 @@
 #include "util.h"
 #include "vm.h"
 #include "performance.h"
-#include "../../DdiMon/ddi_mon.h"
+#include "../../Hypervisor/Hypervisor.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -63,18 +63,33 @@ _IRQL_requires_max_(PASSIVE_LEVEL) bool DriverpIsSuppoetedOS();
 //
 
 // A driver entry point
-_Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
-                                            PUNICODE_STRING registry_path) {
+
+
+
+NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING registry_path) 
+{
+
+#ifndef _DRIVEROBJECT
+  UNREFERENCED_PARAMETER(driver_object);
+#endif
+
   UNREFERENCED_PARAMETER(registry_path);
   PAGED_CODE();
 
-  static const wchar_t kLogFilePath[] = L"\\SystemRoot\\DdiMon.log";
+  HYPERPLATFORM_LOG_INFO("DriverEntry");
+
+
+  static const wchar_t kLogFilePath[] = L"\\SystemRoot\\Hypervisor.log";
   static const auto kLogLevel =
       (IsReleaseBuild()) ? kLogPutLevelInfo | kLogOptDisableFunctionName
                          : kLogPutLevelDebug | kLogOptDisableFunctionName;
 
+
+
   auto status = STATUS_UNSUCCESSFUL;
+#ifdef _DRIVEROBJECT
   driver_object->DriverUnload = DriverpDriverUnload;
+#endif
   HYPERPLATFORM_COMMON_DBG_BREAK();
 
   // Request NX Non-Paged Pool when available
@@ -82,6 +97,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
 
   // Initialize log functions
   bool need_reinitialization = false;
+
   status = LogInitialization(kLogLevel, kLogFilePath);
   if (status == STATUS_REINITIALIZATION_NEEDED) {
     need_reinitialization = true;
@@ -111,7 +127,7 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   }
 
   // Initialize utility functions
-  status = UtilInitialization(driver_object);
+  status = UtilInitialization();
   if (!NT_SUCCESS(status)) {
     PerfTermination();
     GlobalObjectTermination();
@@ -120,25 +136,25 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   }
 
   // Initialize power callback
-  status = PowerCallbackInitialization();
-  if (!NT_SUCCESS(status)) {
-    UtilTermination();
-    PerfTermination();
-    GlobalObjectTermination();
-    LogTermination();
-    return status;
-  }
+  //status = PowerCallbackInitialization();
+  //if (!NT_SUCCESS(status)) {
+  //  UtilTermination();
+  //  PerfTermination();
+  //  GlobalObjectTermination();
+  //  LogTermination();
+  //  return status;
+  //}
 
-  // Initialize hot-plug callback
-  status = HotplugCallbackInitialization();
-  if (!NT_SUCCESS(status)) {
-    PowerCallbackTermination();
-    UtilTermination();
-    PerfTermination();
-    GlobalObjectTermination();
-    LogTermination();
-    return status;
-  }
+  //// Initialize hot-plug callback
+  //status = HotplugCallbackInitialization();
+  //if (!NT_SUCCESS(status)) {
+  //  PowerCallbackTermination();
+  //  UtilTermination();
+  //  PerfTermination();
+  //  GlobalObjectTermination();
+  //  LogTermination();
+  //  return status;
+  //}
 
   // Virtualize all processors
   status = VmInitialization();
@@ -153,9 +169,9 @@ _Use_decl_annotations_ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object,
   }
 
   // Register re-initialization for the log functions if needed
-  if (need_reinitialization) {
-    LogRegisterReinitialization(driver_object);
-  }
+//  if (need_reinitialization) {
+//    LogRegisterReinitialization(driver_object);
+//  }
 
   HYPERPLATFORM_LOG_INFO("The VMM has been installed.");
   return status;

@@ -10,6 +10,7 @@
 #include "asm.h"
 #include "common.h"
 #include "log.h"
+#include "NativeStructs.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -25,7 +26,7 @@ extern "C" {
 // Use RtlPcToFileHeader if available. Using the API causes a broken font bug
 // on the 64 bit Windows 10 and should be avoided. This flag exist for only
 // further investigation.
-static const auto kUtilpUseRtlPcToFileHeader = false;
+static const auto kUtilpUseRtlPcToFileHeader = true;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -70,7 +71,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     UtilpInitializePageTableVariables();
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
-    UtilpInitializeRtlPcToFileHeader(_In_ PDRIVER_OBJECT driver_object);
+    UtilpInitializeRtlPcToFileHeader();
 
 _Success_(return != nullptr) static PVOID NTAPI
     UtilpUnsafePcToFileHeader(_In_ PVOID pc_value, _Out_ PVOID *base_of_image);
@@ -139,7 +140,7 @@ static ULONG_PTR g_utilp_pti_mask = 0;
 
 // Initializes utility functions
 _Use_decl_annotations_ NTSTATUS
-UtilInitialization(PDRIVER_OBJECT driver_object) {
+UtilInitialization() {
   PAGED_CODE();
 
   auto status = UtilpInitializePageTableVariables();
@@ -150,7 +151,7 @@ UtilInitialization(PDRIVER_OBJECT driver_object) {
     return status;
   }
 
-  status = UtilpInitializeRtlPcToFileHeader(driver_object);
+  status = UtilpInitializeRtlPcToFileHeader();
   if (!NT_SUCCESS(status)) {
     return status;
   }
@@ -266,8 +267,7 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
 }
 
 // Locates RtlPcToFileHeader
-_Use_decl_annotations_ static NTSTATUS UtilpInitializeRtlPcToFileHeader(
-    PDRIVER_OBJECT driver_object) {
+_Use_decl_annotations_ static NTSTATUS UtilpInitializeRtlPcToFileHeader() {
   PAGED_CODE();
 
   if (kUtilpUseRtlPcToFileHeader) {
@@ -280,15 +280,17 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializeRtlPcToFileHeader(
     }
   }
 
-#pragma warning(push)
-#pragma warning(disable : 28175)
-  auto module =
-      reinterpret_cast<LdrDataTableEntry *>(driver_object->DriverSection);
-#pragma warning(pop)
+//#pragma warning(push)
+//#pragma warning(disable : 28175)
+//  auto module =
+//      reinterpret_cast<LdrDataTableEntry *>(driver_object->DriverSection);
+//#pragma warning(pop)
 
-  g_utilp_PsLoadedModuleList = module->in_load_order_links.Flink;
-  g_utilp_RtlPcToFileHeader = UtilpUnsafePcToFileHeader;
-  return STATUS_SUCCESS;
+//  g_utilp_PsLoadedModuleList = module->in_load_order_links.Flink;
+//  g_utilp_RtlPcToFileHeader = UtilpUnsafePcToFileHeader;
+//  return STATUS_SUCCESS;
+
+	return STATUS_UNHANDLED_EXCEPTION;
 }
 
 // A fake RtlPcToFileHeader without acquiring PsLoadedModuleSpinLock. Thus, it
@@ -649,19 +651,10 @@ _Use_decl_annotations_ void UtilFreeContiguousMemory(void *base_address) {
 _Use_decl_annotations_ NTSTATUS UtilVmCall(HypercallNumber hypercall_number,
                                            void *context) {
   EXCEPTION_POINTERS *exp_info = nullptr;
-  __try {
-    const auto vmx_status = static_cast<VmxStatus>(
-        AsmVmxCall(static_cast<ULONG>(hypercall_number), context));
-    return (vmx_status == VmxStatus::kOk) ? STATUS_SUCCESS
-                                          : STATUS_UNSUCCESSFUL;
-  } __except (exp_info = GetExceptionInformation(), EXCEPTION_EXECUTE_HANDLER) {
-    const auto status = GetExceptionCode();
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-    HYPERPLATFORM_LOG_WARN_SAFE("Exception %08x at %p",
-                                exp_info->ExceptionRecord->ExceptionCode,
-                                exp_info->ExceptionRecord->ExceptionAddress);
-    return status;
-  }
+  const auto vmx_status = static_cast<VmxStatus>(
+	  AsmVmxCall(static_cast<ULONG>(hypercall_number), context));
+  return (vmx_status == VmxStatus::kOk) ? STATUS_SUCCESS
+	  : STATUS_UNSUCCESSFUL;
 }
 
 // Debug prints registers
@@ -890,4 +883,82 @@ _Use_decl_annotations_ NTSTATUS UtilForceCopyMemory(void *destination,
   return STATUS_SUCCESS;
 }
 
+NTSYSAPI NTSTATUS NTAPI ZwQuerySystemInformation(
+	IN undocumented::SYSTEM_INFORMATION_CLASS SystemInformationClass,
+	OUT PVOID SystemInformation,
+	IN ULONG SystemInformationLength,
+	OUT PULONG ReturnLength OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI ZwQueryInformationProcess(
+	IN  HANDLE ProcessHandle,
+	IN  PROCESSINFOCLASS ProcessInformationClass,
+	OUT PVOID ProcessInformation,
+	IN  ULONG ProcessInformationLength,
+	IN  PULONG ReturnLength
+);
+
+
+HANDLE GetCsrssProcessId(VOID)
+{
+	static HANDLE CsrssPID = NULL;
+	ULONG bytes = 0;
+	PVOID pBuf = NULL;
+	UNICODE_STRING ustrCsrss;
+
+	if (CsrssPID)
+		return CsrssPID;
+
+	RtlInitUnicodeString(&ustrCsrss, L"csrss.exe");
+
+	NTSTATUS status = ZwQuerySystemInformation(undocumented::SystemProcessInformation, 0, bytes, &bytes);
+	if (bytes == 0)
+		return NULL;
+
+	pBuf = ExAllocatePoolWithTag(PagedPool, bytes, 'TXSB');
+	RtlZeroMemory(pBuf, bytes);
+
+	status = ZwQuerySystemInformation(undocumented::SystemProcessInformation, pBuf, bytes, &bytes);
+	if (NT_SUCCESS(status))
+	{
+		PSYSTEM_PROCESS_INFORMATION_EX pInfo = (PSYSTEM_PROCESS_INFORMATION_EX)pBuf;
+
+		while (pInfo)
+		{
+			if (0 == RtlCompareUnicodeString(&pInfo->ImageName, &ustrCsrss, TRUE))
+			{
+				PROCESS_SESSION_INFORMATION psi = { 0 };
+				ULONG BreakOnTermination = 0;//out
+				CLIENT_ID ClientId;
+				ClientId.UniqueProcess = pInfo->UniqueProcessId;
+				ClientId.UniqueThread = NULL;
+				OBJECT_ATTRIBUTES oa;
+				InitializeObjectAttributes(&oa, NULL, OBJ_KERNEL_HANDLE, 0, 0);
+				HANDLE ProcessHandle = NULL;
+				if (NT_SUCCESS(ZwOpenProcess(&ProcessHandle, PROCESS_QUERY_INFORMATION, &oa, &ClientId)))
+				{
+					ZwQueryInformationProcess(ProcessHandle, ProcessBreakOnTermination, &BreakOnTermination, sizeof(BreakOnTermination), NULL);
+					ZwQueryInformationProcess(ProcessHandle, ProcessSessionInformation, &psi, sizeof(psi), NULL);
+					ZwClose(ProcessHandle);
+				}
+
+				if (psi.SessionId != 0 && BreakOnTermination != 0)
+				{
+					CsrssPID = pInfo->UniqueProcessId;
+				}
+			}
+
+			if (pInfo->NextEntryOffset == 0)
+				break;
+
+			pInfo = (PSYSTEM_PROCESS_INFORMATION_EX)(((PUCHAR)pInfo) + pInfo->NextEntryOffset);
+		}
+	}
+
+	ExFreePoolWithTag(pBuf, 'TXSB');
+
+	return CsrssPID;
+}
+
 }  // extern "C"
+
+

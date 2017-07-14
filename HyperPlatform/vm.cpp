@@ -14,8 +14,8 @@
 #include "log.h"
 #include "util.h"
 #include "vmm.h"
-#include "../../DdiMon/ddi_mon.h"
-#include "../../DdiMon/shadow_hook.h"
+#include "../../Hypervisor/Hypervisor.h"
+#include "../../Hypervisor/shadow_hook.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -282,6 +282,62 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
   return shared_data;
 }
 
+USHORT ReadMSRs(PUSHORT* table)
+{
+	USHORT size;
+	HANDLE hFileHandle;
+	OBJECT_ATTRIBUTES objAttr;
+	UNICODE_STRING fileName;
+	PWCHAR szFilePath = L"\\SystemRoot\\msr.li";
+	IO_STATUS_BLOCK ioStatusBlock;
+	NTSTATUS status = STATUS_SUCCESS;
+
+	RtlInitUnicodeString(&fileName, szFilePath);
+
+	InitializeObjectAttributes(&objAttr, &fileName, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, NULL, NULL);
+
+	status = ZwOpenFile(
+		&hFileHandle,
+		FILE_READ_DATA | SYNCHRONIZE,
+		&objAttr,
+		&ioStatusBlock,
+		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+		FILE_SYNCHRONOUS_IO_NONALERT
+	);
+
+
+	if (!NT_SUCCESS(status))
+	{
+		HYPERPLATFORM_LOG_INFO("Failed to open file. Status: 0x%X", status);
+		return 0;
+	}
+
+	status = ZwReadFile(hFileHandle, NULL, NULL, NULL, &ioStatusBlock, &size, sizeof(USHORT), NULL, NULL);
+
+	if (!NT_SUCCESS(status))
+	{
+		HYPERPLATFORM_LOG_INFO("Failed to read size from file. Status: 0x%X", status);
+		NtClose(hFileHandle);
+		return 0;
+	}
+
+	if (size > 0)
+	{
+		*table = (PUSHORT)ExAllocatePoolWithTag(NonPagedPool, size * sizeof(USHORT), kHyperPlatformCommonPoolTag);
+
+		status = ZwReadFile(hFileHandle, NULL, NULL, NULL, &ioStatusBlock, *table, sizeof(USHORT) * size, NULL, NULL);
+
+		if (!NT_SUCCESS(status))
+		{
+			HYPERPLATFORM_LOG_INFO("Failed to read bytes from file. Status: 0x%X",status);
+			NtClose(hFileHandle);
+			return 0;
+		}
+	}
+
+	NtClose(hFileHandle);
+	return size;
+}
 // Build MSR bitmap
 _Use_decl_annotations_ static void *VmpBuildMsrBitmap() {
   PAGED_CODE();
@@ -293,33 +349,41 @@ _Use_decl_annotations_ static void *VmpBuildMsrBitmap() {
   }
   RtlZeroMemory(msr_bitmap, PAGE_SIZE);
 
-  // Activate VM-exit for RDMSR against all MSRs
-  const auto bitmap_read_low = reinterpret_cast<UCHAR *>(msr_bitmap);
-  const auto bitmap_read_high = bitmap_read_low + 1024;
-  RtlFillMemory(bitmap_read_low, 1024, 0xff);   // read        0 -     1fff
-  RtlFillMemory(bitmap_read_high, 1024, 0xff);  // read c0000000 - c0001fff
+  // Activate VM-exit for RDMSR against all MSRs		
+   const auto bitmap_read_low = reinterpret_cast<UCHAR *>(msr_bitmap);		
+   const auto bitmap_read_high = bitmap_read_low + 1024;		
+   RtlFillMemory(bitmap_read_low, 1024, 0xff);   // read        0 -     1fff		
+   RtlFillMemory(bitmap_read_high, 1024, 0xff);  // read c0000000 - c0001fff		
+ 		
+   // Ignore IA32_MPERF (000000e7) and IA32_APERF (000000e8)		
+   RTL_BITMAP bitmap_read_low_header = {};		
+   RtlInitializeBitMap(&bitmap_read_low_header,		
+                       reinterpret_cast<PULONG>(bitmap_read_low), 1024 * 8);		
+   RtlClearBits(&bitmap_read_low_header, 0xe7, 2);		
+ 		
+   // Checks MSRs that cause #GP from 0 to 0xfff, and ignore all of them
+   PUSHORT msr_table = NULL;
+   USHORT size = ReadMSRs(&msr_table);
+   if (size > 1) {
+	   for (auto msr = 0ul; msr < size - 1; ++msr) {
+		   //__try {		
+		   //  UtilReadMsr(static_cast<Msr>(msr));		
+		   //} __except (EXCEPTION_EXECUTE_HANDLER) {	
+		   RtlClearBits(&bitmap_read_low_header, msr_table[msr], 1);
 
-  // Ignore IA32_MPERF (000000e7) and IA32_APERF (000000e8)
-  RTL_BITMAP bitmap_read_low_header = {};
-  RtlInitializeBitMap(&bitmap_read_low_header,
-                      reinterpret_cast<PULONG>(bitmap_read_low), 1024 * 8);
-  RtlClearBits(&bitmap_read_low_header, 0xe7, 2);
+		   //}		
+	   }
+   }
+ 		
+   // Ignore IA32_GS_BASE (c0000101) and IA32_KERNEL_GS_BASE (c0000102)		
+   RTL_BITMAP bitmap_read_high_header = {};		
+   RtlInitializeBitMap(&bitmap_read_high_header,		
+                       reinterpret_cast<PULONG>(bitmap_read_high),		
+                       1024 * CHAR_BIT);		
+   RtlClearBits(&bitmap_read_high_header, 0x101, 2);
 
-  // Checks MSRs that cause #GP from 0 to 0xfff, and ignore all of them
-  for (auto msr = 0ul; msr < 0x1000; ++msr) {
-    __try {
-      UtilReadMsr(static_cast<Msr>(msr));
-    } __except (EXCEPTION_EXECUTE_HANDLER) {
-      RtlClearBits(&bitmap_read_low_header, msr, 1);
-    }
-  }
+   HYPERPLATFORM_LOG_INFO("MSR bitmap initialized.");
 
-  // Ignore IA32_GS_BASE (c0000101) and IA32_KERNEL_GS_BASE (c0000102)
-  RTL_BITMAP bitmap_read_high_header = {};
-  RtlInitializeBitMap(&bitmap_read_high_header,
-                      reinterpret_cast<PULONG>(bitmap_read_high),
-                      1024 * CHAR_BIT);
-  RtlClearBits(&bitmap_read_high_header, 0x101, 2);
 
   return msr_bitmap;
 }
@@ -708,6 +772,7 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   error |= UtilVmWrite64(VmcsField::kIoBitmapA, UtilPaFromVa(processor_data->shared_data->io_bitmap_a));
   error |= UtilVmWrite64(VmcsField::kIoBitmapB, UtilPaFromVa(processor_data->shared_data->io_bitmap_b));
   error |= UtilVmWrite64(VmcsField::kMsrBitmap, UtilPaFromVa(processor_data->shared_data->msr_bitmap));
+
   error |= UtilVmWrite64(VmcsField::kEptPointer, EptGetEptPointer(processor_data->ept_data));
 
   /* 64-Bit Guest-State Fields */
