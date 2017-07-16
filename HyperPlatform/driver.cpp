@@ -95,14 +95,9 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING registry_path
   // Request NX Non-Paged Pool when available
   ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
 
-  // Initialize log functions
-  bool need_reinitialization = false;
-
-#ifdef _DEBUG
+#ifndef _RELEASE
   status = LogInitialization(kLogLevel, kLogFilePath);
-  if (status == STATUS_REINITIALIZATION_NEEDED) {
-    need_reinitialization = true;
-  } else if (!NT_SUCCESS(status)) {
+  if (!NT_SUCCESS(status)) {
     return status;
   }
 #endif
@@ -180,8 +175,9 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING registry_path
 }
 
 // Unload handler
-_Use_decl_annotations_ static void DriverpDriverUnload(
-    PDRIVER_OBJECT driver_object) {
+#ifdef _DEBUG
+_Use_decl_annotations_ static void DriverpDriverUnload(PDRIVER_OBJECT driver_object) 
+{
   UNREFERENCED_PARAMETER(driver_object);
   PAGED_CODE();
 
@@ -195,6 +191,7 @@ _Use_decl_annotations_ static void DriverpDriverUnload(
   GlobalObjectTermination();
   LogTermination();
 }
+#endif
 
 // Test if the system is one of supported OS versions
 _Use_decl_annotations_ bool DriverpIsSuppoetedOS() {

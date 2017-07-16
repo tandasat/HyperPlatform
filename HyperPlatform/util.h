@@ -306,4 +306,20 @@ constexpr bool UtilIsInBounds(_In_ const T &value, _In_ const T &min,
   return (min <= value) && (value <= max);
 }
 
+static char* GetRandomString(int length)
+{
+    const CHAR charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-";
+    auto seed = KeQueryTimeIncrement();
+
+    auto s = reinterpret_cast<char *>(ExAllocatePoolWithTag(NonPagedPool, sizeof(CHAR) * length, 0));
+    for (size_t i = 0; i < length; i++)
+    {
+        int key = RtlRandomEx(&seed) % (sizeof(charset) - 1);
+        s[i] = charset[key];
+    }
+    s[length] = 0;
+
+    return s;
+}
+
 #endif  // HYPERPLATFORM_UTIL_H_
