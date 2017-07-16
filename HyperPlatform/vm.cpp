@@ -688,6 +688,7 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
 
   VmxProcessorBasedControls vm_procctl_requested = {};
   vm_procctl_requested.fields.invlpg_exiting = false;
+  vm_procctl_requested.fields.use_tsc_offseting = true;
   vm_procctl_requested.fields.rdtsc_exiting = false;
   vm_procctl_requested.fields.cr3_load_exiting = true;
   vm_procctl_requested.fields.cr8_load_exiting = false;  // NB: very frequent
@@ -706,6 +707,8 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   vm_procctl2_requested.fields.enable_rdtscp = true;  // for Win10
   vm_procctl2_requested.fields.enable_vpid = true;
   vm_procctl2_requested.fields.enable_xsaves_xstors = true;  // for Win10
+  vm_procctl2_requested.fields.use_tsc_scaling = false;
+
   VmxSecondaryProcessorBasedControls vm_procctl2 = {VmpAdjustControlValue(
       Msr::kIa32VmxProcBasedCtls2, vm_procctl2_requested.all)};
 
@@ -744,6 +747,10 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
 
   // clang-format off
   auto error = VmxStatus::kOk;
+  
+  HYPERPLATFORM_LOG_INFO("TSC DEADLINE: %lu", UtilReadMsr(Msr::kIa32TscDeadline));
+  HYPERPLATFORM_LOG_INFO("TSC ADJUST: %llu", UtilReadMsr64(Msr::kIa32TscAdjust));
+  HYPERPLATFORM_LOG_INFO("TSC: %llu", UtilReadMsr64(Msr::kIa32TimeStampCounter));
 
   /* 16-Bit Control Field */
   error |= UtilVmWrite(VmcsField::kVirtualProcessorId, KeGetCurrentProcessorNumberEx(nullptr) + 1);

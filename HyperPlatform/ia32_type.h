@@ -466,9 +466,11 @@ static_assert(sizeof(Ia32ApicBaseMsr) == 8, "Size check");
 
 /// See: MODEL-SPECIFIC REGISTERS (MSRS)
 enum class Msr : unsigned int {
+  kIa32TimeStampCounter = 0x10,
   kIa32ApicBase = 0x01B,
 
   kIa32FeatureControl = 0x03A,
+  kIa32TscAdjust = 0x3b,
 
   kIa32SysenterCs = 0x174,
   kIa32SysenterEsp = 0x175,
@@ -494,6 +496,8 @@ enum class Msr : unsigned int {
   kIa32VmxTrueExitCtls = 0x48F,
   kIa32VmxTrueEntryCtls = 0x490,
   kIa32VmxVmfunc = 0x491,
+
+  kIa32TscDeadline = 0x6e0,
 
   kIa32Efer = 0xC0000080,
   kIa32Star = 0xC0000081,
@@ -585,6 +589,7 @@ enum class VmcsField : unsigned __int32 {
   kVirtualizationExceptionInfoAddressHigh = 0x0000202b,
   kXssExitingBitmap = 0x0000202c,
   kXssExitingBitmapHigh = 0x0000202d,
+  kTscMultiplier = 0x00002032,
   // 64-Bit Read-Only Data Field
   kGuestPhysicalAddress = 0x00002400,
   kGuestPhysicalAddressHigh = 0x00002401,

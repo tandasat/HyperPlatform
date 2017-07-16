@@ -178,11 +178,18 @@ static VmExitHistory g_vmmp_vm_exit_history[kVmmpNumberOfProcessors]
 // implementations
 //
 
+// cheat tsc
+ULONG64 offset = 0;
+ULONG64 startTsc = 0;
+
 // A high level VMX handler called from AsmVmExitHandler().
 // Return true for vmresume, or return false for vmxoff.
 #pragma warning(push)
 #pragma warning(disable : 28167)
-_Use_decl_annotations_ bool __stdcall VmmVmExitHandler(VmmInitialStack *stack) {
+_Use_decl_annotations_ bool __stdcall VmmVmExitHandler(VmmInitialStack *stack) 
+{
+  startTsc = __rdtsc();
+
   // Save guest's context and raise IRQL as quick as possible
   const auto guest_irql = KeGetCurrentIrql();
   const auto guest_cr8 = IsX64() ? __readcr8() : 0;
@@ -223,7 +230,8 @@ _Use_decl_annotations_ bool __stdcall VmmVmExitHandler(VmmInitialStack *stack) {
   if (IsX64()) {
     __writecr8(guest_context.cr8);
   }
-  return guest_context.vm_continue;
+
+	return guest_context.vm_continue;
 }
 #pragma warning(pop)
 
@@ -253,13 +261,27 @@ _Use_decl_annotations_ static void VmmpHandleVmExit(
 
   switch (exit_reason.fields.reason) {
     case VmxExitReason::kExceptionOrNmi:
-      VmmpHandleException(guest_context);
+	{
+		VmmpHandleException(guest_context);
+
+		auto endTsc = __rdtsc();
+
+		offset -= endTsc - startTsc;
+		UtilVmWrite64(VmcsField::kTscOffset, offset);
+	}
       break;
     case VmxExitReason::kTripleFault:
       VmmpHandleTripleFault(guest_context);
       break;
     case VmxExitReason::kCpuid:
-      VmmpHandleCpuid(guest_context);
+	{
+		VmmpHandleCpuid(guest_context);
+
+		auto endTsc = __rdtsc();
+
+		offset -= endTsc - startTsc;
+		UtilVmWrite64(VmcsField::kTscOffset, offset);
+	}
       break;
     case VmxExitReason::kInvd:
       VmmpHandleInvalidateInternalCaches(guest_context);
@@ -441,15 +463,18 @@ _Use_decl_annotations_ static void VmmpHandleCpuid(
   guest_context->gp_regs->cx = cpu_info[2];
   guest_context->gp_regs->dx = cpu_info[3];
 
+  //UtilVmWrite64(VmcsField::kTscOffset, static_cast<ULONG64>(-1900));
+
   VmmpAdjustGuestInstructionPointer(guest_context);
 }
 
 // RDTSC
 _Use_decl_annotations_ static void VmmpHandleRdtsc(
     GuestContext *guest_context) {
-  HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+	HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
   ULARGE_INTEGER tsc = {};
   tsc.QuadPart = __rdtsc();
+
   guest_context->gp_regs->dx = tsc.HighPart;
   guest_context->gp_regs->ax = tsc.LowPart;
 
@@ -463,6 +488,7 @@ _Use_decl_annotations_ static void VmmpHandleRdtscp(
   unsigned int tsc_aux = 0;
   ULARGE_INTEGER tsc = {};
   tsc.QuadPart = __rdtscp(&tsc_aux);
+
   guest_context->gp_regs->dx = tsc.HighPart;
   guest_context->gp_regs->ax = tsc.LowPart;
   guest_context->gp_regs->cx = tsc_aux;
