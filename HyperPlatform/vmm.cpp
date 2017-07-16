@@ -188,7 +188,7 @@ ULONG64 startTsc = 0;
 #pragma warning(disable : 28167)
 _Use_decl_annotations_ bool __stdcall VmmVmExitHandler(VmmInitialStack *stack) 
 {
-  startTsc = __rdtsc();
+  //startTsc = __rdtsc();
 
   // Save guest's context and raise IRQL as quick as possible
   const auto guest_irql = KeGetCurrentIrql();
@@ -264,10 +264,10 @@ _Use_decl_annotations_ static void VmmpHandleVmExit(
 	{
 		VmmpHandleException(guest_context);
 
-		auto endTsc = __rdtsc();
+		//auto endTsc = __rdtsc();
 
-		offset -= endTsc - startTsc;
-		UtilVmWrite64(VmcsField::kTscOffset, offset);
+		//offset -= endTsc - startTsc;
+		//UtilVmWrite64(VmcsField::kTscOffset, offset);
 	}
       break;
     case VmxExitReason::kTripleFault:
@@ -277,10 +277,10 @@ _Use_decl_annotations_ static void VmmpHandleVmExit(
 	{
 		VmmpHandleCpuid(guest_context);
 
-		auto endTsc = __rdtsc();
+		//auto endTsc = __rdtsc();
 
-		offset -= endTsc - startTsc;
-		UtilVmWrite64(VmcsField::kTscOffset, offset);
+		//offset -= endTsc - startTsc;
+		//UtilVmWrite64(VmcsField::kTscOffset, offset);
 	}
       break;
     case VmxExitReason::kInvd:
