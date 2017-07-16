@@ -424,7 +424,7 @@ _Use_decl_annotations_ static NTSTATUS VmpStartVm(void *context) {
   HYPERPLATFORM_LOG_INFO("Initializing VMX for the processor %d.",
                          KeGetCurrentProcessorNumberEx(nullptr));
   const auto ok = AsmInitializeVm(VmpInitializeVm, context);
-  NT_ASSERT(VmpIsHyperPlatformInstalled() == ok);
+  //NT_ASSERT(VmpIsHyperPlatformInstalled() == ok);
   if (!ok) {
     return STATUS_UNSUCCESSFUL;
   }
