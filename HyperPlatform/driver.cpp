@@ -98,12 +98,14 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING registry_path
   // Initialize log functions
   bool need_reinitialization = false;
 
+#ifdef _DEBUG
   status = LogInitialization(kLogLevel, kLogFilePath);
   if (status == STATUS_REINITIALIZATION_NEEDED) {
     need_reinitialization = true;
   } else if (!NT_SUCCESS(status)) {
     return status;
   }
+#endif
 
   // Test if the system is supported
   if (!DriverpIsSuppoetedOS()) {

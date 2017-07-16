@@ -405,6 +405,10 @@ _Use_decl_annotations_ NTSTATUS LogpPrint(ULONG level,
                                           const char *format, ...) {
   auto status = STATUS_SUCCESS;
 
+#ifndef _DEBUG
+  return status;
+#endif
+
   if (!LogpIsLogNeeded(level)) {
     return status;
   }
