@@ -405,7 +405,7 @@ _Use_decl_annotations_ NTSTATUS LogpPrint(ULONG level,
                                           const char *format, ...) {
   auto status = STATUS_SUCCESS;
 
-#ifdef _RELEASE
+#ifndef _LOGGING
   return status;
 #endif
 

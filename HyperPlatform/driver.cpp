@@ -78,7 +78,6 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING registry_path
 
   HYPERPLATFORM_LOG_INFO("DriverEntry");
 
-
   static const wchar_t kLogFilePath[] = L"\\SystemRoot\\Hypervisor.log";
   static const auto kLogLevel =
       (IsReleaseBuild()) ? kLogPutLevelInfo | kLogOptDisableFunctionName
@@ -95,7 +94,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING registry_path
   // Request NX Non-Paged Pool when available
   ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
 
-#ifndef _RELEASE
+#ifdef _LOGGING
   status = LogInitialization(kLogLevel, kLogFilePath);
   if (!NT_SUCCESS(status)) {
     return status;
