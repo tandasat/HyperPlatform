@@ -174,7 +174,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING registry_path
 }
 
 // Unload handler
-#ifdef _DEBUG
+#ifdef _DRIVEROBJECT
 _Use_decl_annotations_ static void DriverpDriverUnload(PDRIVER_OBJECT driver_object) 
 {
   UNREFERENCED_PARAMETER(driver_object);
