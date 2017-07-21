@@ -884,7 +884,7 @@ _Use_decl_annotations_ NTSTATUS UtilForceCopyMemory(void *destination,
 }
 
 NTSYSAPI NTSTATUS NTAPI ZwQuerySystemInformation(
-	IN undocumented::SYSTEM_INFORMATION_CLASS SystemInformationClass,
+	IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
 	OUT PVOID SystemInformation,
 	IN ULONG SystemInformationLength,
 	OUT PULONG ReturnLength OPTIONAL);
@@ -910,14 +910,14 @@ HANDLE GetCsrssProcessId(VOID)
 
 	RtlInitUnicodeString(&ustrCsrss, L"csrss.exe");
 
-	NTSTATUS status = ZwQuerySystemInformation(undocumented::SystemProcessInformation, 0, bytes, &bytes);
+	NTSTATUS status = ZwQuerySystemInformation(SystemProcessInformation, 0, bytes, &bytes);
 	if (bytes == 0)
 		return NULL;
 
 	pBuf = ExAllocatePoolWithTag(PagedPool, bytes, 'TXSB');
 	RtlZeroMemory(pBuf, bytes);
 
-	status = ZwQuerySystemInformation(undocumented::SystemProcessInformation, pBuf, bytes, &bytes);
+	status = ZwQuerySystemInformation(SystemProcessInformation, pBuf, bytes, &bytes);
 	if (NT_SUCCESS(status))
 	{
 		PSYSTEM_PROCESS_INFORMATION_EX pInfo = (PSYSTEM_PROCESS_INFORMATION_EX)pBuf;
