@@ -71,8 +71,8 @@ struct EptData {
 // prototypes
 //
 
-_When_(ept_data == nullptr,
-       _IRQL_requires_max_(DISPATCH_LEVEL)) static EptCommonEntry
+_When_(ept_data == nullptr)
+       static EptCommonEntry
     *EptpConstructTables(_In_ EptCommonEntry *table, _In_ ULONG table_level,
                          _In_ ULONG64 physical_address,
                          _In_opt_ EptData *ept_data);
@@ -81,15 +81,14 @@ static void EptpDestructTables(_In_ EptCommonEntry *table,
                                _In_ ULONG table_level);
 
 _Must_inspect_result_ __drv_allocatesMem(Mem)
-    _When_(ept_data == nullptr,
-           _IRQL_requires_max_(DISPATCH_LEVEL)) static EptCommonEntry
+    _When_(ept_data == nullptr)
+           static EptCommonEntry
         *EptpAllocateEptEntry(_In_opt_ EptData *ept_data);
 
 static EptCommonEntry *EptpAllocateEptEntryFromPreAllocated(
     _In_ EptData *ept_data);
 
-_Must_inspect_result_ __drv_allocatesMem(Mem) _IRQL_requires_max_(
-    DISPATCH_LEVEL) static EptCommonEntry *EptpAllocateEptEntryFromPool();
+_Must_inspect_result_ __drv_allocatesMem(Mem) static EptCommonEntry *EptpAllocateEptEntryFromPool();
 
 static void EptpInitTableEntry(_In_ EptCommonEntry *Entry,
                                _In_ ULONG table_level,

@@ -52,7 +52,7 @@ static_assert(sizeof(EptCommonEntry) == 8, "Size check");
 
 /// Checks if the system supports EPT technology sufficient enough
 /// @return true if the system supports EPT
-_IRQL_requires_max_(PASSIVE_LEVEL) bool EptIsEptAvailable();
+bool EptIsEptAvailable();
 
 /// Returns an EPT pointer from \a ept_data
 /// @param ept_data   EptData to get an EPT pointer
@@ -64,7 +64,7 @@ ULONG64 EptGetEptPointer(_In_ EptData* ept_data);
 ///
 /// A driver must call EptTermination() with a returned value when this function
 /// succeeded.
-_IRQL_requires_max_(PASSIVE_LEVEL) EptData* EptInitialization();
+EptData* EptInitialization();
 
 /// De-allocates \a ept_data and all resources referenced in it
 /// @param ept_data   A returned value of EptInitialization()

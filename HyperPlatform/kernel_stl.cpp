@@ -83,7 +83,7 @@ DECLSPEC_NORETURN void __cdecl _Xruntime_error(_In_z_ const char *) {
 }  // namespace std
 
 // An alternative implementation of the new operator
-_IRQL_requires_max_(DISPATCH_LEVEL) void *__cdecl operator new(
+void *__cdecl operator new(
     _In_ size_t size) {
   if (size == 0) {
     size = 1;
@@ -97,14 +97,14 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void *__cdecl operator new(
 }
 
 // An alternative implementation of the new operator
-_IRQL_requires_max_(DISPATCH_LEVEL) void __cdecl operator delete(_In_ void *p) {
+void __cdecl operator delete(_In_ void *p) {
   if (p) {
     ExFreePoolWithTag(p, kKstlpPoolTag);
   }
 }
 
 // An alternative implementation of the new operator
-_IRQL_requires_max_(DISPATCH_LEVEL) void __cdecl operator delete(
+void __cdecl operator delete(
     _In_ void *p, _In_ size_t size) {
   UNREFERENCED_PARAMETER(size);
   if (p) {

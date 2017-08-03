@@ -47,10 +47,10 @@ extern "C" {
 
 /// Makes #HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE() ready for use
 /// @return STATUS_SUCCESS on success
-_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS PerfInitialization();
+NTSTATUS PerfInitialization();
 
 /// Ends performance monitoring and outputs its results
-_IRQL_requires_max_(PASSIVE_LEVEL) void PerfTermination();
+void PerfTermination();
 
 /// Returns the current "time" for performance measurement.
 /// @return Current performance counter
