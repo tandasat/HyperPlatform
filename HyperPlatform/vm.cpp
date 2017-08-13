@@ -687,7 +687,7 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
 
   VmxProcessorBasedControls vm_procctl_requested = {};
   vm_procctl_requested.fields.invlpg_exiting = false;
-  vm_procctl_requested.fields.use_tsc_offseting = false;
+  vm_procctl_requested.fields.use_tsc_offseting = true;
   vm_procctl_requested.fields.rdtsc_exiting = false;
   vm_procctl_requested.fields.cr3_load_exiting = true;
   vm_procctl_requested.fields.cr8_load_exiting = false;  // NB: very frequent
