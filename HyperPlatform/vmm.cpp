@@ -193,9 +193,9 @@ static_assert(sizeof(GuestContext) == 20, "Size check");
 #pragma warning(disable : 28167)
     _Use_decl_annotations_ bool __stdcall VmmVmExitHandler(VmmInitialStack* stack)
     {
-        vmm_cycles += 180;
+        /*vmm_cycles += 150;
 
-        auto start = __rdtsc();
+        auto start = __rdtsc();*/
 
         // Save guest's context and raise IRQL as quick as possible
         const auto guest_irql = KeGetCurrentIrql();
@@ -244,18 +244,18 @@ static_assert(sizeof(GuestContext) == 20, "Size check");
             __writecr8(guest_context.cr8);
         }
 
-        auto end = __rdtsc();
+        //auto end = __rdtsc();
 
-        auto diff = (end - start);
-        if (diff > 0)
-        {
-            vmm_cycles += diff;
-        }
+        //auto diff = (end - start);
+        //if (diff > 0)
+        //{
+        //    vmm_cycles += diff;
+        //}
 
-        vmm_cycles += 180;
+        //vmm_cycles += 150;
 
-        //last_offset = offset;
-        UtilVmWrite64(VmcsField::kTscOffset, -vmm_cycles);
+        ////last_offset = offset;
+        //UtilVmWrite64(VmcsField::kTscOffset, -vmm_cycles);
 
         return guest_context.vm_continue;
     }
