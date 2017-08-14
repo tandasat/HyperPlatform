@@ -193,7 +193,7 @@ static_assert(sizeof(GuestContext) == 20, "Size check");
 #pragma warning(disable : 28167)
     _Use_decl_annotations_ bool __stdcall VmmVmExitHandler(VmmInitialStack* stack)
     {
-        /*vmm_cycles += 150;
+        /*vmm_cycles += 180;
 
         auto start = __rdtsc();*/
 
@@ -252,7 +252,7 @@ static_assert(sizeof(GuestContext) == 20, "Size check");
         //    vmm_cycles += diff;
         //}
 
-        //vmm_cycles += 150;
+        //vmm_cycles += 180;
 
         ////last_offset = offset;
         //UtilVmWrite64(VmcsField::kTscOffset, -vmm_cycles);
