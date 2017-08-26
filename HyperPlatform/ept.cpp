@@ -50,7 +50,7 @@ static const auto kEptpPtxMask = 0x1ffull;
 
 // How many EPT entries are preallocated. When the number exceeds it, the
 // hypervisor issues a bugcheck.
-static const auto kEptpNumberOfPreallocatedEntries = 50;
+static const auto kEptpNumberOfPreallocatedEntries = 512;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
