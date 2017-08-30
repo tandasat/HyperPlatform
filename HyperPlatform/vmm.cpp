@@ -503,7 +503,7 @@ static_assert(sizeof(GuestContext) == 20, "Size check");
         else if (function_id == kHyperVCpuidInterface)
         {
             // Leave signature of HyperPlatform onto EAX
-            cpu_info[0] = 'PpyH';
+            cpu_info[0] = 'KoEm';
         }
 
         guest_context->gp_regs->ax = cpu_info[0];

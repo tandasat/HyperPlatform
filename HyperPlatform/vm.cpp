@@ -1098,7 +1098,7 @@ _Use_decl_annotations_ static bool VmpIsHyperPlatformInstalled() {
   }
 
   __cpuid(cpu_info, kHyperVCpuidInterface);
-  return cpu_info[0] == 'PpyH';
+  return cpu_info[0] == 'KoEm';
 }
 
 // Virtualizes the specified processor
