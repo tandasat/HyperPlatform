@@ -14,6 +14,7 @@
 #include "util.h"
 #include "performance.h"
 #include "../../Hypervisor/shadow_hook.h"
+#include "../../Hypervisor/memory/protect.h"
 
 extern "C"
 {
@@ -1267,6 +1268,12 @@ static_assert(sizeof(GuestContext) == 20, "Size check");
                 break;
             }
             break;
+        case HypercallNumber::kProtectMemory:
+            {
+                memory::VmmProtectMemory(guest_context->stack->processor_data->ept_data, reinterpret_cast<void*>(context));
+                VmmpIndicateSuccessfulVmcall(guest_context);
+            break;
+            }
         default:
             // Unsupported hypercall
             VmmpIndicateUnsuccessfulVmcall(guest_context);
@@ -1314,8 +1321,13 @@ static_assert(sizeof(GuestContext) == 20, "Size check");
         UNREFERENCED_PARAMETER(guest_context);
 
         const auto fault_address = UtilVmRead(VmcsField::kGuestPhysicalAddress);
+
+        HYPERPLATFORM_LOG_INFO_SAFE("VmmpHandleEptMisconfig = %p", fault_address);
+        UtilSleep(2000);
+
         const auto ept_pt_entry = EptGetEptPtEntry(
             guest_context->stack->processor_data->ept_data, fault_address);
+
         HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kEptMisconfigVmExit,
             fault_address,
             reinterpret_cast<ULONG_PTR>(ept_pt_entry), 0);
