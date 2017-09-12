@@ -1272,7 +1272,7 @@ static_assert(sizeof(GuestContext) == 20, "Size check");
             {
                 memory::VmmProtectMemory(guest_context->stack->processor_data->ept_data, reinterpret_cast<void*>(context));
                 VmmpIndicateSuccessfulVmcall(guest_context);
-            break;
+                break;
             }
         default:
             // Unsupported hypercall
@@ -1308,10 +1308,51 @@ static_assert(sizeof(GuestContext) == 20, "Size check");
         GuestContext* guest_context)
     {
         HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+
         auto processor_data = guest_context->stack->processor_data;
-        EptHandleEptViolation(
-            processor_data->ept_data, processor_data->sh_data,
-            processor_data->shared_data->shared_sh_data);
+        if (EptHandleEptViolation(processor_data->ept_data, processor_data->sh_data, processor_data->shared_data->shared_sh_data))
+        {
+            return;
+        }
+
+        const EptViolationQualification exit_qualification = { UtilVmRead(VmcsField::kExitQualification)};
+
+        const auto fault_pa = UtilVmRead64(VmcsField::kGuestPhysicalAddress);
+        const auto fault_va = reinterpret_cast<void *>(exit_qualification.fields.valid_guest_linear_address ? UtilVmRead(VmcsField::kGuestLinearAddress) : 0);
+
+        if (exit_qualification.fields.caused_by_translation)
+        {
+            const auto read_failure = exit_qualification.fields.read_access && !exit_qualification.fields.ept_readable;
+            const auto write_failure = exit_qualification.fields.write_access && !exit_qualification.fields.ept_writeable;
+
+            HYPERPLATFORM_LOG_INFO_SAFE("[EPT VIOLATION] caused_by_translation -- VA = %p, PA = %p -- read fail = %u, write fail = %u",
+                fault_va, fault_pa, read_failure, write_failure);
+
+            if (read_failure)
+            {
+                // cause a page fault to happen
+                VmmpInjectInterruption(InterruptionType::kHardwareException, InterruptionVector::kPageFaultException, true, 0);
+                AsmWriteCR2((ULONG_PTR)fault_pa);
+
+                // advance guest to next instruction
+                VmmpAdjustGuestInstructionPointer(guest_context);
+
+                return;
+            }
+
+            // we got a write failure, lets allow it all again..
+            if (write_failure)
+            {
+                const auto ept_entry = EptGetEptPtEntry(guest_context->stack->processor_data->ept_data, fault_pa);
+
+                ept_entry->fields.read_access = true;
+                ept_entry->fields.write_access = true;
+
+                UtilInveptGlobal();
+            }
+        }
+
+        HYPERPLATFORM_LOG_INFO_SAFE("[EPT VIOLATION] unknown -- VA = %p, PA = %p", fault_va, fault_pa);
     }
 
     // EXIT_REASON_EPT_MISCONFIG
