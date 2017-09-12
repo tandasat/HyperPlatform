@@ -15,6 +15,7 @@
 #include "performance.h"
 #include "../../Hypervisor/shadow_hook.h"
 #include "../../Hypervisor/memory/protect.h"
+#include "misc/utils.h"
 
 extern "C"
 {
@@ -1325,34 +1326,50 @@ static_assert(sizeof(GuestContext) == 20, "Size check");
             const auto read_failure = exit_qualification.fields.read_access && !exit_qualification.fields.ept_readable;
             const auto write_failure = exit_qualification.fields.write_access && !exit_qualification.fields.ept_writeable;
 
-            HYPERPLATFORM_LOG_INFO_SAFE("[EPT VIOLATION] caused_by_translation -- VA = %p, PA = %p -- read fail = %u, write fail = %u",
-                fault_va, fault_pa, read_failure, write_failure);
+            auto &pages = memory::protected_pages;
+            auto pfn = static_cast<ULONG64>(UtilPfnFromPa(fault_pa));
 
+            // process reads
             if (read_failure)
             {
-                // cause a page fault to happen
-                VmmpInjectInterruption(InterruptionType::kHardwareException, InterruptionVector::kPageFaultException, true, 0);
-                AsmWriteCR2((ULONG_PTR)fault_pa);
+                // this page is protected
+                if (pages.count(pfn) > 0)
+                {
+                    HYPERPLATFORM_LOG_INFO_SAFE("[EPT VIOLATION] prevent read -- VA = %p, PA = %p -- read fail = %u, write fail = %u", fault_va, fault_pa, read_failure, write_failure);
 
-                // advance guest to next instruction
-                VmmpAdjustGuestInstructionPointer(guest_context);
+                    // cause a page fault to happen
+                    //VmmpInjectInterruption(InterruptionType::kHardwareException, InterruptionVector::kPageFaultException, true, 0);
+                    //AsmWriteCR2((ULONG_PTR)fault_va);
 
-                return;
+                    // advance guest to next instruction
+                    VmmpAdjustGuestInstructionPointer(guest_context);
+
+                    return;
+                }
             }
 
-            // we got a write failure, lets allow it all again..
-            if (write_failure)
+            // process write failures
+            if (write_failure && misc::Utils::IsSystem())
             {
-                const auto ept_entry = EptGetEptPtEntry(guest_context->stack->processor_data->ept_data, fault_pa);
+                // this page is protected
+                if (pages.count(pfn) > 0)
+                {
+                    auto page = pages[pfn];
 
-                ept_entry->fields.read_access = true;
-                ept_entry->fields.write_access = true;
+                    page->fields.read_access = true;
+                    page->fields.write_access = true;
 
-                UtilInveptGlobal();
+                    UtilInveptGlobal();
+
+                    // remove from protected list
+                    pages.erase(pfn);
+
+                    HYPERPLATFORM_LOG_INFO_SAFE("[EPT VIOLATION] allow reads again -- EPT PFN = %p, PFN = %p, VA = %p, PA = %p -- read fail = %u, write fail = %u", page->fields.physial_address, UtilPfnFromPa(fault_pa), fault_va, fault_pa, read_failure, write_failure);
+                }
             }
         }
 
-        HYPERPLATFORM_LOG_INFO_SAFE("[EPT VIOLATION] unknown -- VA = %p, PA = %p", fault_va, fault_pa);
+        //HYPERPLATFORM_LOG_INFO_SAFE("[EPT VIOLATION] unknown -- VA = %p, PA = %p", fault_va, fault_pa);
     }
 
     // EXIT_REASON_EPT_MISCONFIG

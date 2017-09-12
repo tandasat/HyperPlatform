@@ -489,7 +489,10 @@ _Must_inspect_result_ __drv_allocatesMem(Mem) _IRQL_requires_max_(
 
             if (read_failure || write_failure)
             {
-                ShHandleEptViolation(sh_data, shared_sh_data, ept_data, fault_va);
+                if (ShHandleEptViolation(sh_data, shared_sh_data, ept_data, fault_va))
+                {
+                    return true;
+                }
             }
             else
             {
