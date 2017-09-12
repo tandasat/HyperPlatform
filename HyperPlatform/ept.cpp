@@ -495,12 +495,12 @@ _Must_inspect_result_ __drv_allocatesMem(Mem) _IRQL_requires_max_(
             {
                 if (ShHandleEptViolation(sh_data, shared_sh_data, ept_data, fault_va))
                 {
-                    return true;
+                    //return true;
                 }
 
                 if (memory::PmHandleEptViolation(processor_data->pm_data, ept_data, fault_pa))
                 {
-                    return true;
+                    //return true;
                 }
             }
             else
