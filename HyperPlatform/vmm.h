@@ -25,6 +25,11 @@
 // types
 //
 
+namespace memory
+{
+    struct ProtectMemoryData;
+}
+
 /// Represents VMM related data shared across all processors
 struct SharedProcessorData {
   volatile long reference_count;  //!< Number of processors sharing this data
@@ -45,6 +50,7 @@ struct ProcessorData {
   ULONG64 xsave_inst_mask;                  //!< A mask to save state components
   UCHAR fxsave_area[512 + 16];              //!< for fxsave (+16 for alignment)
   struct ShadowHookData* sh_data;           //!< Per-processor shadow hook data
+  memory::ProtectMemoryData *pm_data;        //!< Per-processor protect memory hook data
 };
 
 ////////////////////////////////////////////////////////////////////////////////

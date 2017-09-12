@@ -16,6 +16,7 @@
 #include "vmm.h"
 #include "../../Hypervisor/Hypervisor.h"
 #include "../../Hypervisor/shadow_hook.h"
+#include "../../Hypervisor/memory/protect.h"
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -503,6 +504,8 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   if (!processor_data->sh_data) {
     goto ReturnFalse;
   }
+
+  processor_data->pm_data = new memory::ProtectMemoryData();
 
   // Allocate other processor data fields
   processor_data->vmm_stack_limit =

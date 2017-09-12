@@ -407,9 +407,13 @@ static_assert(sizeof(GuestContext) == 20, "Size check");
     {
         HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
         auto processor_data = guest_context->stack->processor_data;
-        ShHandleMonitorTrapFlag(processor_data->sh_data,
-                                processor_data->shared_data->shared_sh_data,
-                                processor_data->ept_data);
+
+        ShHandleMonitorTrapFlag(processor_data->sh_data, processor_data->shared_data->shared_sh_data, processor_data->ept_data);
+        memory::PmHandleMonitorTrapFlag(processor_data->pm_data, processor_data->ept_data);
+
+        VmxProcessorBasedControls vm_procctl = { static_cast<unsigned int>(UtilVmRead(VmcsField::kCpuBasedVmExecControl)) };
+        vm_procctl.fields.monitor_trap_flag = false;
+        UtilVmWrite(VmcsField::kCpuBasedVmExecControl, vm_procctl.all);
     }
 
     // Interrupt
@@ -1311,63 +1315,63 @@ static_assert(sizeof(GuestContext) == 20, "Size check");
         HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
 
         auto processor_data = guest_context->stack->processor_data;
-        if (EptHandleEptViolation(processor_data->ept_data, processor_data->sh_data, processor_data->shared_data->shared_sh_data))
+        if (EptHandleEptViolation(processor_data))
         {
             return;
         }
 
-        const EptViolationQualification exit_qualification = { UtilVmRead(VmcsField::kExitQualification)};
+        //const EptViolationQualification exit_qualification = { UtilVmRead(VmcsField::kExitQualification)};
 
-        const auto fault_pa = UtilVmRead64(VmcsField::kGuestPhysicalAddress);
-        const auto fault_va = reinterpret_cast<void *>(exit_qualification.fields.valid_guest_linear_address ? UtilVmRead(VmcsField::kGuestLinearAddress) : 0);
+        //const auto fault_pa = UtilVmRead64(VmcsField::kGuestPhysicalAddress);
+        //const auto fault_va = reinterpret_cast<void *>(exit_qualification.fields.valid_guest_linear_address ? UtilVmRead(VmcsField::kGuestLinearAddress) : 0);
 
-        if (exit_qualification.fields.caused_by_translation)
-        {
-            const auto read_failure = exit_qualification.fields.read_access && !exit_qualification.fields.ept_readable;
-            const auto write_failure = exit_qualification.fields.write_access && !exit_qualification.fields.ept_writeable;
+        //if (exit_qualification.fields.caused_by_translation)
+        //{
+        //    const auto read_failure = exit_qualification.fields.read_access && !exit_qualification.fields.ept_readable;
+        //    const auto write_failure = exit_qualification.fields.write_access && !exit_qualification.fields.ept_writeable;
 
-            auto &pages = memory::protected_pages;
-            auto pfn = static_cast<ULONG64>(UtilPfnFromPa(fault_pa));
+        //    auto &pages = memory::protected_pages;
+        //    auto pfn = static_cast<ULONG64>(UtilPfnFromPa(fault_pa));
 
-            // process reads
-            if (read_failure)
-            {
-                // this page is protected
-                if (pages.count(pfn) > 0)
-                {
-                    HYPERPLATFORM_LOG_INFO_SAFE("[EPT VIOLATION] prevent read -- VA = %p, PA = %p -- read fail = %u, write fail = %u", fault_va, fault_pa, read_failure, write_failure);
+        //    // process reads
+        //    if (read_failure)
+        //    {
+        //        // this page is protected
+        //        if (pages.count(pfn) > 0)
+        //        {
+        //            HYPERPLATFORM_LOG_INFO_SAFE("[EPT VIOLATION] prevent read -- VA = %p, PA = %p -- read fail = %u, write fail = %u", fault_va, fault_pa, read_failure, write_failure);
 
-                    // cause a page fault to happen
-                    //VmmpInjectInterruption(InterruptionType::kHardwareException, InterruptionVector::kPageFaultException, true, 0);
-                    //AsmWriteCR2((ULONG_PTR)fault_va);
+        //            // cause a page fault to happen
+        //            //VmmpInjectInterruption(InterruptionType::kHardwareException, InterruptionVector::kPageFaultException, true, 0);
+        //            //AsmWriteCR2((ULONG_PTR)fault_va);
 
-                    // advance guest to next instruction
-                    VmmpAdjustGuestInstructionPointer(guest_context);
+        //            // advance guest to next instruction
+        //            VmmpAdjustGuestInstructionPointer(guest_context);
 
-                    return;
-                }
-            }
+        //            return;
+        //        }
+        //    }
 
-            // process write failures
-            if (write_failure && misc::Utils::IsSystem())
-            {
-                // this page is protected
-                if (pages.count(pfn) > 0)
-                {
-                    auto page = pages[pfn];
+        //    // process write failures
+        //    if (write_failure && misc::Utils::IsSystem())
+        //    {
+        //        // this page is protected
+        //        if (pages.count(pfn) > 0)
+        //        {
+        //            auto page = pages[pfn];
 
-                    page->fields.read_access = true;
-                    page->fields.write_access = true;
+        //            page->fields.read_access = true;
+        //            page->fields.write_access = true;
 
-                    UtilInveptGlobal();
+        //            UtilInveptGlobal();
 
-                    // remove from protected list
-                    pages.erase(pfn);
+        //            // remove from protected list
+        //            pages.erase(pfn);
 
-                    HYPERPLATFORM_LOG_INFO_SAFE("[EPT VIOLATION] allow reads again -- EPT PFN = %p, PFN = %p, VA = %p, PA = %p -- read fail = %u, write fail = %u", page->fields.physial_address, UtilPfnFromPa(fault_pa), fault_va, fault_pa, read_failure, write_failure);
-                }
-            }
-        }
+        //            HYPERPLATFORM_LOG_INFO_SAFE("[EPT VIOLATION] allow reads again -- EPT PFN = %p, PFN = %p, VA = %p, PA = %p -- read fail = %u, write fail = %u", page->fields.physial_address, UtilPfnFromPa(fault_pa), fault_va, fault_pa, read_failure, write_failure);
+        //        }
+        //    }
+        //}
 
         //HYPERPLATFORM_LOG_INFO_SAFE("[EPT VIOLATION] unknown -- VA = %p, PA = %p", fault_va, fault_pa);
     }

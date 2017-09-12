@@ -12,6 +12,8 @@
 #include "util.h"
 #include "performance.h"
 #include "../../Hypervisor/shadow_hook.h"
+#include "vmm.h"
+#include "memory/protect.h"
 
 extern "C"
 {
@@ -448,10 +450,12 @@ _Must_inspect_result_ __drv_allocatesMem(Mem) _IRQL_requires_max_(
     }
 
     // Deal with EPT violation VM-exit.
-    _Use_decl_annotations_ bool EptHandleEptViolation(
-        EptData* ept_data, ShadowHookData* sh_data,
-        SharedShadowHookData* shared_sh_data)
+    _Use_decl_annotations_ bool EptHandleEptViolation(ProcessorData *processor_data)
     {
+        auto ept_data = processor_data->ept_data;
+        auto sh_data = processor_data->sh_data;
+        auto shared_sh_data = processor_data->shared_data->shared_sh_data;
+
         const EptViolationQualification exit_qualification = {
             UtilVmRead(VmcsField::kExitQualification)};
 
@@ -490,6 +494,11 @@ _Must_inspect_result_ __drv_allocatesMem(Mem) _IRQL_requires_max_(
             if (read_failure || write_failure)
             {
                 if (ShHandleEptViolation(sh_data, shared_sh_data, ept_data, fault_va))
+                {
+                    return true;
+                }
+
+                if (memory::PmHandleEptViolation(processor_data->pm_data, ept_data, fault_pa))
                 {
                     return true;
                 }
