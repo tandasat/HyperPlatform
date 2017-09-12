@@ -96,7 +96,7 @@ _Use_decl_annotations_ void GlobalObjectTermination() {
 }
 
 // Registers destructor; this is called through a call to constructor
-int __cdecl atexit(_In_ Destructor dtor) {
+_IRQL_requires_max_(PASSIVE_LEVEL) int __cdecl atexit(_In_ Destructor dtor) {
   PAGED_CODE();
 
   const auto element =

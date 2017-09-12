@@ -38,7 +38,7 @@ NTKERNELAPI PVOID NTAPI RtlPcToFileHeader(_In_ PVOID PcValue,
 
 using RtlPcToFileHeaderType = decltype(RtlPcToFileHeader);
 
-_Must_inspect_result_ NTKERNELAPI
+_Must_inspect_result_ _IRQL_requires_max_(DISPATCH_LEVEL) NTKERNELAPI
     _When_(return != NULL, _Post_writable_byte_size_(NumberOfBytes)) PVOID
     MmAllocateContiguousNodeMemory(
         _In_ SIZE_T NumberOfBytes,
@@ -67,19 +67,19 @@ struct LdrDataTableEntry {
 // prototypes
 //
 
-static NTSTATUS
+_IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     UtilpInitializePageTableVariables();
 
-static NTSTATUS
+_IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     UtilpInitializeRtlPcToFileHeader();
 
 _Success_(return != nullptr) static PVOID NTAPI
     UtilpUnsafePcToFileHeader(_In_ PVOID pc_value, _Out_ PVOID *base_of_image);
 
-static NTSTATUS
+_IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     UtilpInitializePhysicalMemoryRanges();
 
-static PhysicalMemoryDescriptor
+_IRQL_requires_max_(PASSIVE_LEVEL) static PhysicalMemoryDescriptor
     *UtilpBuildPhysicalMemoryRanges();
 
 static bool UtilpIsCanonicalFormAddress(_In_ void *address);

@@ -33,10 +33,10 @@ extern "C" {
 
 /// Calls all constructors and register all destructor
 /// @return STATUS_SUCCESS on success
-NTSTATUS GlobalObjectInitialization();
+_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS GlobalObjectInitialization();
 
 /// Calls all destructors
-void GlobalObjectTermination();
+_IRQL_requires_max_(PASSIVE_LEVEL) void GlobalObjectTermination();
 
 ////////////////////////////////////////////////////////////////////////////////
 //

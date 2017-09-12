@@ -31,9 +31,9 @@ extern "C" {
 // prototypes
 //
 
-NTSTATUS PowerCallbackInitialization();
+_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS PowerCallbackInitialization();
 
-void PowerCallbackTermination();
+_IRQL_requires_max_(PASSIVE_LEVEL) void PowerCallbackTermination();
 
 ////////////////////////////////////////////////////////////////////////////////
 //

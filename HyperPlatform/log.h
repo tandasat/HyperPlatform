@@ -137,7 +137,7 @@ static const auto kLogOptDisableProcessorNumber = 0x400ul;
 ///
 /// \a flag is a OR-ed value of kLogPutLevel* and kLogOpt*. For example,
 /// kLogPutLevelDebug | kLogOptDisableFunctionName.
-NTSTATUS
+_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
     LogInitialization(_In_ ULONG flag, _In_opt_ const wchar_t *file_path);
 
 /// Registers re-initialization.
@@ -147,14 +147,14 @@ NTSTATUS
 /// STATUS_SUCCESS from DriverEntry() if LogInitialization() returned
 /// STATUS_REINITIALIZATION_NEEDED. If this function is called, DriverEntry()
 /// must return STATUS_SUCCESS.
-void LogRegisterReinitialization(
+_IRQL_requires_max_(PASSIVE_LEVEL) void LogRegisterReinitialization(
     _In_ PDRIVER_OBJECT driver_object);
 
 /// Terminates the log system. Should be called from an IRP_MJ_SHUTDOWN handler.
-void LogIrpShutdownHandler();
+_IRQL_requires_max_(PASSIVE_LEVEL) void LogIrpShutdownHandler();
 
 /// Terminates the log system. Should be called from a DriverUnload routine.
-void LogTermination();
+_IRQL_requires_max_(PASSIVE_LEVEL) void LogTermination();
 
 /// Logs a message; use HYPERPLATFORM_LOG_*() macros instead.
 /// @param level   Severity of a message

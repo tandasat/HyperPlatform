@@ -31,9 +31,9 @@ extern "C" {
 // prototypes
 //
 
-NTSTATUS HotplugCallbackInitialization();
+_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS HotplugCallbackInitialization();
 
-void HotplugCallbackTermination();
+_IRQL_requires_max_(PASSIVE_LEVEL) void HotplugCallbackTermination();
 
 ////////////////////////////////////////////////////////////////////////////////
 //

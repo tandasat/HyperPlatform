@@ -44,7 +44,7 @@ DRIVER_INITIALIZE DriverEntry;
 
 static DRIVER_UNLOAD DriverpDriverUnload;
 
-bool DriverpIsSuppoetedOS();
+_IRQL_requires_max_(PASSIVE_LEVEL) bool DriverpIsSuppoetedOS();
 
 #if defined(ALLOC_PRAGMA)
 #pragma alloc_text(INIT, DriverEntry)

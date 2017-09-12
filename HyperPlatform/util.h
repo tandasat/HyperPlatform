@@ -83,11 +83,11 @@ enum class HypercallNumber : unsigned __int32 {
 
 /// Makes the Util functions ready for use
 /// @return STATUS_SUCCESS on success
-NTSTATUS
+_IRQL_requires_max_(PASSIVE_LEVEL) NTSTATUS
     UtilInitialization();
 
 /// Frees all resources allocated for the sake of the Util functions
-void UtilTermination();
+_IRQL_requires_max_(PASSIVE_LEVEL) void UtilTermination();
 
 /// Returns a module base address of \a address
 /// @param address An address to get a base address
@@ -102,7 +102,7 @@ const PhysicalMemoryDescriptor *UtilGetPhysicalMemoryRanges();
 /// @param callback_routine   A function to execute
 /// @param context  An arbitrary parameter for \a callback_routine
 /// @return STATUS_SUCCESS when \a returned STATUS_SUCCESS on all processors
-NTSTATUS
+_IRQL_requires_max_(APC_LEVEL) NTSTATUS
     UtilForEachProcessor(_In_ NTSTATUS (*callback_routine)(void *),
                          _In_opt_ void *context);
 
@@ -113,14 +113,14 @@ NTSTATUS
 ///
 /// \a deferred_routine must free the pointer to a DPC structure like this:
 /// ExFreePoolWithTag(dpc, kHyperPlatformCommonPoolTag).
-NTSTATUS
+_IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS
     UtilForEachProcessorDpc(_In_ PKDEFERRED_ROUTINE deferred_routine,
                             _In_opt_ void *context);
 
 /// Suspends the execution of the current thread
 /// @param millisecond  Time to suspend in milliseconds
 /// @return STATUS_SUCCESS on success
-NTSTATUS UtilSleep(_In_ LONG millisecond);
+_IRQL_requires_max_(APC_LEVEL) NTSTATUS UtilSleep(_In_ LONG millisecond);
 
 /// Searches a byte pattern from a given address range
 /// @param search_base  An address to start search
@@ -187,12 +187,12 @@ void *UtilVaFromPfn(_In_ PFN_NUMBER pfn);
 /// @return A base address of an allocated memory or nullptr
 ///
 /// A returned value must be freed with UtilFreeContiguousMemory().
-_Must_inspect_result_ void
+_Must_inspect_result_ _IRQL_requires_max_(DISPATCH_LEVEL) void
     *UtilAllocateContiguousMemory(_In_ SIZE_T number_of_bytes);
 
 /// Frees an address allocated by UtilAllocateContiguousMemory()
 /// @param base_address A return value of UtilAllocateContiguousMemory() to free
-void UtilFreeContiguousMemory(
+_IRQL_requires_max_(DISPATCH_LEVEL) void UtilFreeContiguousMemory(
     _In_ void *base_address);
 
 /// Executes VMCALL
@@ -279,7 +279,7 @@ void UtilLoadPdptes(_In_ ULONG_PTR cr3_value);
 /// @param source  A source address
 /// @param length  A size to copy in bytes
 /// @return STATUS_SUCCESS if successful
-NTSTATUS
+_IRQL_requires_max_(DISPATCH_LEVEL) NTSTATUS
     UtilForceCopyMemory(_In_ void *destination, _In_ const void *source,
                         _In_ SIZE_T length);
 

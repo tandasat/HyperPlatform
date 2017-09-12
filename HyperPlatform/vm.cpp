@@ -38,67 +38,68 @@ extern "C" {
 // prototypes
 //
 
-NTSYSAPI ULONG64 NTAPI
+_IRQL_requires_max_(PASSIVE_LEVEL) NTSYSAPI ULONG64 NTAPI
     RtlGetEnabledExtendedFeatures(_In_ ULONG64 FeatureMask);
 
-static bool VmpIsVmxAvailable();
+_IRQL_requires_max_(PASSIVE_LEVEL) static bool VmpIsVmxAvailable();
 
-static NTSTATUS
+_IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     VmpSetLockBitCallback(_In_opt_ void *context);
 
-static SharedProcessorData *VmpInitializeSharedData();
+_IRQL_requires_max_(
+    PASSIVE_LEVEL) static SharedProcessorData *VmpInitializeSharedData();
 
-static void *VmpBuildMsrBitmap();
+_IRQL_requires_max_(PASSIVE_LEVEL) static void *VmpBuildMsrBitmap();
 
-static UCHAR *VmpBuildIoBitmaps();
+_IRQL_requires_max_(PASSIVE_LEVEL) static UCHAR *VmpBuildIoBitmaps();
 
-static NTSTATUS
+_IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     VmpStartVm(_In_opt_ void *context);
 
-static void VmpInitializeVm(
+_IRQL_requires_max_(PASSIVE_LEVEL) static void VmpInitializeVm(
     _In_ ULONG_PTR guest_stack_pointer,
     _In_ ULONG_PTR guest_instruction_pointer, _In_opt_ void *context);
 
-static bool VmpEnterVmxMode(
+_IRQL_requires_max_(PASSIVE_LEVEL) static bool VmpEnterVmxMode(
     _Inout_ ProcessorData *processor_data);
 
-static bool VmpInitializeVmcs(
+_IRQL_requires_max_(PASSIVE_LEVEL) static bool VmpInitializeVmcs(
     _Inout_ ProcessorData *processor_data);
 
-static bool VmpSetupVmcs(
+_IRQL_requires_max_(PASSIVE_LEVEL) static bool VmpSetupVmcs(
     _In_ const ProcessorData *processor_data,
     _In_ ULONG_PTR guest_stack_pointer,
     _In_ ULONG_PTR guest_instruction_pointer, _In_ ULONG_PTR vmm_stack_pointer);
 
-static void VmpLaunchVm();
+_IRQL_requires_max_(PASSIVE_LEVEL) static void VmpLaunchVm();
 
-static ULONG
+_IRQL_requires_max_(PASSIVE_LEVEL) static ULONG
     VmpGetSegmentAccessRight(_In_ USHORT segment_selector);
 
-static ULONG_PTR
+_IRQL_requires_max_(PASSIVE_LEVEL) static ULONG_PTR
     VmpGetSegmentBase(_In_ ULONG_PTR gdt_base, _In_ USHORT segment_selector);
 
-static SegmentDescriptor
+_IRQL_requires_max_(PASSIVE_LEVEL) static SegmentDescriptor
     *VmpGetSegmentDescriptor(_In_ ULONG_PTR descriptor_table_base,
                              _In_ USHORT segment_selector);
 
-static ULONG_PTR
+_IRQL_requires_max_(PASSIVE_LEVEL) static ULONG_PTR
     VmpGetSegmentBaseByDescriptor(
         _In_ const SegmentDescriptor *segment_descriptor);
 
-static ULONG
+_IRQL_requires_max_(PASSIVE_LEVEL) static ULONG
     VmpAdjustControlValue(_In_ Msr msr, _In_ ULONG requested_value);
 
-static NTSTATUS
+_IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     VmpStopVm(_In_opt_ void *context);
 
-static void VmpFreeProcessorData(
+_IRQL_requires_max_(PASSIVE_LEVEL) static void VmpFreeProcessorData(
     _In_opt_ ProcessorData *processor_data);
 
-static void VmpFreeSharedData(
+_IRQL_requires_max_(PASSIVE_LEVEL) static void VmpFreeSharedData(
     _In_ ProcessorData *processor_data);
 
-static bool VmpIsHyperPlatformInstalled();
+_IRQL_requires_max_(PASSIVE_LEVEL) static bool VmpIsHyperPlatformInstalled();
 
 #if defined(ALLOC_PRAGMA)
 #pragma alloc_text(PAGE, VmInitialization)

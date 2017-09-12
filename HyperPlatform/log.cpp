@@ -74,16 +74,16 @@ struct LogBufferInfo {
 // prototypes
 //
 
-static NTSTATUS
+_IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     LogpInitializeBufferInfo(_In_ const wchar_t *log_file_path,
                              _Inout_ LogBufferInfo *info);
 
-static NTSTATUS
+_IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     LogpInitializeLogFile(_Inout_ LogBufferInfo *info);
 
 static DRIVER_REINITIALIZE LogpReinitializationRoutine;
 
-static void LogpFinalizeBufferInfo(
+_IRQL_requires_max_(PASSIVE_LEVEL) static void LogpFinalizeBufferInfo(
     _In_ LogBufferInfo *info);
 
 static NTSTATUS LogpMakePrefix(_In_ ULONG level, _In_ const char *function_name,
@@ -95,10 +95,10 @@ static const char *LogpFindBaseFunctionName(_In_ const char *function_name);
 
 static NTSTATUS LogpPut(_In_ char *message, _In_ ULONG attribute);
 
-static NTSTATUS
+_IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     LogpFlushLogBuffer(_Inout_ LogBufferInfo *info);
 
-static NTSTATUS
+_IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     LogpWriteMessageToFile(_In_ const char *message,
                            _In_ const LogBufferInfo &info);
 
@@ -115,7 +115,7 @@ static bool LogpIsLogNeeded(_In_ ULONG level);
 
 static KSTART_ROUTINE LogpBufferFlushThreadRoutine;
 
-static NTSTATUS
+_IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     LogpSleep(_In_ LONG millisecond);
 
 static void LogpSetPrintedBit(_In_ char *message, _In_ bool on);
