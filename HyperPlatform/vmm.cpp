@@ -1279,6 +1279,12 @@ static_assert(sizeof(GuestContext) == 20, "Size check");
                 VmmpIndicateSuccessfulVmcall(guest_context);
                 break;
             }
+        case HypercallNumber::kProtectMemoryDisable:
+            {
+                memory::VmmProtectMemoryDisable(guest_context->stack->processor_data->ept_data, reinterpret_cast<void*>(context));
+                VmmpIndicateSuccessfulVmcall(guest_context);
+                break;
+            }
         default:
             // Unsupported hypercall
             VmmpIndicateUnsuccessfulVmcall(guest_context);

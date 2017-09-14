@@ -914,7 +914,7 @@ HANDLE GetCsrssProcessId(VOID)
 	if (bytes == 0)
 		return NULL;
 
-	pBuf = ExAllocatePoolWithTag(PagedPool, bytes, 'TXSB');
+	pBuf = ExAllocatePoolWithTag(NonPagedPool, bytes, 'TXSB');
 	RtlZeroMemory(pBuf, bytes);
 
 	status = ZwQuerySystemInformation(SystemProcessInformation, pBuf, bytes, &bytes);

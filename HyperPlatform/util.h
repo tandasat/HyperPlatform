@@ -73,7 +73,8 @@ enum class HypercallNumber : unsigned __int32 {
   kShDisablePageShadowing,  //!< Calls ShVmCallDisablePageShadowing()
   kShEnablePageShadowingSingle,
   kShDisablePageShadowingSingle,
-  kProtectMemory
+  kProtectMemory,
+  kProtectMemoryDisable
 };
 
 ////////////////////////////////////////////////////////////////////////////////

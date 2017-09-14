@@ -49,7 +49,7 @@ struct DestructorEntry {
 
 #if defined(ALLOC_PRAGMA)
 #pragma alloc_text(INIT, GlobalObjectInitialization)
-#pragma alloc_text(INIT, atexit)
+#pragma alloc_text(PAGE, atexit)
 #pragma alloc_text(PAGE, GlobalObjectTermination)
 #endif
 
@@ -96,12 +96,9 @@ _Use_decl_annotations_ void GlobalObjectTermination() {
 }
 
 // Registers destructor; this is called through a call to constructor
-_IRQL_requires_max_(PASSIVE_LEVEL) int __cdecl atexit(_In_ Destructor dtor) {
-  PAGED_CODE();
-
-  const auto element =
-      reinterpret_cast<DestructorEntry *>(ExAllocatePoolWithTag(
-          PagedPool, sizeof(DestructorEntry), kGlobalObjectpPoolTag));
+_IRQL_requires_max_(PASSIVE_LEVEL) int __cdecl atexit(_In_ Destructor dtor)
+{
+  const auto element = reinterpret_cast<DestructorEntry *>(ExAllocatePoolWithTag(NonPagedPool, sizeof(DestructorEntry), kGlobalObjectpPoolTag));
   if (!element) {
     return 1;
   }
