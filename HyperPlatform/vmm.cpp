@@ -364,8 +364,9 @@ _Use_decl_annotations_ static void VmmpHandleException(
       const auto fault_address = UtilVmRead(VmcsField::kExitQualification);
 
       VmmpInjectInterruption(interruption_type, vector, true, fault_code.all);
-      HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %016Ix, #PF Fault= %016Ix Code= 0x%2x",
-                                  guest_context->ip, fault_address, fault_code.all);
+      HYPERPLATFORM_LOG_INFO_SAFE(
+          "GuestIp= %016Ix, #PF Fault= %016Ix Code= 0x%2x", guest_context->ip,
+          fault_address, fault_code.all);
       AsmWriteCR2(fault_address);
 
     } else if (vector == InterruptionVector::kGeneralProtectionException) {
@@ -921,9 +922,17 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
           if (UtilIsX86Pae()) {
             UtilLoadPdptes(*register_used);
           }
+          // Under some circumstances MOV to CR3 is not *required* to flush TLB
+          // entries, but also NOT prohibited to do so. Therefore, we flush it
+          // all time.
+          // See: Operations that Invalidate TLBs and Paging-Structure Caches
           UtilInvvpidSingleContextExceptGlobal(
               static_cast<USHORT>(KeGetCurrentProcessorNumberEx(nullptr) + 1));
-          UtilVmWrite(VmcsField::kGuestCr3, *register_used);
+
+          // The MOV to CR3 does not modify the bit63 of CR3. Emulate this
+          // behavior.
+          // See: MOV—Move to/from Control Registers
+          UtilVmWrite(VmcsField::kGuestCr3, (*register_used & ~(1ULL << 63)));
           break;
         }
 

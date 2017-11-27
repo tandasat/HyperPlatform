@@ -424,12 +424,14 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   const auto vmm_stack_base = vmm_stack_data - sizeof(void *);
   HYPERPLATFORM_LOG_DEBUG("vmm_stack_limit       = %p",
                           processor_data->vmm_stack_limit);
-  HYPERPLATFORM_LOG_DEBUG("vmm_stack_region_base = %016Ix", vmm_stack_region_base);
+  HYPERPLATFORM_LOG_DEBUG("vmm_stack_region_base = %016Ix",
+                          vmm_stack_region_base);
   HYPERPLATFORM_LOG_DEBUG("vmm_stack_data        = %016Ix", vmm_stack_data);
   HYPERPLATFORM_LOG_DEBUG("vmm_stack_base        = %016Ix", vmm_stack_base);
   HYPERPLATFORM_LOG_DEBUG("processor_data        = %p stored at %016Ix",
                           processor_data, vmm_stack_data);
-  HYPERPLATFORM_LOG_DEBUG("guest_stack_pointer   = %016Ix", guest_stack_pointer);
+  HYPERPLATFORM_LOG_DEBUG("guest_stack_pointer   = %016Ix",
+                          guest_stack_pointer);
   HYPERPLATFORM_LOG_DEBUG("guest_inst_pointer    = %016Ix",
                           guest_instruction_pointer);
   *reinterpret_cast<ULONG_PTR *>(vmm_stack_base) = MAXULONG_PTR;
@@ -450,8 +452,8 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   // Do virtualize the processor
   VmpLaunchVm();
 
-// Here is not be executed with successful vmlaunch. Instead, the context
-// jumps to an address specified by guest_instruction_pointer.
+  // Here is not be executed with successful vmlaunch. Instead, the context
+  // jumps to an address specified by guest_instruction_pointer.
 
 ReturnFalseWithVmxOff:;
   __vmx_off();
@@ -590,6 +592,7 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   vm_procctl2_requested.fields.descriptor_table_exiting = true;
   vm_procctl2_requested.fields.enable_rdtscp = true;  // for Win10
   vm_procctl2_requested.fields.enable_vpid = true;
+  vm_procctl2_requested.fields.enable_invpcid = true;        // for Win10
   vm_procctl2_requested.fields.enable_xsaves_xstors = true;  // for Win10
   VmxSecondaryProcessorBasedControls vm_procctl2 = {VmpAdjustControlValue(
       Msr::kIa32VmxProcBasedCtls2, vm_procctl2_requested.all)};
