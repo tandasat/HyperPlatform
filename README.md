@@ -48,8 +48,8 @@ For more details, see the HyperPlatform User Document and Programmer's Reference
 Build
 ------
 To build HyperPlatform, the following are required.
-- Visual Studio Community 2015 Update 3
- - https://beta.visualstudio.com/downloads/
+- Visual Studio Community 2015 (Update 3 or later) or 2017 (15.5 or later)
+ - https://www.visualstudio.com/downloads/
 - Windows Software Development Kit (SDK) for Windows 10 (10.0.10586.0 or later)
  - https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk
 - Windows Driver Kit (WDK) 10 (10.0.10586.0 or later)
@@ -74,15 +74,26 @@ To install and uninstall the driver, use the 'sc' command. For installation:
     >sc create HyperPlatform type= kernel binPath= C:\Users\user\Desktop\HyperPlatform.sys
     >sc start HyperPlatform
 
+Note that the system must support the Intel VT-x and EPT technology to
+successfully install the driver. On Windows 10 RS4+ systems, this technology
+can automatically be disabled by the Windows kernel which results in the
+following error.
+
+    >sc start HyperPlatform
+    [SC] StartService FAILED 3224698910:
+
+    A hypervisor feature is not available to the user.
+
+This is due to Windows Defender Credential Guard being enabled by default.
+To disable Windows Defender Credential Guard and enable the virtualization
+technology for HyperPlatform, follow this instruction.
+- https://docs.microsoft.com/en-us/windows/security/identity-protection/credential-guard/credential-guard-manage
+
 For uninstallation:
 
     >sc stop HyperPlatform
     >sc delete HyperPlatform
     >bcdedit /deletevalue testsigning
-
-
-Note that the system must support the Intel VT-x and EPT technology to
-successfully install the driver.
 
 To install the driver on a virtual machine on VMware Workstation, see an "Using
 VMware Workstation" section in the HyperPlatform User Document.
