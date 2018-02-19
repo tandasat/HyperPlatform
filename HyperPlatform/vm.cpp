@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -292,6 +292,8 @@ _Use_decl_annotations_ static void *VmpBuildMsrBitmap() {
   for (auto msr = 0ul; msr < 0x1000; ++msr) {
     __try {
       UtilReadMsr(static_cast<Msr>(msr));
+
+#pragma prefast(suppress: __WARNING_EXCEPTIONEXECUTEHANDLER, "Catch all.");
     } __except (EXCEPTION_EXECUTE_HANDLER) {
       RtlClearBits(&bitmap_read_low_header, msr, 1);
     }
@@ -340,7 +342,7 @@ _Use_decl_annotations_ static UCHAR *VmpBuildIoBitmaps() {
 _Use_decl_annotations_ static NTSTATUS VmpStartVm(void *context) {
   PAGED_CODE();
 
-  HYPERPLATFORM_LOG_INFO("Initializing VMX for the processor %d.",
+  HYPERPLATFORM_LOG_INFO("Initializing VMX for the processor %lu.",
                          KeGetCurrentProcessorNumberEx(nullptr));
   const auto ok = AsmInitializeVm(VmpInitializeVm, context);
   NT_ASSERT(VmpIsHyperPlatformInstalled() == ok);
@@ -904,7 +906,7 @@ _Use_decl_annotations_ static NTSTATUS VmpStopVm(void *context) {
   UNREFERENCED_PARAMETER(context);
   PAGED_CODE();
 
-  HYPERPLATFORM_LOG_INFO("Terminating VMX for the processor %d.",
+  HYPERPLATFORM_LOG_INFO("Terminating VMX for the processor %lu.",
                          KeGetCurrentProcessorNumberEx(nullptr));
 
   // Stop virtualization and get an address of the management structure

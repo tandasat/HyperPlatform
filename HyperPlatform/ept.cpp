@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -105,8 +105,9 @@ _When_(ept_data == nullptr,
 static void EptpDestructTables(_In_ EptCommonEntry *table,
                                _In_ ULONG table_level);
 
-_Must_inspect_result_ __drv_allocatesMem(Mem)
+_Must_inspect_result_
     _When_(ept_data == nullptr,
+           __drv_allocatesMem(Mem)
            _IRQL_requires_max_(DISPATCH_LEVEL)) static EptCommonEntry
         *EptpAllocateEptEntry(_In_opt_ EptData *ept_data);
 
@@ -202,7 +203,7 @@ _Use_decl_annotations_ void EptInitializeMtrrEntries() {
   Ia32MtrrCapabilitiesMsr mtrr_capabilities = {
       UtilReadMsr64(Msr::kIa32MtrrCap)};
   HYPERPLATFORM_LOG_DEBUG(
-      "MTRR Default=%lld, VariableCount=%lld, FixedSupported=%lld, FixedEnabled=%lld",
+      "MTRR Default=%llu, VariableCount=%llu, FixedSupported=%llu, FixedEnabled=%llu",
       default_type.fields.default_mtemory_type,
       mtrr_capabilities.fields.variable_range_count,
       mtrr_capabilities.fields.fixed_range_supported,
@@ -593,7 +594,7 @@ _Use_decl_annotations_ static EptCommonEntry *EptpAllocateEptEntryFromPool() {
   const auto entry = reinterpret_cast<EptCommonEntry *>(ExAllocatePoolWithTag(
       NonPagedPool, kAllocSize, kHyperPlatformCommonPoolTag));
   if (!entry) {
-    return nullptr;
+    return entry;
   }
   RtlZeroMemory(entry, kAllocSize);
   return entry;

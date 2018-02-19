@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -70,8 +70,11 @@
                                        param3)                               \
   HYPERPLATFORM_COMMON_DBG_BREAK();                                          \
   const HyperPlatformBugCheck code = (hp_bug_check_code);                    \
+  __pragma(warning(push))                                                    \
+  __pragma(warning(disable: __WARNING_USE_OTHER_FUNCTION))                   \
   KeBugCheckEx(MANUALLY_INITIATED_CRASH, static_cast<ULONG>(code), (param1), \
-               (param2), (param3))
+               (param2), (param3))                                           \
+  __pragma(warning(pop))
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////

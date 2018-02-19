@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -317,6 +317,7 @@ _Use_decl_annotations_ VOID static LogpReinitializationRoutine(
   UNREFERENCED_PARAMETER(driver_object);
   UNREFERENCED_PARAMETER(count);
   NT_ASSERT(context);
+  __analysis_assume(context);
 
   auto info = reinterpret_cast<LogBufferInfo *>(context);
   auto status = LogpInitializeLogFile(info);
@@ -474,7 +475,7 @@ _Use_decl_annotations_ static NTSTATUS LogpMakePrefix(
     RtlTimeToTimeFields(&local_time, &time_fields);
 
     status = RtlStringCchPrintfA(time_buffer, RTL_NUMBER_OF(time_buffer),
-                                 "%02u:%02u:%02u.%03u\t", time_fields.Hour,
+                                 "%02hd:%02hd:%02hd.%03hd\t", time_fields.Hour,
                                  time_fields.Minute, time_fields.Second,
                                  time_fields.Milliseconds);
     if (!NT_SUCCESS(status)) {

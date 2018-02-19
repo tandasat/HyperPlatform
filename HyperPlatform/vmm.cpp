@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -557,7 +557,7 @@ _Use_decl_annotations_ static void VmmpHandleMsrAccess(
 _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
     GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
-  const GdtrOrIdtrInstInformation exit_qualification = {
+  const GdtrOrIdtrInstInformation instruction_info = {
       static_cast<ULONG32>(UtilVmRead(VmcsField::kVmxInstructionInfo))};
 
   // Calculate an address to be used for the instruction
@@ -565,19 +565,19 @@ _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
 
   // Base
   ULONG_PTR base_value = 0;
-  if (!exit_qualification.fields.base_register_invalid) {
+  if (!instruction_info.fields.base_register_invalid) {
     const auto register_used = VmmpSelectRegister(
-        exit_qualification.fields.base_register, guest_context);
+        instruction_info.fields.base_register, guest_context);
     base_value = *register_used;
   }
 
   // Index
   ULONG_PTR index_value = 0;
-  if (!exit_qualification.fields.index_register_invalid) {
+  if (!instruction_info.fields.index_register_invalid) {
     const auto register_used = VmmpSelectRegister(
-        exit_qualification.fields.index_register, guest_context);
+        instruction_info.fields.index_register, guest_context);
     index_value = *register_used;
-    switch (static_cast<Scaling>(exit_qualification.fields.scalling)) {
+    switch (static_cast<Scaling>(instruction_info.fields.scalling)) {
       case Scaling::kNoScaling:
         index_value = index_value;
         break;
@@ -595,8 +595,22 @@ _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
     }
   }
 
-  auto operation_address = base_value + index_value + displacement;
-  if (static_cast<AddressSize>(exit_qualification.fields.address_size) ==
+  // clang-format off
+  ULONG_PTR segment_base = 0;
+  switch (instruction_info.fields.segment_register) {
+    case 0: segment_base = UtilVmRead(VmcsField::kGuestEsBase); break;
+    case 1: segment_base = UtilVmRead(VmcsField::kGuestCsBase); break;
+    case 2: segment_base = UtilVmRead(VmcsField::kGuestSsBase); break;
+    case 3: segment_base = UtilVmRead(VmcsField::kGuestDsBase); break;
+    case 4: segment_base = UtilVmRead(VmcsField::kGuestFsBase); break;
+    case 5: segment_base = UtilVmRead(VmcsField::kGuestGsBase); break;
+    default: HYPERPLATFORM_COMMON_DBG_BREAK(); break;
+  }
+  // clang-format on
+
+  auto operation_address =
+      segment_base + base_value + index_value + displacement;
+  if (static_cast<AddressSize>(instruction_info.fields.address_size) ==
       AddressSize::k32bit) {
     operation_address &= MAXULONG;
   }
@@ -610,7 +624,7 @@ _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
   // Emulate the instruction
   auto descriptor_table_reg = reinterpret_cast<Idtr *>(operation_address);
   switch (static_cast<GdtrOrIdtrInstructionIdentity>(
-      exit_qualification.fields.instruction_identity)) {
+      instruction_info.fields.instruction_identity)) {
     case GdtrOrIdtrInstructionIdentity::kSgdt:
       descriptor_table_reg->base = UtilVmRead(VmcsField::kGuestGdtrBase);
       descriptor_table_reg->limit =
@@ -639,34 +653,34 @@ _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
 _Use_decl_annotations_ static void VmmpHandleLdtrOrTrAccess(
     GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
-  const LdtrOrTrInstInformation exit_qualification = {
+  const LdtrOrTrInstInformation instruction_info = {
       static_cast<ULONG32>(UtilVmRead(VmcsField::kVmxInstructionInfo))};
 
   // Calculate an address or a register to be used for the instruction
   const auto displacement = UtilVmRead(VmcsField::kExitQualification);
 
   ULONG_PTR operation_address = 0;
-  if (exit_qualification.fields.register_access) {
+  if (instruction_info.fields.register_access) {
     // Register
     const auto register_used =
-        VmmpSelectRegister(exit_qualification.fields.register1, guest_context);
+        VmmpSelectRegister(instruction_info.fields.register1, guest_context);
     operation_address = reinterpret_cast<ULONG_PTR>(register_used);
   } else {
     // Base
     ULONG_PTR base_value = 0;
-    if (!exit_qualification.fields.base_register_invalid) {
+    if (!instruction_info.fields.base_register_invalid) {
       const auto register_used = VmmpSelectRegister(
-          exit_qualification.fields.base_register, guest_context);
+          instruction_info.fields.base_register, guest_context);
       base_value = *register_used;
     }
 
     // Index
     ULONG_PTR index_value = 0;
-    if (!exit_qualification.fields.index_register_invalid) {
+    if (!instruction_info.fields.index_register_invalid) {
       const auto register_used = VmmpSelectRegister(
-          exit_qualification.fields.index_register, guest_context);
+          instruction_info.fields.index_register, guest_context);
       index_value = *register_used;
-      switch (static_cast<Scaling>(exit_qualification.fields.scalling)) {
+      switch (static_cast<Scaling>(instruction_info.fields.scalling)) {
         case Scaling::kNoScaling:
           index_value = index_value;
           break;
@@ -684,8 +698,21 @@ _Use_decl_annotations_ static void VmmpHandleLdtrOrTrAccess(
       }
     }
 
-    operation_address = base_value + index_value + displacement;
-    if (static_cast<AddressSize>(exit_qualification.fields.address_size) ==
+    // clang-format off
+    ULONG_PTR segment_base = 0;
+    switch (instruction_info.fields.segment_register) {
+      case 0: segment_base = UtilVmRead(VmcsField::kGuestEsBase); break;
+      case 1: segment_base = UtilVmRead(VmcsField::kGuestCsBase); break;
+      case 2: segment_base = UtilVmRead(VmcsField::kGuestSsBase); break;
+      case 3: segment_base = UtilVmRead(VmcsField::kGuestDsBase); break;
+      case 4: segment_base = UtilVmRead(VmcsField::kGuestFsBase); break;
+      case 5: segment_base = UtilVmRead(VmcsField::kGuestGsBase); break;
+      default: HYPERPLATFORM_COMMON_DBG_BREAK(); break;
+    }
+    // clang-format on
+
+    operation_address = segment_base + base_value + index_value + displacement;
+    if (static_cast<AddressSize>(instruction_info.fields.address_size) ==
         AddressSize::k32bit) {
       operation_address &= MAXULONG;
     }
@@ -700,7 +727,7 @@ _Use_decl_annotations_ static void VmmpHandleLdtrOrTrAccess(
   // Emulate the instruction
   auto selector = reinterpret_cast<USHORT *>(operation_address);
   switch (static_cast<LdtrOrTrInstructionIdentity>(
-      exit_qualification.fields.instruction_identity)) {
+      instruction_info.fields.instruction_identity)) {
     case LdtrOrTrInstructionIdentity::kSldt:
       *selector =
           static_cast<USHORT>(UtilVmRead(VmcsField::kGuestLdtrSelector));
@@ -711,9 +738,17 @@ _Use_decl_annotations_ static void VmmpHandleLdtrOrTrAccess(
     case LdtrOrTrInstructionIdentity::kLldt:
       UtilVmWrite(VmcsField::kGuestLdtrSelector, *selector);
       break;
-    case LdtrOrTrInstructionIdentity::kLtr:
+    case LdtrOrTrInstructionIdentity::kLtr: {
       UtilVmWrite(VmcsField::kGuestTrSelector, *selector);
+      // Set the Busy bit in TSS.
+      // See: LTR - Load Task Register
+      const SegmentSelector ss = {*selector};
+      const auto sd = reinterpret_cast<SegmentDescriptor *>(
+          UtilVmRead(VmcsField::kGuestGdtrBase) +
+          ss.fields.index * sizeof(SegmentDescriptor));
+      sd->fields.type |= 2; // Set the Busy bit
       break;
+    }
   }
 
   __writecr3(vmm_cr3);

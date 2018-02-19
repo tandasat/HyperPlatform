@@ -136,7 +136,7 @@ Bareflank Hypervisor is an actively developed open source, lightweight hyperviso
 It comes with rich documents, tests, and comments, supports Linux on Intel 64bit,
 and also aims to support Windows, OS X, and UEFI as well as ARM and AMD platforms.
 While a size of code is larger than that of HyperPlatform, ones look for a more
-complihensive yet still lightweight hypervisor will find it interesting.
+comprehensive yet still lightweight hypervisor will find it interesting.
 
 
 License

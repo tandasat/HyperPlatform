@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -611,7 +611,7 @@ _Use_decl_annotations_ void *UtilVaFromPa(ULONG64 pa) {
 
 // PNF -> PA
 _Use_decl_annotations_ ULONG64 UtilPaFromPfn(PFN_NUMBER pfn) {
-  return pfn << PAGE_SHIFT;
+  return static_cast<ULONG64>(pfn) << PAGE_SHIFT;
 }
 
 // PFN -> VA
@@ -653,6 +653,8 @@ _Use_decl_annotations_ NTSTATUS UtilVmCall(HypercallNumber hypercall_number,
         AsmVmxCall(static_cast<ULONG>(hypercall_number), context));
     return (vmx_status == VmxStatus::kOk) ? STATUS_SUCCESS
                                           : STATUS_UNSUCCESSFUL;
+
+#pragma prefast(suppress: __WARNING_EXCEPTIONEXECUTEHANDLER, "Catch all.");
   } __except (EXCEPTION_EXECUTE_HANDLER) {
     const auto status = GetExceptionCode();
     HYPERPLATFORM_COMMON_DBG_BREAK();
