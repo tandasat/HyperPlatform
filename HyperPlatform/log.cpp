@@ -317,7 +317,7 @@ _Use_decl_annotations_ VOID static LogpReinitializationRoutine(
   UNREFERENCED_PARAMETER(driver_object);
   UNREFERENCED_PARAMETER(count);
   NT_ASSERT(context);
-  __analysis_assume(context);
+  _Analysis_assume_(context);
 
   auto info = reinterpret_cast<LogBufferInfo *>(context);
   auto status = LogpInitializeLogFile(info);

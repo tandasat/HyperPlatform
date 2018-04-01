@@ -158,6 +158,8 @@ static void VmmpInjectInterruption(_In_ InterruptionType interruption_type,
                                    _In_ bool deliver_error_code,
                                    _In_ ULONG32 error_code);
 
+static ULONG_PTR VmmpGetKernelCr3();
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // variables
@@ -617,7 +619,7 @@ _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
 
   // Update CR3 with that of the guest since below code is going to access
   // memory.
-  const auto guest_cr3 = UtilVmRead(VmcsField::kGuestCr3);
+  const auto guest_cr3 = VmmpGetKernelCr3();
   const auto vmm_cr3 = __readcr3();
   __writecr3(guest_cr3);
 
@@ -720,7 +722,7 @@ _Use_decl_annotations_ static void VmmpHandleLdtrOrTrAccess(
 
   // Update CR3 with that of the guest since below code is going to access
   // memory.
-  const auto guest_cr3 = UtilVmRead(VmcsField::kGuestCr3);
+  const auto guest_cr3 = VmmpGetKernelCr3();
   const auto vmm_cr3 = __readcr3();
   __writecr3(guest_cr3);
 
@@ -746,7 +748,7 @@ _Use_decl_annotations_ static void VmmpHandleLdtrOrTrAccess(
       const auto sd = reinterpret_cast<SegmentDescriptor *>(
           UtilVmRead(VmcsField::kGuestGdtrBase) +
           ss.fields.index * sizeof(SegmentDescriptor));
-      sd->fields.type |= 2; // Set the Busy bit
+      sd->fields.type |= 2;  // Set the Busy bit
       break;
     }
   }
@@ -879,7 +881,7 @@ _Use_decl_annotations_ static void VmmpIoWrapper(bool to_memory, bool is_string,
 
   // Update CR3 with that of the guest since below code is going to access
   // memory.
-  const auto guest_cr3 = UtilVmRead(VmcsField::kGuestCr3);
+  const auto guest_cr3 = VmmpGetKernelCr3();
   const auto vmm_cr3 = __readcr3();
   __writecr3(guest_cr3);
 
@@ -1338,6 +1340,26 @@ _Use_decl_annotations_ static void VmmpInjectInterruption(
   if (deliver_error_code) {
     UtilVmWrite(VmcsField::kVmEntryExceptionErrorCode, error_code);
   }
+}
+
+// Returns a kernel CR3 value of the current process;
+/*_Use_decl_annotations_*/ static ULONG_PTR VmmpGetKernelCr3() {
+  auto guest_cr3 = UtilVmRead(VmcsField::kGuestCr3);
+  // Assume it is an user-mode CR3 when the lowest bit is set. If so, get CR3
+  // from _KPROCESS::DirectoryTableBase.
+  if (guest_cr3 & 1) {
+    static const long kDirectoryTableBaseOffsetX64 = 0x28;
+    static const long kDirectoryTableBaseOffsetX86 = 0x18;
+    auto process = reinterpret_cast<PUCHAR>(PsGetCurrentProcess());
+    if (IsX64()) {
+      guest_cr3 =
+          *reinterpret_cast<PULONG_PTR>(process + kDirectoryTableBaseOffsetX64);
+    } else {
+      guest_cr3 =
+          *reinterpret_cast<PULONG_PTR>(process + kDirectoryTableBaseOffsetX86);
+    }
+  }
+  return guest_cr3;
 }
 
 }  // extern "C"
