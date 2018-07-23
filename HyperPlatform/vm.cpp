@@ -802,8 +802,8 @@ _Use_decl_annotations_ static ULONG VmpGetSegmentAccessRight(
   PAGED_CODE();
 
   VmxRegmentDescriptorAccessRight access_right = {};
-  const SegmentSelector ss = {segment_selector};
   if (segment_selector) {
+    const SegmentSelector ss = {segment_selector};
     auto native_access_right = AsmLoadAccessRightsByte(ss.all);
     native_access_right >>= 8;
     access_right.all = static_cast<ULONG>(native_access_right);

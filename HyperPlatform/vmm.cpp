@@ -26,7 +26,7 @@ extern "C" {
 //
 
 // Whether VM-exit recording is enabled
-static const long kVmmpEnableRecordVmExit = false;
+static const bool kVmmpEnableRecordVmExit = false;
 
 // How many events should be recorded per a processor
 static const long kVmmpNumberOfRecords = 100;
@@ -968,7 +968,7 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
 
           // The MOV to CR3 does not modify the bit63 of CR3. Emulate this
           // behavior.
-          // See: MOV—Move to/from Control Registers
+          // See: MOV - Move to/from Control Registers
           UtilVmWrite(VmcsField::kGuestCr3, (*register_used & ~(1ULL << 63)));
           break;
         }

@@ -54,9 +54,11 @@ static const auto kEptpNumberOfPreallocatedEntries = 50;
 // Architecture defined number of variable range MTRRs
 static const auto kEptpNumOfMaxVariableRangeMtrrs = 255;
 
-// Architecture defined number of fixed range MTRRs (1 for 64k, 2 for 16k, 8
-// for 4k)
-static const auto kEptpNumOfFixedRangeMtrrs = 1 + 2 + 8;
+// Architecture defined number of fixed range MTRRs. 1 register for 64k, 2
+// registers for 16k, 8 registers for 4k, and each register has 8 ranges as per
+// "Fixed Range MTRRs" states.
+static const auto kEptpNumOfFixedRangeMtrrs =
+    (1 + 2 + 8) * RTL_NUMBER_OF_FIELD(Ia32MtrrFixedRangeMsr, fields.types);
 
 // A size of array to store all possible MTRRs
 static const auto kEptpMtrrEntriesSize =
@@ -105,11 +107,10 @@ _When_(ept_data == nullptr,
 static void EptpDestructTables(_In_ EptCommonEntry *table,
                                _In_ ULONG table_level);
 
-_Must_inspect_result_
-    _When_(ept_data == nullptr,
-           __drv_allocatesMem(Mem)
-           _IRQL_requires_max_(DISPATCH_LEVEL)) static EptCommonEntry
-        *EptpAllocateEptEntry(_In_opt_ EptData *ept_data);
+_Must_inspect_result_ _When_(ept_data == nullptr,
+                             __drv_allocatesMem(Mem) _IRQL_requires_max_(
+                                 DISPATCH_LEVEL)) static EptCommonEntry
+    *EptpAllocateEptEntry(_In_opt_ EptData *ept_data);
 
 static EptCommonEntry *EptpAllocateEptEntryFromPreAllocated(
     _In_ EptData *ept_data);
@@ -203,7 +204,8 @@ _Use_decl_annotations_ void EptInitializeMtrrEntries() {
   Ia32MtrrCapabilitiesMsr mtrr_capabilities = {
       UtilReadMsr64(Msr::kIa32MtrrCap)};
   HYPERPLATFORM_LOG_DEBUG(
-      "MTRR Default=%llu, VariableCount=%llu, FixedSupported=%llu, FixedEnabled=%llu",
+      "MTRR Default=%llu, VariableCount=%llu, FixedSupported=%llu, "
+      "FixedEnabled=%llu",
       default_type.fields.default_mtemory_type,
       mtrr_capabilities.fields.variable_range_count,
       mtrr_capabilities.fields.fixed_range_supported,
