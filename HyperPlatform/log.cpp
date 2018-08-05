@@ -597,13 +597,11 @@ _Use_decl_annotations_ static NTSTATUS LogpFlushLogBuffer(LogBufferInfo *info) {
   KLOCK_QUEUE_HANDLE lock_handle = {};
   KeAcquireInStackQueuedSpinLock(&info->spin_lock, &lock_handle);
   const auto old_log_buffer = const_cast<char *>(info->log_buffer_head);
-  if (old_log_buffer[0]) {
-    info->log_buffer_head = (old_log_buffer == info->log_buffer1)
-                                ? info->log_buffer2
-                                : info->log_buffer1;
-    info->log_buffer_head[0] = '\0';
-    info->log_buffer_tail = info->log_buffer_head;
-  }
+  info->log_buffer_head = (old_log_buffer == info->log_buffer1)
+                              ? info->log_buffer2
+                              : info->log_buffer1;
+  info->log_buffer_head[0] = '\0';
+  info->log_buffer_tail = info->log_buffer_head;
   KeReleaseInStackQueuedSpinLock(&lock_handle);
 
   // Write all log entries in old log buffer.
