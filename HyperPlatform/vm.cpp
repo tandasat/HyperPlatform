@@ -567,7 +567,6 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
 
   VmxVmExitControls vm_exitctl_requested = {};
   vm_exitctl_requested.fields.host_address_space_size = IsX64();
-  vm_exitctl_requested.fields.acknowledge_interrupt_on_exit = true;
   VmxVmExitControls vm_exitctl = {VmpAdjustControlValue(
       (use_true_msrs) ? Msr::kIa32VmxTrueExitCtls : Msr::kIa32VmxExitCtls,
       vm_exitctl_requested.all)};
