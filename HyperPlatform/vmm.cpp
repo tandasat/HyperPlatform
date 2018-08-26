@@ -761,37 +761,129 @@ _Use_decl_annotations_ static void VmmpHandleLdtrOrTrAccess(
 _Use_decl_annotations_ static void VmmpHandleDrAccess(
     GuestContext *guest_context) {
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
+
+  // Normally, when the privileged instruction is executed at CPL3, #GP(0)
+  // occurs instead of VM-exit. However, access to the debug registers is
+  // exception. Inject #GP(0) in such case to emulate what the processor
+  // normally does. See: Instructions That Cause VM Exits Conditionally
+  if (VmmpGetGuestCpl() != 0) {
+    VmmpInjectInterruption(InterruptionType::kHardwareException,
+                           InterruptionVector::kGeneralProtectionException,
+                           true, 0);
+    return;
+  }
+
   const MovDrQualification exit_qualification = {
       UtilVmRead(VmcsField::kExitQualification)};
+  auto debugl_register = exit_qualification.fields.debugl_register;
+
+  // Access to DR4 and 5 causes #UD when CR4.DE (Debugging Extensions) is set.
+  // Otherwise, these registers are aliased to DR6 and 7 respectively.
+  // See: Debug Registers DR4 and DR5
+  if (debugl_register == 4 || debugl_register == 5) {
+    const Cr4 guest_cr4 = {UtilVmRead(VmcsField::kGuestCr4)};
+    if (guest_cr4.fields.de) {
+      VmmpInjectInterruption(InterruptionType::kHardwareException,
+                             InterruptionVector::kInvalidOpcodeException, false,
+                             0);
+      return;
+    } else if (debugl_register == 4) {
+      debugl_register = 6;
+    } else {
+      debugl_register = 7;
+    }
+  }
+
+  // Access to any of DRs causes #DB when DR7.GD (General Detect Enable) is set.
+  // See: Debug Control Register (DR7)
+  Dr7 guest_dr7 = {UtilVmRead(VmcsField::kGuestDr7)};
+  if (guest_dr7.fields.gd) {
+    Dr6 guest_dr6 = {__readdr(6)};
+    // Clear DR6.B0-3 since the #DB being injected is not due to match of a
+    // condition specified in DR6. The processor is allowed to clear those bits
+    // as "Certain debug exceptions may clear bits 0-3."
+    guest_dr6.fields.b0 = false;
+    guest_dr6.fields.b1 = false;
+    guest_dr6.fields.b2 = false;
+    guest_dr6.fields.b3 = false;
+    // "When such a condition is detected, the BD flag in debug status register
+    // DR6 is set prior to generating the exception."
+    guest_dr6.fields.bd = true;
+    __writedr(6, guest_dr6.all);
+
+    VmmpInjectInterruption(InterruptionType::kHardwareException,
+                           InterruptionVector::kDebugException, false, 0);
+
+    // While the processor clears the DR7.GD bit on #DB ("The processor clears
+    // the GD flag upon entering to the debug exception handler"), it does not
+    // change that in the VMCS. Emulate that behavior here. Note that this bit
+    // should actually be cleared by intercepting #DB and in the handler instead
+    // of here, since the processor clears it on any #DB. We do not do that as
+    // we do not intercept #DB as-is.
+    guest_dr7.fields.gd = false;
+    UtilVmWrite(VmcsField::kGuestDr7, guest_dr7.all);
+    return;
+  }
+
   const auto register_used =
       VmmpSelectRegister(exit_qualification.fields.gp_register, guest_context);
 
-  // Emulate the instruction
+  // In 64-bit mode, the upper 32 bits of DR6 and DR7 are reserved and must be
+  // written with zeros. Writing 1 to any of the upper 32 bits results in a
+  // #GP(0) exception. See: Debug Registers and Intel® 64 Processors
+  if (IsX64()) {
+    const auto value64 = static_cast<ULONG64>(*register_used);
+    if ((debugl_register == 6 || debugl_register == 7) && (value64 >> 32)) {
+      VmmpInjectInterruption(InterruptionType::kHardwareException,
+                             InterruptionVector::kGeneralProtectionException,
+                             true, 0);
+      return;
+    }
+  }
+
   switch (static_cast<MovDrDirection>(exit_qualification.fields.direction)) {
     case MovDrDirection::kMoveToDr:
-      // clang-format off
-      switch (exit_qualification.fields.debugl_register) {
+      switch (debugl_register) {
+        // clang-format off
         case 0: __writedr(0, *register_used); break;
         case 1: __writedr(1, *register_used); break;
         case 2: __writedr(2, *register_used); break;
         case 3: __writedr(3, *register_used); break;
-        case 4: __writedr(4, *register_used); break;
-        case 5: __writedr(5, *register_used); break;
-        case 6: __writedr(6, *register_used); break;
-        case 7: UtilVmWrite(VmcsField::kGuestDr7, *register_used); break;
-        default: break;
+        // clang-format on
+        case 6: {
+          // Make sure that we write 0 and 1 into the bits that are stated to be
+          // so. The Intel SDM does not appear to state what happens when the
+          // processor attempts to write 1 to the always 0 bits, and vice versa,
+          // however, observation is that writes to those bits are ignored
+          // *as long as it is done on the non-root mode*, and other hypervisors
+          // emulate in that way as well.
+          Dr6 write_value = {*register_used};
+          write_value.fields.reserved1 = 0xff;
+          write_value.fields.reserved2 = 0;
+          write_value.fields.reserved3 = 0x1fff;
+          __writedr(6, write_value.all);
+          break;
+        }
+        case 7: {
+          // Similar to the case of CR6, enforce always 1 and 0 behavior.
+          Dr7 write_value = {*register_used};
+          write_value.fields.reserved1 = 1;
+          write_value.fields.reserved2 = 0;
+          write_value.fields.reserved3 = 0;
+          UtilVmWrite(VmcsField::kGuestDr7, write_value.all);
+          break;
+        }
+        default:
+          break;
       }
-      // clang-format on
       break;
     case MovDrDirection::kMoveFromDr:
       // clang-format off
-      switch (exit_qualification.fields.debugl_register) {
+      switch (debugl_register) {
         case 0: *register_used = __readdr(0); break;
         case 1: *register_used = __readdr(1); break;
         case 2: *register_used = __readdr(2); break;
         case 3: *register_used = __readdr(3); break;
-        case 4: *register_used = __readdr(4); break;
-        case 5: *register_used = __readdr(5); break;
         case 6: *register_used = __readdr(6); break;
         case 7: *register_used = UtilVmRead(VmcsField::kGuestDr7); break;
         default: break;
