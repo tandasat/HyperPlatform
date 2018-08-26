@@ -706,7 +706,7 @@ _Use_decl_annotations_ static void LogpDoDbgPrint(char *message) {
   const auto location_of_cr = strlen(message) - 2;
   message[location_of_cr] = '\n';
   message[location_of_cr + 1] = '\0';
-  DbgPrintEx(DPFLTR_DEFAULT_ID, DPFLTR_ERROR_LEVEL, "%s", message);
+  DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "%s", message);
 }
 
 // Returns true when a log file is enabled.
