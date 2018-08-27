@@ -182,7 +182,7 @@ union Dr6 {
     unsigned bs : 1;          //!< [14] Single Step
     unsigned bt : 1;          //!< [15] Task Switch
     unsigned rtm : 1;         //!< [16] Restricted Transactional Memory
-    unsigned reserved3 : 13;  //!< [17:31] Always 1
+    unsigned reserved3 : 15;  //!< [17:31] Always 1
   } fields;
 };
 static_assert(sizeof(Dr6) == sizeof(void*), "Size check");

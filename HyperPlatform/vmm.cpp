@@ -827,11 +827,13 @@ _Use_decl_annotations_ static void VmmpHandleDrAccess(
 
   const auto register_used =
       VmmpSelectRegister(exit_qualification.fields.gp_register, guest_context);
+  const auto direction =
+      static_cast<MovDrDirection>(exit_qualification.fields.direction);
 
   // In 64-bit mode, the upper 32 bits of DR6 and DR7 are reserved and must be
   // written with zeros. Writing 1 to any of the upper 32 bits results in a
   // #GP(0) exception. See: Debug Registers and Intel® 64 Processors
-  if (IsX64()) {
+  if (IsX64() && direction == MovDrDirection::kMoveToDr) {
     const auto value64 = static_cast<ULONG64>(*register_used);
     if ((debugl_register == 6 || debugl_register == 7) && (value64 >> 32)) {
       VmmpInjectInterruption(InterruptionType::kHardwareException,
@@ -841,7 +843,7 @@ _Use_decl_annotations_ static void VmmpHandleDrAccess(
     }
   }
 
-  switch (static_cast<MovDrDirection>(exit_qualification.fields.direction)) {
+  switch (direction) {
     case MovDrDirection::kMoveToDr:
       switch (debugl_register) {
         // clang-format off
@@ -858,16 +860,16 @@ _Use_decl_annotations_ static void VmmpHandleDrAccess(
           // *as long as it is done on the non-root mode*, and other hypervisors
           // emulate in that way as well.
           Dr6 write_value = {*register_used};
-          write_value.fields.reserved1 = 0xff;
+          write_value.fields.reserved1 |= ~write_value.fields.reserved1;
           write_value.fields.reserved2 = 0;
-          write_value.fields.reserved3 = 0x1fff;
+          write_value.fields.reserved3 |= ~write_value.fields.reserved3;
           __writedr(6, write_value.all);
           break;
         }
         case 7: {
           // Similar to the case of CR6, enforce always 1 and 0 behavior.
           Dr7 write_value = {*register_used};
-          write_value.fields.reserved1 = 1;
+          write_value.fields.reserved1 |= ~write_value.fields.reserved1;
           write_value.fields.reserved2 = 0;
           write_value.fields.reserved3 = 0;
           UtilVmWrite(VmcsField::kGuestDr7, write_value.all);
