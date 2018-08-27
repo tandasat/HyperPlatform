@@ -832,7 +832,7 @@ _Use_decl_annotations_ static void VmmpHandleDrAccess(
 
   // In 64-bit mode, the upper 32 bits of DR6 and DR7 are reserved and must be
   // written with zeros. Writing 1 to any of the upper 32 bits results in a
-  // #GP(0) exception. See: Debug Registers and Intel® 64 Processors
+  // #GP(0) exception. See: Debug Registers and IntelÂ® 64 Processors
   if (IsX64() && direction == MovDrDirection::kMoveToDr) {
     const auto value64 = static_cast<ULONG64>(*register_used);
     if ((debugl_register == 6 || debugl_register == 7) && (value64 >> 32)) {
@@ -1335,7 +1335,8 @@ _Use_decl_annotations_ void __stdcall VmmVmxFailureHandler(
                              ? UtilVmRead(VmcsField::kVmInstructionError)
                              : 0;
   HYPERPLATFORM_COMMON_BUG_CHECK(
-      HyperPlatformBugCheck::kCriticalVmxInstructionFailure, vmx_error, 0, 0);
+      HyperPlatformBugCheck::kCriticalVmxInstructionFailure, vmx_error,
+      guest_ip, 0);
 }
 
 // Indicates successful VMCALL
