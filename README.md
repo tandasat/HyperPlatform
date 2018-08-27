@@ -41,8 +41,8 @@ especially those who are familiar with Windows. For instance:
   a relaxed license.
 
 For more details, see the HyperPlatform User Document and Programmer's Reference.
-- http://tandasat.github.io/HyperPlatform/userdocument/
-- http://tandasat.github.io/HyperPlatform/doxygen/
+- https://tandasat.github.io/HyperPlatform/userdocument/
+- https://tandasat.github.io/HyperPlatform/doxygen/
 
 
 Build
@@ -97,7 +97,7 @@ For uninstallation:
 
 To install the driver on a virtual machine on VMware Workstation, see an "Using
 VMware Workstation" section in the HyperPlatform User Document.
-- http://tandasat.github.io/HyperPlatform/userdocument/
+- https://tandasat.github.io/HyperPlatform/userdocument/
 
 
 Output
