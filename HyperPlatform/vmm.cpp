@@ -305,6 +305,8 @@ _Use_decl_annotations_ static void VmmpHandleVmExit(
     case VmxExitReason::kVmwrite:
     case VmxExitReason::kVmoff:
     case VmxExitReason::kVmon:
+    case VmxExitReason::kInvept:
+    case VmxExitReason::kInvvpid:
       VmmpHandleVmx(guest_context);
       break;
     case VmxExitReason::kRdtscp:
@@ -627,16 +629,58 @@ _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
   auto descriptor_table_reg = reinterpret_cast<Idtr *>(operation_address);
   switch (static_cast<GdtrOrIdtrInstructionIdentity>(
       instruction_info.fields.instruction_identity)) {
-    case GdtrOrIdtrInstructionIdentity::kSgdt:
-      descriptor_table_reg->base = UtilVmRead(VmcsField::kGuestGdtrBase);
-      descriptor_table_reg->limit =
+    case GdtrOrIdtrInstructionIdentity::kSgdt: {
+      // On 64bit system, SIDT and SGDT can be executed from a 32bit process
+      // where runs with the 32bit operand size. The following checks the
+      // current guest's operand size and writes either full 10 bytes (for the
+      // 64bit more) or 6 bytes or IDTR or GDTR as the processor does. See:
+      // Operand Size and Address Size in 64-Bit Mode See: SGDT-Store Global
+      // Descriptor Table Register See: SIDT-Store Interrupt Descriptor Table
+      // Register
+      const auto gdt_base = UtilVmRead(VmcsField::kGuestGdtrBase);
+      const auto gdt_limit =
           static_cast<unsigned short>(UtilVmRead(VmcsField::kGuestGdtrLimit));
+
+      const SegmentSelector ss = {
+          static_cast<USHORT>(UtilVmRead(VmcsField::kGuestCsSelector))};
+      const auto segment_descriptor = reinterpret_cast<SegmentDescriptor *>(
+          gdt_base + ss.fields.index * sizeof(SegmentDescriptor));
+      if (segment_descriptor->fields.l) {
+        // 64bit
+        descriptor_table_reg->base = gdt_base;
+        descriptor_table_reg->limit = gdt_limit;
+      } else {
+        // 32bit
+        const auto descriptor_table_reg32 =
+            reinterpret_cast<Idtr32 *>(descriptor_table_reg);
+        descriptor_table_reg32->base = static_cast<ULONG32>(gdt_base);
+        descriptor_table_reg32->limit = gdt_limit;
+      }
       break;
-    case GdtrOrIdtrInstructionIdentity::kSidt:
-      descriptor_table_reg->base = UtilVmRead(VmcsField::kGuestIdtrBase);
-      descriptor_table_reg->limit =
+    }
+    case GdtrOrIdtrInstructionIdentity::kSidt: {
+      const auto idt_base = UtilVmRead(VmcsField::kGuestIdtrBase);
+      const auto idt_limit =
           static_cast<unsigned short>(UtilVmRead(VmcsField::kGuestIdtrLimit));
+
+      const auto gdt_base = UtilVmRead(VmcsField::kGuestGdtrBase);
+      const SegmentSelector ss = {
+          static_cast<USHORT>(UtilVmRead(VmcsField::kGuestCsSelector))};
+      const auto segment_descriptor = reinterpret_cast<SegmentDescriptor *>(
+          gdt_base + ss.fields.index * sizeof(SegmentDescriptor));
+      if (segment_descriptor->fields.l) {
+        // 64bit
+        descriptor_table_reg->base = idt_base;
+        descriptor_table_reg->limit = idt_limit;
+      } else {
+        // 32bit
+        const auto descriptor_table_reg32 =
+            reinterpret_cast<Idtr32 *>(descriptor_table_reg);
+        descriptor_table_reg32->base = static_cast<ULONG32>(idt_base);
+        descriptor_table_reg32->limit = idt_limit;
+      }
       break;
+    }
     case GdtrOrIdtrInstructionIdentity::kLgdt:
       UtilVmWrite(VmcsField::kGuestGdtrBase, descriptor_table_reg->base);
       UtilVmWrite(VmcsField::kGuestGdtrLimit, descriptor_table_reg->limit);
@@ -1196,7 +1240,6 @@ _Use_decl_annotations_ static void VmmpHandleInvalidateTlbEntry(
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
   const auto invalidate_address =
       reinterpret_cast<void *>(UtilVmRead(VmcsField::kExitQualification));
-  __invlpg(invalidate_address);
   UtilInvvpidIndividualAddress(
       static_cast<USHORT>(KeGetCurrentProcessorNumberEx(nullptr) + 1),
       invalidate_address);

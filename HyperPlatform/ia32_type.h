@@ -225,6 +225,12 @@ struct Idtr {
   ULONG_PTR base;
 };
 
+struct Idtr32 {
+  unsigned short limit;
+  ULONG32 base;
+};
+static_assert(sizeof(Idtr32) == 6, "Size check");
+
 /// @copydoc Idtr
 using Gdtr = Idtr;
 #if defined(_AMD64_)
