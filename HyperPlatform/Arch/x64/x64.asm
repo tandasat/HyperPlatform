@@ -1,4 +1,4 @@
-; Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
+; Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
 ; Use of this source code is governed by a MIT-style license that can be
 ; found in the LICENSE file.
 
@@ -218,12 +218,6 @@ AsmWriteGDT PROC
     lgdt fword ptr [rcx]
     ret
 AsmWriteGDT ENDP
-
-; void __stdcall AsmReadGDT(_Out_ GDTR *gdtr);
-AsmReadGDT PROC
-    sgdt [rcx]
-    ret
-AsmReadGDT ENDP
 
 ; void __stdcall AsmWriteLDTR(_In_ USHORT local_segmeng_selector);
 AsmWriteLDTR PROC

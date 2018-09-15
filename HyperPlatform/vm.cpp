@@ -549,7 +549,7 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   PAGED_CODE();
 
   Gdtr gdtr = {};
-  __sgdt(&gdtr);
+  _sgdt(&gdtr);
 
   Idtr idtr = {};
   __sidt(&idtr);
