@@ -393,7 +393,9 @@ _Use_decl_annotations_ static void VmmpHandleException(
       // #BP
       VmmpInjectInterruption(interruption_type, vector, false, 0);
       HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %016Ix, #BP ", guest_context->ip);
-      UtilVmWrite(VmcsField::kVmEntryInstructionLen, 1);
+      const auto exit_inst_length =
+          UtilVmRead(VmcsField::kVmExitInstructionLen);
+      UtilVmWrite(VmcsField::kVmEntryInstructionLen, exit_inst_length);
 
     } else {
       HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kUnspecified, 0, 0,
@@ -1405,7 +1407,8 @@ _Use_decl_annotations_ static void VmmpIndicateUnsuccessfulVmcall(
 
   VmmpInjectInterruption(InterruptionType::kHardwareException,
                          InterruptionVector::kInvalidOpcodeException, false, 0);
-  UtilVmWrite(VmcsField::kVmEntryInstructionLen, 3);  // VMCALL is 3 bytes
+  const auto exit_inst_length = UtilVmRead(VmcsField::kVmExitInstructionLen);
+  UtilVmWrite(VmcsField::kVmEntryInstructionLen, exit_inst_length);
 }
 
 // Handles an unloading request
