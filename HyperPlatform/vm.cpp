@@ -402,7 +402,8 @@ _Use_decl_annotations_ static void VmpInitializeVm(
 
   processor_data->sh_data = ShAllocateShadowHookData();
   if (!processor_data->sh_data) {
-    goto ReturnFalse;
+    VmpFreeProcessorData(processor_data);
+    return;
   }
 
   // Allocate other processor data fields
