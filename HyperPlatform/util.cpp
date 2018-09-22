@@ -143,9 +143,9 @@ UtilInitialization(PDRIVER_OBJECT driver_object) {
   PAGED_CODE();
 
   auto status = UtilpInitializePageTableVariables();
-  HYPERPLATFORM_LOG_DEBUG("PXE at %016Ix, PPE at %016Ix, PDE at %016Ix, PTE at %016Ix",
-                          g_utilp_pxe_base, g_utilp_ppe_base, g_utilp_pde_base,
-                          g_utilp_pte_base);
+  HYPERPLATFORM_LOG_DEBUG(
+      "PXE at %016Ix, PPE at %016Ix, PDE at %016Ix, PTE at %016Ix",
+      g_utilp_pxe_base, g_utilp_ppe_base, g_utilp_pde_base, g_utilp_pte_base);
   if (!NT_SUCCESS(status)) {
     return status;
   }
@@ -194,7 +194,7 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
   // older than build 14316.
   if (!IsX64() || os_version.dwMajorVersion < 10 ||
       os_version.dwBuildNumber < 14316) {
-    if (IsX64()) {
+    if constexpr (IsX64()) {
       g_utilp_pxe_base = kUtilpPxeBase;
       g_utilp_ppe_base = kUtilpPpeBase;
       g_utilp_pxi_shift = kUtilpPxiShift;
@@ -519,7 +519,7 @@ _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
     return false;
   }
 
-  if (IsX64()) {
+  if constexpr (IsX64()) {
     const auto pxe = UtilpAddressToPxe(address);
     const auto ppe = UtilpAddressToPpe(address);
     if (!pxe->valid || !ppe->valid) {
@@ -543,13 +543,15 @@ _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
 
 // Checks whether the address is the canonical address
 _Use_decl_annotations_ static bool UtilpIsCanonicalFormAddress(void *address) {
-  if (!IsX64()) {
+  if constexpr (!IsX64()) {
     return true;
+  } else {
+    return !UtilIsInBounds(0x0000800000000000ull, 0xffff7fffffffffffull,
+                           reinterpret_cast<ULONG64>(address));
   }
-  return !UtilIsInBounds(0x0000800000000000ull, 0xffff7fffffffffffull,
-                         reinterpret_cast<ULONG64>(address));
 }
 
+#if defined(_AMD64_)
 // Return an address of PXE
 _Use_decl_annotations_ static HardwarePte *UtilpAddressToPxe(
     const void *address) {
@@ -567,6 +569,7 @@ _Use_decl_annotations_ static HardwarePte *UtilpAddressToPpe(
   const auto offset = ppe_index * sizeof(HardwarePte);
   return reinterpret_cast<HardwarePte *>(g_utilp_ppe_base + offset);
 }
+#endif
 
 // Return an address of PDE
 _Use_decl_annotations_ static HardwarePte *UtilpAddressToPde(
@@ -654,7 +657,7 @@ _Use_decl_annotations_ NTSTATUS UtilVmCall(HypercallNumber hypercall_number,
     return (vmx_status == VmxStatus::kOk) ? STATUS_SUCCESS
                                           : STATUS_UNSUCCESSFUL;
 
-#pragma prefast(suppress: __WARNING_EXCEPTIONEXECUTEHANDLER, "Catch all.");
+#pragma prefast(suppress : __WARNING_EXCEPTIONEXECUTEHANDLER, "Catch all.");
   } __except (EXCEPTION_EXECUTE_HANDLER) {
     const auto status = GetExceptionCode();
     HYPERPLATFORM_COMMON_DBG_BREAK();
