@@ -673,14 +673,13 @@ _Use_decl_annotations_ void EptHandleEptViolation(EptData *ept_data) {
 
   // EPT entry miss. It should be device memory.
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
-  if (!IsReleaseBuild()) {
-    NT_VERIFY(EptpIsDeviceMemory(fault_pa));
-  }
+  NT_ASSERT(EptpIsDeviceMemory(fault_pa));
   EptpConstructTables(ept_data->ept_pml4, 4, fault_pa, ept_data);
 
   UtilInveptGlobal();
 }
 
+#if defined(DBG)
 // Returns if the physical_address is device memory (which could not have a
 // corresponding PFN entry)
 _Use_decl_annotations_ static bool EptpIsDeviceMemory(
@@ -697,6 +696,7 @@ _Use_decl_annotations_ static bool EptpIsDeviceMemory(
   }
   return true;
 }
+#endif
 
 // Returns an EPT entry corresponds to the physical_address
 _Use_decl_annotations_ EptCommonEntry *EptGetEptPtEntry(
