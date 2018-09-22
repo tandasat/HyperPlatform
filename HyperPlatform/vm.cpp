@@ -7,6 +7,7 @@
 
 #include "vm.h"
 #include <intrin.h>
+#include <limits.h>   // for CHAR_BIT
 #include "asm.h"
 #include "common.h"
 #include "ept.h"
