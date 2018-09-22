@@ -1097,7 +1097,7 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
         case 3: {
           HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
           if (UtilIsX86Pae()) {
-            UtilLoadPdptes(*register_used);
+            UtilLoadPdptes(VmmpGetKernelCr3());
           }
           // Under some circumstances MOV to CR3 is not *required* to flush TLB
           // entries, but also NOT prohibited to do so. Therefore, we flush it
@@ -1485,20 +1485,24 @@ _Use_decl_annotations_ static void VmmpInjectInterruption(
 
 // Returns a kernel CR3 value of the current process;
 /*_Use_decl_annotations_*/ static ULONG_PTR VmmpGetKernelCr3() {
-  auto guest_cr3 = UtilVmRead(VmcsField::kGuestCr3);
-  // Assume it is an user-mode CR3 when the lowest bit is set. If so, get CR3
-  // from _KPROCESS::DirectoryTableBase.
-  if (guest_cr3 & 1) {
-    static const long kDirectoryTableBaseOffsetX64 = 0x28;
-    static const long kDirectoryTableBaseOffsetX86 = 0x18;
-    auto process = reinterpret_cast<PUCHAR>(PsGetCurrentProcess());
-    if (IsX64()) {
+  ULONG_PTR guest_cr3 = 0;
+  static const long kDirectoryTableBaseOffset = IsX64() ? 0x28 : 0x18;
+  if (IsX64()) {
+    // On x64, assume it is an user-mode CR3 when the lowest bit is set. If so,
+    // get CR3 from _KPROCESS::DirectoryTableBase.
+    guest_cr3 = UtilVmRead(VmcsField::kGuestCr3);
+    if (guest_cr3 & 1) {
+      const auto process = reinterpret_cast<PUCHAR>(PsGetCurrentProcess());
       guest_cr3 =
-          *reinterpret_cast<PULONG_PTR>(process + kDirectoryTableBaseOffsetX64);
-    } else {
-      guest_cr3 =
-          *reinterpret_cast<PULONG_PTR>(process + kDirectoryTableBaseOffsetX86);
+          *reinterpret_cast<PULONG_PTR>(process + kDirectoryTableBaseOffset);
     }
+  } else {
+    // On x86, there is no easy way to tell whether the CR3 taken from VMCS is
+    // a user-mode CR3 or kernel-mode CR3 by only looking at the value.
+    // Therefore, we simply use _KPROCESS::DirectoryTableBase always.
+    const auto process = reinterpret_cast<PUCHAR>(PsGetCurrentProcess());
+    guest_cr3 =
+        *reinterpret_cast<PULONG_PTR>(process + kDirectoryTableBaseOffset);
   }
   return guest_cr3;
 }
