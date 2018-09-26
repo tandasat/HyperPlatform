@@ -42,7 +42,7 @@ static const long kVmmpNumberOfProcessors = 2;
 // Represents raw structure of stack of VMM when VmmVmExitHandler() is called
 struct VmmInitialStack {
   GpRegisters gp_regs;
-  ULONG_PTR reserved;
+  KtrapFrame trap_frame;
   ProcessorData *processor_data;
 };
 
@@ -186,7 +186,6 @@ _Use_decl_annotations_ bool __stdcall VmmVmExitHandler(VmmInitialStack *stack) {
   if (guest_irql < DISPATCH_LEVEL) {
     KeRaiseIrqlToDpcLevel();
   }
-  NT_ASSERT(stack->reserved == MAXULONG_PTR);
 
   // Capture the current guest state
   GuestContext guest_context = {stack,
@@ -196,6 +195,14 @@ _Use_decl_annotations_ bool __stdcall VmmVmExitHandler(VmmInitialStack *stack) {
                                 guest_irql,
                                 true};
   guest_context.gp_regs->sp = UtilVmRead(VmcsField::kGuestRsp);
+
+  // Update the trap frame so that Windbg can construct the stack trace of the
+  // guest. The rest of trap frame fields are entirely unused. Note that until
+  // this code is executed, Windbg will display incorrect stack trace based off
+  // the stale, old values.
+  stack->trap_frame.sp = guest_context.gp_regs->sp;
+  stack->trap_frame.ip =
+      guest_context.ip + UtilVmRead(VmcsField::kVmExitInstructionLen);
 
   // Dispatch the current VM-exit event
   VmmpHandleVmExit(&guest_context);

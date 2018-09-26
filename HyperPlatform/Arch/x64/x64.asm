@@ -23,6 +23,8 @@ EXTERN UtilDumpGpRegisters : PROC
 VMX_OK                      EQU     0
 VMX_ERROR_WITH_STATUS       EQU     1
 VMX_ERROR_WITHOUT_STATUS    EQU     2
+KTRAP_FRAME_SIZE            EQU     190h
+MACHINE_FRAME_SIZE          EQU     28h
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -73,12 +75,12 @@ ENDM
 ASM_DUMP_REGISTERS MACRO
     pushfq
     PUSHAQ                      ; -8 * 16
-    mov rcx, rsp                ; guest_context
+    mov rcx, rsp                ; all_regs
     mov rdx, rsp
     add rdx, 8*17               ; stack_pointer
 
     sub rsp, 28h                ; 28h for alignment
-    call UtilDumpGpRegisters    ; UtilDumpGpRegisters(guest_context, stack_pointer);
+    call UtilDumpGpRegisters    ; UtilDumpGpRegisters(all_regs, stack_pointer);
     add rsp, 28h
 
     POPAQ
@@ -133,14 +135,45 @@ asmResumeVm:
 AsmInitializeVm ENDP
 
 ; void __stdcall AsmVmmEntryPoint();
-AsmVmmEntryPoint PROC
+AsmVmmEntryPoint PROC FRAME
+    ; In oder for Windbg to display the stack trace of the guest while the
+    ; VM-exit handlers are being executed, we use several tricks:
+    ;   - The use of the FRAME (above) attribute. This emits a function table
+    ;     entry for this function in the .pdata section. See also:
+    ;     https://docs.microsoft.com/en-us/cpp/assembler/masm/proc?view=vs-2017
+    ;
+    ;   - The use of the .PUSHFRAME pseudo operation: This emits unwind data
+    ;     indicating that a machine frame has been pushed on the stack. A machine
+    ;     frame is usually pushed by the CPU in response to a trap or fault (
+    ;     see: Exception- or Interrupt-Handler Procedures), hence this pseudo
+    ;     operation is often used for their handler code. (In Windows kernel, the
+    ;     use of this pseudo operation is often wrapped in the GENERATE_TRAP_FRAME
+    ;     macro.) In our case, since VM-exit does not push the machine frame, we
+    ;     manually allocate it in right above the VMM stack pointer. Nothing has
+    ;     to be done in this function with regard to pushing the machine frame
+    ;     since that and the VMM stack pointer are both already set up in
+    ;     VmpInitializeVm. See the diagram in VmpInitializeVm for more details.
+    ;     See also:
+    ;     https://docs.microsoft.com/en-us/cpp/assembler/masm/dot-pushframe?view=vs-2017
+    ;
+    ;   - The use of the .ALLOCSTACK pseudo operation: This also emits another
+    ;     unwind data indicating how much the function uses stack. (This pseudo
+    ;     code is often wrapped by the alloc_stack macro and used within the
+    ;     GENERATE_TRAP_FRAME macro). This function consumes 108h of stack on
+    ;     the top of the KTRAP_FRAME size (minus the machine frame size which is
+    ;     already allocated outside this function). See also:
+    ;     https://docs.microsoft.com/en-us/cpp/assembler/masm/dot-allocstack?view=vs-2017
+    .PUSHFRAME
+    sub rsp, KTRAP_FRAME_SIZE - MACHINE_FRAME_SIZE
+    .ALLOCSTACK KTRAP_FRAME_SIZE - MACHINE_FRAME_SIZE + 108h
+
     ; No need to save the flag registers since it is restored from the VMCS at
     ; the time of vmresume.
     PUSHAQ                  ; -8 * 16
-    mov rcx, rsp
+    mov rcx, rsp            ; save the "stack" parameter for VmmVmExitHandler
 
     ; save volatile XMM registers
-    sub rsp, 60h
+    sub rsp, 68h            ; 8 for alignment
     movaps xmmword ptr [rsp +  0h], xmm0
     movaps xmmword ptr [rsp + 10h], xmm1
     movaps xmmword ptr [rsp + 20h], xmm2
@@ -149,7 +182,12 @@ AsmVmmEntryPoint PROC
     movaps xmmword ptr [rsp + 50h], xmm5
 
     sub rsp, 20h
-    call VmmVmExitHandler   ; bool vm_continue = VmmVmExitHandler(guest_context);
+
+    ; All stack allocation is done now. Indicate the end of prologue as required
+    ; by the FRAME attribute.
+    .ENDPROLOG
+
+    call VmmVmExitHandler   ; bool vm_continue = VmmVmExitHandler(stack);
     add rsp, 20h
 
     ; restore XMM registers
@@ -159,7 +197,7 @@ AsmVmmEntryPoint PROC
     movaps xmm3, xmmword ptr [rsp + 30h]
     movaps xmm4, xmmword ptr [rsp + 40h]
     movaps xmm5, xmmword ptr [rsp + 50h]
-    add rsp, 60h
+    add rsp, 68h
 
     test al, al
     jz exitVm               ; if (!vm_continue) jmp exitVm

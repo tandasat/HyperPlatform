@@ -7,7 +7,7 @@
 
 #include "vm.h"
 #include <intrin.h>
-#include <limits.h>   // for CHAR_BIT
+#include <limits.h>  // for CHAR_BIT
 #include "asm.h"
 #include "common.h"
 #include "ept.h"
@@ -293,7 +293,7 @@ _Use_decl_annotations_ static void *VmpBuildMsrBitmap() {
     __try {
       UtilReadMsr(static_cast<Msr>(msr));
 
-#pragma prefast(suppress: __WARNING_EXCEPTIONEXECUTEHANDLER, "Catch all.");
+#pragma prefast(suppress : __WARNING_EXCEPTIONEXECUTEHANDLER, "Catch all.");
     } __except (EXCEPTION_EXECUTE_HANDLER) {
       RtlClearBits(&bitmap_read_low_header, msr, 1);
     }
@@ -410,38 +410,80 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   }
   RtlZeroMemory(processor_data->vmxon_region, kVmxMaxVmcsSize);
 
-  // Initialize stack memory for VMM like this:
+  // Initialize stack memory for VMM looks like this:
   //
-  // (High)
-  // +------------------+  <- vmm_stack_region_base      (eg, AED37000)
-  // | processor_data   |  <- vmm_stack_data             (eg, AED36FFC)
-  // +------------------+
-  // | MAXULONG_PTR     |  <- vmm_stack_base (initial SP)(eg, AED36FF8)
-  // +------------------+    v
-  // |                  |    v
-  // | (VMM Stack)      |    v (grow)
-  // |                  |    v
-  // +------------------+  <- vmm_stack_limit            (eg, AED34000)
-  // (Low)
+  //                   +  <- vmm_stack_region_base  (eg, ffffe300`412bd000)
+  // (High)            |
+  // +-----------------+  <- vmm_stack_data         (eg, ffffe300`412bcff8)
+  // | processor_data  |
+  // +-----------------+
+  // | vmm_stack_frame |
+  // +-               -+  <- vmm_stack_base         (eg, ffffe300`412bcfd0)
+  // | ff ff ff ff ff  |    v
+  // +-               -+    v (skipped by VMM with sub esp/rsp)
+  // | ff ff ff ff ff  |    v
+  // +-----------------+  <- vmm_stack_frame
+  // |                 |    v
+  // |                 |    v (used by VMM to store any stack-based data)
+  // |                 |    v
+  // |                 |    v
+  // |                 |    v
+  // |                 |    v
+  // |                 |    v
+  // |                 |    v
+  // |                 |    v
+  // |                 |    v
+  // +-----------------+  <- vmm_stack_limit        (eg, ffffe300`412b7000)
+  // (Low)             |
+
   const auto vmm_stack_region_base =
       reinterpret_cast<ULONG_PTR>(processor_data->vmm_stack_limit) +
       KERNEL_STACK_SIZE;
+
+  // Save the processor data on the VMM stack region.
   const auto vmm_stack_data = vmm_stack_region_base - sizeof(void *);
-  const auto vmm_stack_base = vmm_stack_data - sizeof(void *);
+  *reinterpret_cast<ProcessorData **>(vmm_stack_data) = processor_data;
+
+  // Fill space for the trap frame with 0xff for ease of identifying the region
+  // on Debug build. This trap frame space is used only for Windbg to construct
+  // the stack trace during VM-exit is being handled, and only a couple of
+  // fields (Eip and HardwareEsp on x86, or Rip and Rsp on x64) is properly
+  // initialized (in VmmVmExitHandler) and used by Windbg. On VM-exit this space
+  // is just skipped by subtracting the stack pointer.
+  if constexpr (!IsReleaseBuild()) {
+    const auto vmm_stack_frame =
+        reinterpret_cast<void *>(vmm_stack_data - sizeof(KtrapFrame));
+    RtlFillMemory(vmm_stack_frame, sizeof(KtrapFrame), 0xff);
+  }
+
+  // Compute the initial stack pointer of the VMM, that is, the base address
+  // minus the pointer size (for ProcessorData*) and the MachineFrame size.
+  // This MachineFrame space is used to emulate the processor's behavior on
+  // exception. That is, when exception occurs and execution switches from
+  // user-mode to kernel-mode, the processor pushes e/rip, cs, eflags, e/rsp,
+  // and ss into the top of stack prior to execution of an interrupt handler
+  // (see: Exception- or Interrupt-Handler Procedures). Those five values are
+  // referred to as the machine frame collectively. This code emulates this by
+  // setting the VMM stack pointer right after space corresponds to the machine
+  // frame.
+  const auto vmm_stack_base =
+      vmm_stack_region_base - sizeof(void *) - sizeof(MachineFrame);
+
   HYPERPLATFORM_LOG_DEBUG("vmm_stack_limit       = %p",
                           processor_data->vmm_stack_limit);
-  HYPERPLATFORM_LOG_DEBUG("vmm_stack_region_base = %016Ix",
-                          vmm_stack_region_base);
-  HYPERPLATFORM_LOG_DEBUG("vmm_stack_data        = %016Ix", vmm_stack_data);
-  HYPERPLATFORM_LOG_DEBUG("vmm_stack_base        = %016Ix", vmm_stack_base);
-  HYPERPLATFORM_LOG_DEBUG("processor_data        = %p stored at %016Ix",
-                          processor_data, vmm_stack_data);
-  HYPERPLATFORM_LOG_DEBUG("guest_stack_pointer   = %016Ix",
-                          guest_stack_pointer);
-  HYPERPLATFORM_LOG_DEBUG("guest_inst_pointer    = %016Ix",
-                          guest_instruction_pointer);
-  *reinterpret_cast<ULONG_PTR *>(vmm_stack_base) = MAXULONG_PTR;
-  *reinterpret_cast<ProcessorData **>(vmm_stack_data) = processor_data;
+  HYPERPLATFORM_LOG_DEBUG("vmm_stack_region_base = %p",
+                          reinterpret_cast<void *>(vmm_stack_region_base));
+  HYPERPLATFORM_LOG_DEBUG("vmm_stack_data        = %p",
+                          reinterpret_cast<void *>(vmm_stack_data));
+  HYPERPLATFORM_LOG_DEBUG("vmm_stack_base        = %p",
+                          reinterpret_cast<void *>(vmm_stack_base));
+  HYPERPLATFORM_LOG_DEBUG("processor_data        = %p stored at %p",
+                          processor_data,
+                          reinterpret_cast<void *>(vmm_stack_data));
+  HYPERPLATFORM_LOG_DEBUG("guest_stack_pointer   = %p",
+                          reinterpret_cast<void *>(guest_stack_pointer));
+  HYPERPLATFORM_LOG_DEBUG("guest_inst_pointer    = %p",
+                          reinterpret_cast<void *>(guest_instruction_pointer));
 
   // Set up VMCS
   if (!VmpEnterVmxMode(processor_data)) {

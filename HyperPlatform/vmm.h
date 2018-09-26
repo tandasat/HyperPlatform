@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -41,6 +41,45 @@ struct ProcessorData {
   struct VmControlStructure* vmcs_region;   //!< VA of a VMCS region
   struct EptData* ept_data;                 //!< A pointer to EPT related data
 };
+
+/// nt!_KTRAP_FRAME on x86
+struct KtrapFrameX86 {
+  ULONG reserved1[26];
+  ULONG ip;  //!< Called EIP in _KTRAP_FRAME
+  ULONG reserved2[2];
+  ULONG sp;  //!< Called HardwareEsp in _KTRAP_FRAME
+  ULONG reserved3[5];
+};
+static_assert(sizeof(KtrapFrameX86) == 0x8c);
+static_assert(FIELD_OFFSET(KtrapFrameX86, ip) == 0x68);
+static_assert(FIELD_OFFSET(KtrapFrameX86, sp) == 0x74);
+
+/// nt!_KTRAP_FRAME on x64
+struct KtrapFrameX64 {
+  ULONG64 reserved1[45];
+  ULONG64 ip;  //!< Called EIP in _KTRAP_FRAME
+  ULONG64 reserved2[2];
+  ULONG64 sp;  //!< Called Rsp in _KTRAP_FRAME
+  ULONG64 reserved3;
+};
+static_assert(sizeof(KtrapFrameX64) == 0x190);
+static_assert(FIELD_OFFSET(KtrapFrameX64, ip) == 0x168);
+static_assert(FIELD_OFFSET(KtrapFrameX64, sp) == 0x180);
+
+/// See: Stack Usage on Transfers to Interrupt and Exception-Handling Routines
+struct MachineFrame {
+  ULONG_PTR ip;
+  ULONG_PTR cs;
+  ULONG_PTR flags;
+  ULONG_PTR sp;
+  ULONG_PTR ss;
+};
+
+#if defined(_AMD64_)
+using KtrapFrame = KtrapFrameX64;
+#else
+using KtrapFrame = KtrapFrameX86;
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 //
