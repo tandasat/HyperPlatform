@@ -48,7 +48,13 @@
     <ClCompile Include="kernel_stl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="powercallback.cpp">
+    <ClCompile Include="global_object.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hotplug_callback.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="power_callback.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -80,9 +86,6 @@
     <ClInclude Include="vmm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="kernel_stl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -92,7 +95,13 @@
     <ClInclude Include="util_page_constants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="powercallback.h">
+    <ClInclude Include="global_object.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hotplug_callback.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="power_callback.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -103,5 +112,8 @@
     <MASM Include="Arch\x86\x86.asm">
       <Filter>Source Files</Filter>
     </MASM>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="HyperPlatform.ruleset" />
   </ItemGroup>
 </Project>

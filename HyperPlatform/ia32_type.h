@@ -1,9 +1,9 @@
-// Copyright (c) 2015-2016, tandasat. All rights reserved.
+// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
 /// @file
-/// Ddefines constants and structures defined by the x86-64 archtecture
+/// Defines constants and structures defined by the x86-64 architecture
 
 #ifndef HYPERPLATFORM_IA32_TYPE_H_
 #define HYPERPLATFORM_IA32_TYPE_H_
@@ -22,6 +22,11 @@
 
 /// See: OVERVIEW
 static const SIZE_T kVmxMaxVmcsSize = 4096;
+
+/// A majority of modern hypervisors expose their signatures through CPUID with
+/// this CPUID function code to indicate their existence. HyperPlatform follows
+/// this convention.
+static const ULONG32 kHyperVCpuidInterface = 0x40000001;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -63,7 +68,7 @@ union FlagRegister {
 };
 static_assert(sizeof(FlagRegister) == sizeof(void*), "Size check");
 
-/// Reprsents a stack layout after PUSHAQ
+/// Represents a stack layout after PUSHAQ
 struct GpRegistersX64 {
   ULONG_PTR r15;
   ULONG_PTR r14;
@@ -83,7 +88,7 @@ struct GpRegistersX64 {
   ULONG_PTR ax;
 };
 
-/// Reprsents a stack layout after PUSHAD
+/// Represents a stack layout after PUSHAD
 struct GpRegistersX86 {
   ULONG_PTR di;
   ULONG_PTR si;
@@ -95,14 +100,14 @@ struct GpRegistersX86 {
   ULONG_PTR ax;
 };
 
-/// Reprsents a stack layout after PUSHAx
+/// Represents a stack layout after PUSHAx
 #if defined(_AMD64_)
 using GpRegisters = GpRegistersX64;
 #else
 using GpRegisters = GpRegistersX86;
 #endif
 
-/// Reprsents a stack layout after a sequence of PUSHFx, PUSHAx
+/// Represents a stack layout after a sequence of PUSHFx, PUSHAx
 struct AllRegisters {
   GpRegisters gp;
   FlagRegister flags;
@@ -163,12 +168,68 @@ union Cr4 {
 };
 static_assert(sizeof(Cr4) == sizeof(void*), "Size check");
 
+/// See: Debug Status Register (DR6)
+union Dr6 {
+  ULONG_PTR all;
+  struct {
+    unsigned b0 : 1;          //!< [0] Breakpoint Condition Detected 0
+    unsigned b1 : 1;          //!< [1] Breakpoint Condition Detected 1
+    unsigned b2 : 1;          //!< [2] Breakpoint Condition Detected 2
+    unsigned b3 : 1;          //!< [3] Breakpoint Condition Detected 3
+    unsigned reserved1 : 8;   //!< [4:11] Always 1
+    unsigned reserved2 : 1;   //!< [12] Always 0
+    unsigned bd : 1;          //!< [13] Debug Register Access Detected
+    unsigned bs : 1;          //!< [14] Single Step
+    unsigned bt : 1;          //!< [15] Task Switch
+    unsigned rtm : 1;         //!< [16] Restricted Transactional Memory
+    unsigned reserved3 : 15;  //!< [17:31] Always 1
+  } fields;
+};
+static_assert(sizeof(Dr6) == sizeof(void*), "Size check");
+
+/// See: Debug Control Register (DR7)
+union Dr7 {
+  ULONG_PTR all;
+  struct {
+    unsigned l0 : 1;         //!< [0] Local Breakpoint Enable 0
+    unsigned g0 : 1;         //!< [1] Global Breakpoint Enable 0
+    unsigned l1 : 1;         //!< [2] Local Breakpoint Enable 1
+    unsigned g1 : 1;         //!< [3] Global Breakpoint Enable 1
+    unsigned l2 : 1;         //!< [4] Local Breakpoint Enable 2
+    unsigned g2 : 1;         //!< [5] Global Breakpoint Enable 2
+    unsigned l3 : 1;         //!< [6] Local Breakpoint Enable 3
+    unsigned g3 : 1;         //!< [7] Global Breakpoint Enable 3
+    unsigned le : 1;         //!< [8] Local Exact Breakpoint Enable
+    unsigned ge : 1;         //!< [9] Global Exact Breakpoint Enable
+    unsigned reserved1 : 1;  //!< [10] Always 1
+    unsigned rtm : 1;        //!< [11] Restricted Transactional Memory
+    unsigned reserved2 : 1;  //!< [12] Always 0
+    unsigned gd : 1;         //!< [13] General Detect Enable
+    unsigned reserved3 : 2;  //!< [14:15] Always 0
+    unsigned rw0 : 2;        //!< [16:17] Read / Write 0
+    unsigned len0 : 2;       //!< [18:19] Length 0
+    unsigned rw1 : 2;        //!< [20:21] Read / Write 1
+    unsigned len1 : 2;       //!< [22:23] Length 1
+    unsigned rw2 : 2;        //!< [24:25] Read / Write 2
+    unsigned len2 : 2;       //!< [26:27] Length 2
+    unsigned rw3 : 2;        //!< [28:29] Read / Write 3
+    unsigned len3 : 2;       //!< [30:31] Length 3
+  } fields;
+};
+static_assert(sizeof(Dr7) == sizeof(void*), "Size check");
+
 /// See: MEMORY-MANAGEMENT REGISTERS
 #include <pshpack1.h>
 struct Idtr {
   unsigned short limit;
   ULONG_PTR base;
 };
+
+struct Idtr32 {
+  unsigned short limit;
+  ULONG32 base;
+};
+static_assert(sizeof(Idtr32) == 6, "Size check");
 
 /// @copydoc Idtr
 using Gdtr = Idtr;
@@ -222,8 +283,8 @@ union SegmentSelector {
 static_assert(sizeof(SegmentSelector) == 2, "Size check");
 #include <poppack.h>
 
-/// See: Segment Desctiptor
-union SegmentDesctiptor {
+/// See: Segment Descriptor
+union SegmentDescriptor {
   ULONG64 all;
   struct {
     ULONG64 limit_low : 16;
@@ -241,52 +302,94 @@ union SegmentDesctiptor {
     ULONG64 base_high : 8;
   } fields;
 };
-static_assert(sizeof(SegmentDesctiptor) == 8, "Size check");
+static_assert(sizeof(SegmentDescriptor) == 8, "Size check");
 
-/// @copydoc SegmentDesctiptor
+/// @copydoc SegmentDescriptor
 struct SegmentDesctiptorX64 {
-  SegmentDesctiptor descriptor;
+  SegmentDescriptor descriptor;
   ULONG32 base_upper32;
   ULONG32 reserved;
 };
 static_assert(sizeof(SegmentDesctiptorX64) == 16, "Size check");
 
-/// See: Figure 3-7.  Feature Information Returned in the ECX Register
+/// See: Feature Information Returned in the ECX Register
 union CpuFeaturesEcx {
-  ULONG_PTR all;
+  ULONG32 all;
   struct {
-    ULONG_PTR sse3 : 1;       //!< SSE3 Extensions
-    ULONG_PTR pclmulqdq : 1;  //!< Carryless Multiplication
-    ULONG_PTR dtes64 : 1;     //!< 64-bit DS Area
-    ULONG_PTR monitor : 1;    //!< MONITOR/WAIT
-    ULONG_PTR ds_cpl : 1;     //!< CPL qualified Debug Store
-    ULONG_PTR vmx : 1;        //!< Virtual Machine Technology
-    ULONG_PTR smx : 1;        //!< Safer Mode Extensions
-    ULONG_PTR est : 1;        //!< Enhanced Intel Speedstep Technology
-    ULONG_PTR tm2 : 1;        //!< Thermal monitor 2
-    ULONG_PTR ssse3 : 1;      //!< SSSE3 extensions
-    ULONG_PTR cid : 1;        //!< L1 context ID
-    ULONG_PTR reserved1 : 1;  //!<
-    ULONG_PTR fma : 1;        //!< Fused Multiply Add
-    ULONG_PTR cx16 : 1;       //!< CMPXCHG16B
-    ULONG_PTR xtpr : 1;       //!< Update control
-    ULONG_PTR pdcm : 1;       //!< Performance/Debug capability MSR
-    ULONG_PTR reserved2 : 2;  //!<
-    ULONG_PTR dca : 1;        //!<
-    ULONG_PTR sse4_1 : 1;     //!<
-    ULONG_PTR sse4_2 : 1;     //!<
-    ULONG_PTR x2_apic : 1;    //!<
-    ULONG_PTR movbe : 1;      //!<
-    ULONG_PTR popcnt : 1;     //!<
-    ULONG_PTR reserved3 : 1;  //!<
-    ULONG_PTR aes : 1;        //!<
-    ULONG_PTR xsave : 1;      //!<
-    ULONG_PTR osxsave : 1;    //!<
-    ULONG_PTR reserved4 : 2;  //!<
-    ULONG_PTR reserved5 : 1;  //!< Always 0
+    ULONG32 sse3 : 1;       //!< [0] Streaming SIMD Extensions 3 (SSE3)
+    ULONG32 pclmulqdq : 1;  //!< [1] PCLMULQDQ
+    ULONG32 dtes64 : 1;     //!< [2] 64-bit DS Area
+    ULONG32 monitor : 1;    //!< [3] MONITOR/WAIT
+    ULONG32 ds_cpl : 1;     //!< [4] CPL qualified Debug Store
+    ULONG32 vmx : 1;        //!< [5] Virtual Machine Technology
+    ULONG32 smx : 1;        //!< [6] Safer Mode Extensions
+    ULONG32 est : 1;        //!< [7] Enhanced Intel Speedstep Technology
+    ULONG32 tm2 : 1;        //!< [8] Thermal monitor 2
+    ULONG32 ssse3 : 1;      //!< [9] Supplemental Streaming SIMD Extensions 3
+    ULONG32 cid : 1;        //!< [10] L1 context ID
+    ULONG32 sdbg : 1;       //!< [11] IA32_DEBUG_INTERFACE MSR
+    ULONG32 fma : 1;        //!< [12] FMA extensions using YMM state
+    ULONG32 cx16 : 1;       //!< [13] CMPXCHG16B
+    ULONG32 xtpr : 1;       //!< [14] xTPR Update Control
+    ULONG32 pdcm : 1;       //!< [15] Performance/Debug capability MSR
+    ULONG32 reserved : 1;   //!< [16] Reserved
+    ULONG32 pcid : 1;       //!< [17] Process-context identifiers
+    ULONG32 dca : 1;        //!< [18] prefetch from a memory mapped device
+    ULONG32 sse4_1 : 1;     //!< [19] SSE4.1
+    ULONG32 sse4_2 : 1;     //!< [20] SSE4.2
+    ULONG32 x2_apic : 1;    //!< [21] x2APIC feature
+    ULONG32 movbe : 1;      //!< [22] MOVBE instruction
+    ULONG32 popcnt : 1;     //!< [23] POPCNT instruction
+    ULONG32 reserved3 : 1;  //!< [24] one-shot operation using a TSC deadline
+    ULONG32 aes : 1;        //!< [25] AESNI instruction
+    ULONG32 xsave : 1;      //!< [26] XSAVE/XRSTOR feature
+    ULONG32 osxsave : 1;    //!< [27] enable XSETBV/XGETBV instructions
+    ULONG32 avx : 1;        //!< [28] AVX instruction extensions
+    ULONG32 f16c : 1;       //!< [29] 16-bit floating-point conversion
+    ULONG32 rdrand : 1;     //!< [30] RDRAND instruction
+    ULONG32 not_used : 1;   //!< [31] Always 0 (a.k.a. HypervisorPresent)
   } fields;
 };
-static_assert(sizeof(CpuFeaturesEcx) == sizeof(void*), "Size check");
+static_assert(sizeof(CpuFeaturesEcx) == 4, "Size check");
+
+/// See: More on Feature Information Returned in the EDX Register
+union CpuFeaturesEdx {
+  ULONG32 all;
+  struct {
+    ULONG32 fpu : 1;        //!< [0] Floating Point Unit On-Chip
+    ULONG32 vme : 1;        //!< [1] Virtual 8086 Mode Enhancements
+    ULONG32 de : 1;         //!< [2] Debugging Extensions
+    ULONG32 pse : 1;        //!< [3] Page Size Extension
+    ULONG32 tsc : 1;        //!< [4] Time Stamp Counter
+    ULONG32 msr : 1;        //!< [5] RDMSR and WRMSR Instructions
+    ULONG32 mce : 1;        //!< [7] Machine Check Exception
+    ULONG32 cx8 : 1;        //!< [8] Thermal monitor 2
+    ULONG32 apic : 1;       //!< [9] APIC On-Chip
+    ULONG32 reserved1 : 1;  //!< [10] Reserved
+    ULONG32 sep : 1;        //!< [11] SYSENTER and SYSEXIT Instructions
+    ULONG32 mtrr : 1;       //!< [12] Memory Type Range Registers
+    ULONG32 pge : 1;        //!< [13] Page Global Bit
+    ULONG32 mca : 1;        //!< [14] Machine Check Architecture
+    ULONG32 cmov : 1;       //!< [15] Conditional Move Instructions
+    ULONG32 pat : 1;        //!< [16] Page Attribute Table
+    ULONG32 pse36 : 1;      //!< [17] 36-Bit Page Size Extension
+    ULONG32 psn : 1;        //!< [18] Processor Serial Number
+    ULONG32 clfsh : 1;      //!< [19] CLFLUSH Instruction
+    ULONG32 reserved2 : 1;  //!< [20] Reserved
+    ULONG32 ds : 1;         //!< [21] Debug Store
+    ULONG32 acpi : 1;       //!< [22] TM and Software Controlled Clock
+    ULONG32 mmx : 1;        //!< [23] Intel MMX Technology
+    ULONG32 fxsr : 1;       //!< [24] FXSAVE and FXRSTOR Instructions
+    ULONG32 sse : 1;        //!< [25] SSE
+    ULONG32 sse2 : 1;       //!< [26] SSE2
+    ULONG32 ss : 1;         //!< [27] Self Snoop
+    ULONG32 htt : 1;        //!< [28] Max APIC IDs reserved field is Valid
+    ULONG32 tm : 1;         //!< [29] Thermal Monitor
+    ULONG32 reserved3 : 1;  //!< [30] Reserved
+    ULONG32 pbe : 1;        //!< [31] Pending Break Enable
+  } fields;
+};
+static_assert(sizeof(CpuFeaturesEdx) == 4, "Size check");
 
 /// nt!_HARDWARE_PTE on x86 PAE-disabled Windows
 struct HardwarePteX86 {
@@ -311,11 +414,11 @@ struct HardwarePteX86Pae {
   ULONG64 valid : 1;               //!< [0]
   ULONG64 write : 1;               //!< [1]
   ULONG64 owner : 1;               //!< [2]
-  ULONG64 write_through : 1;       //!< [3]
-  ULONG64 cache_disable : 1;       //!< [4]
+  ULONG64 write_through : 1;       //!< [3]     PWT
+  ULONG64 cache_disable : 1;       //!< [4]     PCD
   ULONG64 accessed : 1;            //!< [5]
   ULONG64 dirty : 1;               //!< [6]
-  ULONG64 large_page : 1;          //!< [7]
+  ULONG64 large_page : 1;          //!< [7]     PAT
   ULONG64 global : 1;              //!< [8]
   ULONG64 copy_on_write : 1;       //!< [9]
   ULONG64 prototype : 1;           //!< [10]
@@ -331,11 +434,11 @@ struct HardwarePteX64 {
   ULONG64 valid : 1;               //!< [0]
   ULONG64 write : 1;               //!< [1]
   ULONG64 owner : 1;               //!< [2]
-  ULONG64 write_through : 1;       //!< [3]
-  ULONG64 cache_disable : 1;       //!< [4]
+  ULONG64 write_through : 1;       //!< [3]     PWT
+  ULONG64 cache_disable : 1;       //!< [4]     PCD
   ULONG64 accessed : 1;            //!< [5]
   ULONG64 dirty : 1;               //!< [6]
-  ULONG64 large_page : 1;          //!< [7]
+  ULONG64 large_page : 1;          //!< [7]     PAT
   ULONG64 global : 1;              //!< [8]
   ULONG64 copy_on_write : 1;       //!< [9]
   ULONG64 prototype : 1;           //!< [10]
@@ -403,6 +506,64 @@ union Cpuid80000008Eax {
   } fields;
 };
 
+/// See: IA32_MTRRCAP Register
+union Ia32MtrrCapabilitiesMsr {
+  ULONG64 all;
+  struct {
+    ULONG64 variable_range_count : 8;   //<! [0:7]
+    ULONG64 fixed_range_supported : 1;  //<! [8]
+    ULONG64 reserved : 1;               //<! [9]
+    ULONG64 write_combining : 1;        //<! [10]
+    ULONG64 smrr : 1;                   //<! [11]
+  } fields;
+};
+static_assert(sizeof(Ia32MtrrCapabilitiesMsr) == 8, "Size check");
+
+/// See: IA32_MTRR_DEF_TYPE MSR
+union Ia32MtrrDefaultTypeMsr {
+  ULONG64 all;
+  struct {
+    ULONG64 default_mtemory_type : 8;  //<! [0:7]
+    ULONG64 reserved : 2;              //<! [8:9]
+    ULONG64 fixed_mtrrs_enabled : 1;   //<! [10]
+    ULONG64 mtrrs_enabled : 1;         //<! [11]
+  } fields;
+};
+static_assert(sizeof(Ia32MtrrDefaultTypeMsr) == 8, "Size check");
+
+/// See: Fixed Range MTRRs
+union Ia32MtrrFixedRangeMsr {
+  ULONG64 all;
+  struct {
+    UCHAR types[8];
+  } fields;
+};
+static_assert(sizeof(Ia32MtrrFixedRangeMsr) == 8, "Size check");
+
+/// See: IA32_MTRR_PHYSBASEn and IA32_MTRR_PHYSMASKn Variable-Range Register
+/// Pair
+union Ia32MtrrPhysBaseMsr {
+  ULONG64 all;
+  struct {
+    ULONG64 type : 8;        //!< [0:7]
+    ULONG64 reserved : 4;    //!< [8:11]
+    ULONG64 phys_base : 36;  //!< [12:MAXPHYADDR]
+  } fields;
+};
+static_assert(sizeof(Ia32MtrrPhysBaseMsr) == 8, "Size check");
+
+/// See: IA32_MTRR_PHYSBASEn and IA32_MTRR_PHYSMASKn Variable-Range Register
+/// Pair
+union Ia32MtrrPhysMaskMsr {
+  ULONG64 all;
+  struct {
+    ULONG64 reserved : 11;   //!< [0:10]
+    ULONG64 valid : 1;       //!< [11]
+    ULONG64 phys_mask : 36;  //!< [12:MAXPHYADDR]
+  } fields;
+};
+static_assert(sizeof(Ia32MtrrPhysMaskMsr) == 8, "Size check");
+
 /// See: IA32_APIC_BASE MSR Supporting x2APIC
 union Ia32ApicBaseMsr {
   ULONG64 all;
@@ -428,6 +589,22 @@ enum class Msr : unsigned int {
   kIa32SysenterEip = 0x176,
 
   kIa32Debugctl = 0x1D9,
+
+  kIa32MtrrCap = 0xFE,
+  kIa32MtrrDefType = 0x2FF,
+  kIa32MtrrPhysBaseN = 0x200,
+  kIa32MtrrPhysMaskN = 0x201,
+  kIa32MtrrFix64k00000 = 0x250,
+  kIa32MtrrFix16k80000 = 0x258,
+  kIa32MtrrFix16kA0000 = 0x259,
+  kIa32MtrrFix4kC0000 = 0x268,
+  kIa32MtrrFix4kC8000 = 0x269,
+  kIa32MtrrFix4kD0000 = 0x26A,
+  kIa32MtrrFix4kD8000 = 0x26B,
+  kIa32MtrrFix4kE0000 = 0x26C,
+  kIa32MtrrFix4kE8000 = 0x26D,
+  kIa32MtrrFix4kF0000 = 0x26E,
+  kIa32MtrrFix4kF8000 = 0x26F,
 
   kIa32VmxBasic = 0x480,
   kIa32VmxPinbasedCtls = 0x481,
@@ -489,6 +666,7 @@ enum class VmcsField : unsigned __int32 {
   kGuestLdtrSelector = 0x0000080c,
   kGuestTrSelector = 0x0000080e,
   kGuestInterruptStatus = 0x00000810,
+  kPmlIndex = 0x00000812,
   // 16-Bit Host-State Fields
   kHostEsSelector = 0x00000c00,
   kHostCsSelector = 0x00000c02,
@@ -538,6 +716,10 @@ enum class VmcsField : unsigned __int32 {
   kVirtualizationExceptionInfoAddressHigh = 0x0000202b,
   kXssExitingBitmap = 0x0000202c,
   kXssExitingBitmapHigh = 0x0000202d,
+  kEnclsExitingBitmap = 0x0000202e,
+  kEnclsExitingBitmapHigh = 0x0000202f,
+  kTscMultiplier = 0x00002032,
+  kTscMultiplierHigh = 0x00002033,
   // 64-Bit Read-Only Data Field
   kGuestPhysicalAddress = 0x00002400,
   kGuestPhysicalAddressHigh = 0x00002401,
@@ -560,6 +742,8 @@ enum class VmcsField : unsigned __int32 {
   kGuestPdptr2High = 0x0000280f,
   kGuestPdptr3 = 0x00002810,
   kGuestPdptr3High = 0x00002811,
+  kGuestIa32Bndcfgs = 0x00002812,
+  kGuestIa32BndcfgsHigh = 0x00002813,
   // 64-Bit Host-State Fields
   kHostIa32Pat = 0x00002c00,
   kHostIa32PatHigh = 0x00002c01,
@@ -587,7 +771,7 @@ enum class VmcsField : unsigned __int32 {
   kPleGap = 0x00004020,
   kPleWindow = 0x00004022,
   // 32-Bit Read-Only Data Fields
-  kVmInstructionError = 0x00004400,
+  kVmInstructionError = 0x00004400,  // See: VM-Instruction Error Numbers
   kVmExitReason = 0x00004402,
   kVmExitIntrInfo = 0x00004404,
   kVmExitIntrErrorCode = 0x00004406,
@@ -708,7 +892,7 @@ enum class VmxExitReason : unsigned __int16 {
   kIoInstruction = 30,
   kMsrRead = 31,
   kMsrWrite = 32,
-  kInvalidGuestState = 33,
+  kInvalidGuestState = 33,  // See: BASIC VM-ENTRY CHECKS
   kMsrLoading = 34,
   kUndefined35 = 35,
   kMwaitInstruction = 36,
@@ -844,29 +1028,31 @@ static_assert(sizeof(VmxProcessorBasedControls) == 4, "Size check");
 union VmxSecondaryProcessorBasedControls {
   unsigned int all;
   struct {
-    unsigned virtualize_apic_accesses : 1;      //!< [0]
-    unsigned enable_ept : 1;                    //!< [1]
-    unsigned descriptor_table_exiting : 1;      //!< [2]
-    unsigned enable_rdtscp : 1;                 //!< [3]
-    unsigned virtualize_x2apic_mode : 1;        //!< [4]
-    unsigned enable_vpid : 1;                   //!< [5]
-    unsigned wbinvd_exiting : 1;                //!< [6]
-    unsigned unrestricted_guest : 1;            //!< [7]
-    unsigned apic_register_virtualization : 1;  //!< [8]
-    unsigned virtual_interrupt_delivery : 1;    //!< [9]
-    unsigned pause_loop_exiting : 1;            //!< [10]
-    unsigned rdrand_exiting : 1;                //!< [11]
-    unsigned enable_invpcid : 1;                //!< [12]
-    unsigned enable_vm_functions : 1;           //!< [13]
-    unsigned vmcs_shadowing : 1;                //!< [14]
-    unsigned reserved1 : 1;                     //!< [15]
-    unsigned rdseed_exiting : 1;                //!< [16]
-    unsigned reserved2 : 1;                     //!< [17]
-    unsigned ept_violation_ve : 1;              //!< [18]
-    unsigned reserved3 : 1;                     //!< [19]
-    unsigned enable_xsaves_xstors : 1;          //!< [20]
-    unsigned reserved4 : 4;                     //!< [21:24]
-    unsigned use_tsc_scaling : 1;               //!< [25]
+    unsigned virtualize_apic_accesses : 1;            //!< [0]
+    unsigned enable_ept : 1;                          //!< [1]
+    unsigned descriptor_table_exiting : 1;            //!< [2]
+    unsigned enable_rdtscp : 1;                       //!< [3]
+    unsigned virtualize_x2apic_mode : 1;              //!< [4]
+    unsigned enable_vpid : 1;                         //!< [5]
+    unsigned wbinvd_exiting : 1;                      //!< [6]
+    unsigned unrestricted_guest : 1;                  //!< [7]
+    unsigned apic_register_virtualization : 1;        //!< [8]
+    unsigned virtual_interrupt_delivery : 1;          //!< [9]
+    unsigned pause_loop_exiting : 1;                  //!< [10]
+    unsigned rdrand_exiting : 1;                      //!< [11]
+    unsigned enable_invpcid : 1;                      //!< [12]
+    unsigned enable_vm_functions : 1;                 //!< [13]
+    unsigned vmcs_shadowing : 1;                      //!< [14]
+    unsigned reserved1 : 1;                           //!< [15]
+    unsigned rdseed_exiting : 1;                      //!< [16]
+    unsigned reserved2 : 1;                           //!< [17]
+    unsigned ept_violation_ve : 1;                    //!< [18]
+    unsigned reserved3 : 1;                           //!< [19]
+    unsigned enable_xsaves_xstors : 1;                //!< [20]
+    unsigned reserved4 : 1;                           //!< [21]
+    unsigned mode_based_execute_control_for_ept : 1;  //!< [22]
+    unsigned reserved5 : 2;                           //!< [23:24]
+    unsigned use_tsc_scaling : 1;                     //!< [25]
   } fields;
 };
 static_assert(sizeof(VmxSecondaryProcessorBasedControls) == 4, "Size check");
@@ -889,6 +1075,8 @@ union VmxVmExitControls {
     unsigned save_ia32_efer : 1;                   //!< [20]
     unsigned load_ia32_efer : 1;                   //!< [21]
     unsigned save_vmx_preemption_timer_value : 1;  //!< [22]
+    unsigned clear_ia32_bndcfgs : 1;               //!< [23]
+    unsigned conceal_vmexits_from_intel_pt : 1;    //!< [24]
   } fields;
 };
 static_assert(sizeof(VmxVmExitControls) == 4, "Size check");
@@ -907,6 +1095,8 @@ union VmxVmEntryControls {
     unsigned load_ia32_perf_global_ctrl : 1;         //!< [13]
     unsigned load_ia32_pat : 1;                      //!< [14]
     unsigned load_ia32_efer : 1;                     //!< [15]
+    unsigned load_ia32_bndcfgs : 1;                  //!< [16]
+    unsigned conceal_vmentries_from_intel_pt : 1;    //!< [17]
   } fields;
 };
 static_assert(sizeof(VmxVmExitControls) == 4, "Size check");
@@ -915,17 +1105,17 @@ static_assert(sizeof(VmxVmExitControls) == 4, "Size check");
 union VmxRegmentDescriptorAccessRight {
   unsigned int all;
   struct {
-    unsigned type : 4;
-    unsigned system : 1;
-    unsigned dpl : 2;
-    unsigned present : 1;
-    unsigned reserved1 : 4;
-    unsigned avl : 1;
-    unsigned l : 1;  //!< Reserved (except for CS) 64-bit mode active (for CS)
-    unsigned db : 1;
-    unsigned gran : 1;
-    unsigned unusable : 1;  //!< Segment unusable (0 = usable; 1 = unusable)
-    unsigned reserved2 : 15;
+    unsigned type : 4;        //!< [0:3]
+    unsigned system : 1;      //!< [4]
+    unsigned dpl : 2;         //!< [5:6]
+    unsigned present : 1;     //!< [7]
+    unsigned reserved1 : 4;   //!< [8:11]
+    unsigned avl : 1;         //!< [12]
+    unsigned l : 1;           //!< [13] Reserved (except for CS) 64-bit mode
+    unsigned db : 1;          //!< [14]
+    unsigned gran : 1;        //!< [15]
+    unsigned unusable : 1;    //!< [16] Segment unusable
+    unsigned reserved2 : 15;  //!< [17:31]
   } fields;
 };
 static_assert(sizeof(VmxRegmentDescriptorAccessRight) == 4, "Size check");
@@ -1251,121 +1441,132 @@ static_assert(sizeof(EptPointer) == 8, "Size check");
 // can determine a processor's physical-address width by executing CPUID with
 // 80000008H in EAX.The physical - address width is returned in bits 7:0 of EAX.
 
-/// See:
-/// EPT PML4 Entry (PML4E) that References an EPT Page-Directory-Pointer Table
+/// See: Format of an EPT PML4 Entry (PML4E) that References an EPT
+///      Page-Directory-Pointer Table
 union EptPml4Entry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;     //!< [0]
-    ULONG64 write_access : 1;    //!< [1]
-    ULONG64 execute_access : 1;  //!< [2]
-    ULONG64 reserved1 : 5;       //!< [3:7]
-    ULONG64 accessed : 1;        //!< [8]
-    ULONG64 ignored1 : 3;        //!< [9:11]
-    ULONG64 pdpt_address : 36;   //!< [12:48-1]
-    ULONG64 reserved2 : 4;       //!< [48:51]
-    ULONG64 ignored2 : 12;       //!< [52:63]
+    ULONG64 read_access : 1;                                  //!< [0]
+    ULONG64 write_access : 1;                                 //!< [1]
+    ULONG64 execute_access : 1;                               //!< [2]
+    ULONG64 reserved1 : 5;                                    //!< [3:7]
+    ULONG64 accessed : 1;                                     //!< [8]
+    ULONG64 ignored1 : 1;                                     //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;  //!< [10]
+    ULONG64 ignored2 : 1;                                     //!< [11]
+    ULONG64 pdpt_address : 36;                                //!< [12:48-1]
+    ULONG64 reserved2 : 4;                                    //!< [48:51]
+    ULONG64 ignored3 : 12;                                    //!< [52:63]
   } fields;
 };
 static_assert(sizeof(EptPml4Entry) == 8, "Size check");
 
-/// See: EPT Page-Directory-Pointer-Table Entry (PDPTE) that Maps a 1-GByte Page
+/// See: Format of an EPT Page-Directory-Pointer-Table Entry (PDPTE) that Maps
+///      a 1-GByte Page
 union EptPdptSuperPageEntry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;             //!< [0]
-    ULONG64 write_access : 1;            //!< [1]
-    ULONG64 execute_access : 1;          //!< [2]
-    ULONG64 memory_type : 3;             //!< [3:5]
-    ULONG64 ignore_pat_memory_type : 1;  //!< [6]
-    ULONG64 must_be1 : 1;                //!< [7]
-    ULONG64 accessed : 1;                //!< [8]
-    ULONG64 written : 1;                 //!< [9]
-    ULONG64 ignored1 : 2;                //!< [10:11]
-    ULONG64 reserved1 : 18;              //!< [12:29]
-    ULONG64 physial_address : 18;        //!< [30:48-1]
-    ULONG64 reserved2 : 4;               //!< [48:51]
-    ULONG64 ignored2 : 11;               //!< [52:62]
-    ULONG64 suppress_ve : 1;             //!< [63]
+    ULONG64 read_access : 1;                                  //!< [0]
+    ULONG64 write_access : 1;                                 //!< [1]
+    ULONG64 execute_access : 1;                               //!< [2]
+    ULONG64 memory_type : 3;                                  //!< [3:5]
+    ULONG64 ignore_pat_memory_type : 1;                       //!< [6]
+    ULONG64 must_be1 : 1;                                     //!< [7]
+    ULONG64 accessed : 1;                                     //!< [8]
+    ULONG64 written : 1;                                      //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;  //!< [10]
+    ULONG64 ignored1 : 1;                                     //!< [11]
+    ULONG64 reserved1 : 18;                                   //!< [12:29]
+    ULONG64 physial_address : 18;                             //!< [30:48-1]
+    ULONG64 reserved2 : 4;                                    //!< [48:51]
+    ULONG64 ignored2 : 11;                                    //!< [52:62]
+    ULONG64 suppress_ve : 1;                                  //!< [63]
   } fields;
 };
 static_assert(sizeof(EptPdptSuperPageEntry) == 8, "Size check");
 
-/// See: EPT Page-Directory-Pointer-Table Entry (PDPTE) that References an EPT
-/// Page Directory
+/// See: Format of an EPT Page-Directory-Pointer-Table Entry (PDPTE) that
+///      References an EPT Page Directory
 union EptPdptEntry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;     //!< [0]
-    ULONG64 write_access : 1;    //!< [1]
-    ULONG64 execute_access : 1;  //!< [2]
-    ULONG64 reserved1 : 5;       //!< [3:7]
-    ULONG64 accessed : 1;        //!< [8]
-    ULONG64 ignored1 : 3;        //!< [9:11]
-    ULONG64 pd_address : 36;     //!< [12:48-1]
-    ULONG64 reserved2 : 4;       //!< [48:51]
-    ULONG64 ignored2 : 12;       //!< [52:63]
+    ULONG64 read_access : 1;                                  //!< [0]
+    ULONG64 write_access : 1;                                 //!< [1]
+    ULONG64 execute_access : 1;                               //!< [2]
+    ULONG64 reserved1 : 5;                                    //!< [3:7]
+    ULONG64 accessed : 1;                                     //!< [8]
+    ULONG64 ignored1 : 1;                                     //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;  //!< [10]
+    ULONG64 ignored2 : 1;                                     //!< [11]
+    ULONG64 pd_address : 36;                                  //!< [12:48-1]
+    ULONG64 reserved2 : 4;                                    //!< [48:51]
+    ULONG64 ignored3 : 12;                                    //!< [52:63]
   } fields;
 };
 static_assert(sizeof(EptPdptEntry) == 8, "Size check");
 
-/// See: EPT Page-Directory Entry (PDE) that Maps a 2-MByte Page
+/// See: Format of an EPT Page-Directory Entry (PDE) that Maps a 2-MByte Page
 union EptPdLargePageEntry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;             //!< [0]
-    ULONG64 write_access : 1;            //!< [1]
-    ULONG64 execute_access : 1;          //!< [2]
-    ULONG64 memory_type : 3;             //!< [3:5]
-    ULONG64 ignore_pat_memory_type : 1;  //!< [6]
-    ULONG64 must_be1 : 1;                //!< [7]
-    ULONG64 accessed : 1;                //!< [8]
-    ULONG64 written : 1;                 //!< [9]
-    ULONG64 ignored1 : 2;                //!< [10:11]
-    ULONG64 reserved1 : 9;               //!< [12:20]
-    ULONG64 physial_address : 27;        //!< [21:48-1]
-    ULONG64 reserved2 : 4;               //!< [48:51]
-    ULONG64 ignored2 : 11;               //!< [52:62]
-    ULONG64 suppress_ve : 1;             //!< [63]
+    ULONG64 read_access : 1;                                  //!< [0]
+    ULONG64 write_access : 1;                                 //!< [1]
+    ULONG64 execute_access : 1;                               //!< [2]
+    ULONG64 memory_type : 3;                                  //!< [3:5]
+    ULONG64 ignore_pat_memory_type : 1;                       //!< [6]
+    ULONG64 must_be1 : 1;                                     //!< [7]
+    ULONG64 accessed : 1;                                     //!< [8]
+    ULONG64 written : 1;                                      //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;  //!< [10]
+    ULONG64 ignored1 : 1;                                     //!< [11]
+    ULONG64 reserved1 : 9;                                    //!< [12:20]
+    ULONG64 physial_address : 27;                             //!< [21:48-1]
+    ULONG64 reserved2 : 4;                                    //!< [48:51]
+    ULONG64 ignored2 : 11;                                    //!< [52:62]
+    ULONG64 suppress_ve : 1;                                  //!< [63]
   } fields;
 };
 static_assert(sizeof(EptPdLargePageEntry) == 8, "Size check");
 
-/// See: EPT Page-Directory Entry (PDE) that References an EPT Page Table
+/// See: Format of an EPT Page-Directory Entry (PDE) that References an EPT Page
+/// Table
 union EptPdEntry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;     //!< [0]
-    ULONG64 write_access : 1;    //!< [1]
-    ULONG64 execute_access : 1;  //!< [2]
-    ULONG64 reserved1 : 4;       //!< [3:6]
-    ULONG64 must_be0 : 1;        //!< [7]
-    ULONG64 accessed : 1;        //!< [8]
-    ULONG64 ignored1 : 3;        //!< [9:11]
-    ULONG64 pt_address : 36;     //!< [12:48-1]
-    ULONG64 reserved2 : 4;       //!< [48:51]
-    ULONG64 ignored2 : 12;       //!< [52:63]
+    ULONG64 read_access : 1;                                  //!< [0]
+    ULONG64 write_access : 1;                                 //!< [1]
+    ULONG64 execute_access : 1;                               //!< [2]
+    ULONG64 reserved1 : 4;                                    //!< [3:6]
+    ULONG64 must_be0 : 1;                                     //!< [7]
+    ULONG64 accessed : 1;                                     //!< [8]
+    ULONG64 ignored1 : 1;                                     //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;  //!< [10]
+    ULONG64 ignored2 : 1;                                     //!< [11]
+    ULONG64 pt_address : 36;                                  //!< [12:48-1]
+    ULONG64 reserved2 : 4;                                    //!< [48:51]
+    ULONG64 ignored3 : 12;                                    //!< [52:63]
   } fields;
 };
 static_assert(sizeof(EptPdEntry) == 8, "Size check");
 
-/// See: EPT Page-Table Entry that Maps a 4-KByte Page
+/// See: Format of an EPT Page-Table Entry that Maps a 4-KByte Page
 union EptPtEntry {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;             //!< [0]
-    ULONG64 write_access : 1;            //!< [1]
-    ULONG64 execute_access : 1;          //!< [2]
-    ULONG64 memory_type : 3;             //!< [3:5]
-    ULONG64 ignore_pat_memory_type : 1;  //!< [6]
-    ULONG64 ignored1 : 1;                //!< [7]
-    ULONG64 accessed : 1;                //!< [8]
-    ULONG64 written : 1;                 //!< [9]
-    ULONG64 ignored2 : 2;                //!< [10:11]
-    ULONG64 physial_address : 36;        //!< [12:48-1]
-    ULONG64 reserved1 : 4;               //!< [48:51]
-    ULONG64 Ignored3 : 11;               //!< [52:62]
-    ULONG64 suppress_ve : 1;             //!< [63]
+    ULONG64 read_access : 1;                                  //!< [0]
+    ULONG64 write_access : 1;                                 //!< [1]
+    ULONG64 execute_access : 1;                               //!< [2]
+    ULONG64 memory_type : 3;                                  //!< [3:5]
+    ULONG64 ignore_pat_memory_type : 1;                       //!< [6]
+    ULONG64 ignored1 : 1;                                     //!< [7]
+    ULONG64 accessed : 1;                                     //!< [8]
+    ULONG64 written : 1;                                      //!< [9]
+    ULONG64 execute_access_for_user_mode_linear_address : 1;  //!< [10]
+    ULONG64 ignored2 : 1;                                     //!< [11]
+    ULONG64 physial_address : 36;                             //!< [12:48-1]
+    ULONG64 reserved1 : 4;                                    //!< [48:51]
+    ULONG64 Ignored3 : 11;                                    //!< [52:62]
+    ULONG64 suppress_ve : 1;                                  //!< [63]
   } fields;
 };
 static_assert(sizeof(EptPtEntry) == 8, "Size check");
@@ -1374,17 +1575,19 @@ static_assert(sizeof(EptPtEntry) == 8, "Size check");
 union EptViolationQualification {
   ULONG64 all;
   struct {
-    ULONG64 read_access : 1;                 //!< [0]
-    ULONG64 write_access : 1;                //!< [1]
-    ULONG64 execute_access : 1;              //!< [2]
-    ULONG64 ept_readable : 1;                //!< [3]
-    ULONG64 ept_writeable : 1;               //!< [4]
-    ULONG64 ept_executable : 1;              //!< [5]
-    ULONG64 reserved1 : 1;                   //!< [6]
-    ULONG64 valid_guest_linear_address : 1;  //!< [7]
-    ULONG64 caused_by_translation : 1;       //!< [8]
-    ULONG64 reserved2 : 3;                   //!< [9:11]
-    ULONG64 nmi_unblocking : 1;              //!< [12]
+    ULONG64 read_access : 1;                   //!< [0]
+    ULONG64 write_access : 1;                  //!< [1]
+    ULONG64 execute_access : 1;                //!< [2]
+    ULONG64 ept_readable : 1;                  //!< [3]
+    ULONG64 ept_writeable : 1;                 //!< [4]
+    ULONG64 ept_executable : 1;                //!< [5]
+    ULONG64 ept_executable_for_user_mode : 1;  //!< [6]
+    ULONG64 valid_guest_linear_address : 1;    //!< [7]
+    ULONG64 caused_by_translation : 1;         //!< [8]
+    ULONG64 user_mode_linear_address : 1;      //!< [9]
+    ULONG64 readable_writable_page : 1;        //!< [10]
+    ULONG64 execute_disable_page : 1;          //!< [11]
+    ULONG64 nmi_unblocking : 1;                //!< [12]
   } fields;
 };
 static_assert(sizeof(EptViolationQualification) == 8, "Size check");
@@ -1392,7 +1595,7 @@ static_assert(sizeof(EptViolationQualification) == 8, "Size check");
 /// See: INVEPT Descriptor
 struct InvEptDescriptor {
   EptPointer ept_pointer;
-  ULONG_PTR reserved1;
+  ULONG64 reserved1;
 };
 static_assert(sizeof(InvEptDescriptor) == 16, "Size check");
 
@@ -1400,6 +1603,23 @@ static_assert(sizeof(InvEptDescriptor) == 16, "Size check");
 enum class InvEptType : ULONG_PTR {
   kSingleContextInvalidation = 1,
   kGlobalInvalidation = 2,
+};
+
+/// See: INVVPID Descriptor
+struct InvVpidDescriptor {
+  USHORT vpid;
+  USHORT reserved1;
+  ULONG32 reserved2;
+  ULONG64 linear_address;
+};
+static_assert(sizeof(InvVpidDescriptor) == 16, "Size check");
+
+/// @copydoc InvVpidDescriptor
+enum class InvVpidType : ULONG_PTR {
+  kIndividualAddressInvalidation = 0,
+  kSingleContextInvalidation = 1,
+  kAllContextInvalidation = 2,
+  kSingleContextInvalidationExceptGlobal = 3,
 };
 
 /// See: Format of the VM-Exit Interruption-Information Field
@@ -1430,7 +1650,7 @@ union VmEntryInterruptionInformationField {
 static_assert(sizeof(VmEntryInterruptionInformationField) == 4, "Size check");
 
 /// @copydoc VmEntryInterruptionInformationField
-enum class interruption_type {
+enum class InterruptionType {
   kExternalInterrupt = 0,
   kReserved = 1,  // Not used for VM-Exit
   kNonMaskableInterrupt = 2,
@@ -1443,9 +1663,26 @@ enum class interruption_type {
 
 /// @copydoc VmEntryInterruptionInformationField
 enum class InterruptionVector {
-  kBreakpointException = 3,
-  kGeneralProtectionException = 13,
-  kPageFaultException = 14,
+  kDivideErrorException = 0,         //!< Error code: None
+  kDebugException = 1,               //!< Error code: None
+  kNmiInterrupt = 2,                 //!< Error code: N/A
+  kBreakpointException = 3,          //!< Error code: None
+  kOverflowException = 4,            //!< Error code: None
+  kBoundRangeExceededException = 5,  //!< Error code: None
+  kInvalidOpcodeException = 6,       //!< Error code: None
+  kDeviceNotAvailableException = 7,  //!< Error code: None
+  kDoubleFaultException = 8,         //!< Error code: Yes
+  kCoprocessorSegmentOverrun = 9,    //!< Error code: None
+  kInvalidTssException = 10,         //!< Error code: Yes
+  kSegmentNotPresent = 11,           //!< Error code: Yes
+  kStackFaultException = 12,         //!< Error code: Yes
+  kGeneralProtectionException = 13,  //!< Error code: Yes
+  kPageFaultException = 14,          //!< Error code: Yes
+  kx87FpuFloatingPointError = 16,    //!< Error code: None
+  kAlignmentCheckException = 17,     //!< Error code: Yes
+  kMachineCheckException = 18,       //!< Error code: None
+  kSimdFloatingPointException = 19,  //!< Error code: None
+  kVirtualizationException = 20,     //!< Error code: None
 };
 
 /// Provides << operator for VmEntryInterruptionInformationField

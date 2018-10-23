@@ -41,23 +41,28 @@ especially those who are familiar with Windows. For instance:
   a relaxed license.
 
 For more details, see the HyperPlatform User Document and Programmer's Reference.
-- http://tandasat.github.io/HyperPlatform/userdocument/
-- http://tandasat.github.io/HyperPlatform/doxygen/
+- https://tandasat.github.io/HyperPlatform/userdocument/
+- https://tandasat.github.io/HyperPlatform/doxygen/
 
 
 Build
 ------
 To build HyperPlatform, the following are required.
-- Visual Studio Community 2015 Update 3
- - https://www.visualstudio.com/en-us/news/vs2015-update1-vs.aspx
-- Windows Software Development Kit (SDK) for Windows 10
- - https://dev.windows.com/en-us/downloads/windows-10-sdk
-- Windows Driver Kit (WDK) 10
- - https://msdn.microsoft.com/en-us/windows/hardware/hh852365.aspx
+- Visual Studio Community 2017 (15.5 or later)
+ - https://www.visualstudio.com/downloads/
+- Windows Software Development Kit (SDK) for Windows 10 (10.0.10586.0 or later)
+ - https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk
+- Windows Driver Kit (WDK) 10 (10.0.10586.0 or later)
+ - https://developer.microsoft.com/en-us/windows/hardware/windows-driver-kit
 
 
 Installation and Uninstallation
 --------------------------------
+Clone full source code from Github with a below command and compile it on Visual
+Studio.
+
+    $ git clone --recursive https://github.com/tandasat/HyperPlatform.git
+
 On the x64 platform, you have to enable test signing to install the driver.
 To do that, open the command prompt with the administrator privilege and type
 the following command, and then restart the system to activate the change:
@@ -69,19 +74,30 @@ To install and uninstall the driver, use the 'sc' command. For installation:
     >sc create HyperPlatform type= kernel binPath= C:\Users\user\Desktop\HyperPlatform.sys
     >sc start HyperPlatform
 
+Note that the system must support the Intel VT-x and EPT technology to
+successfully install the driver. On Windows 10 RS4+ systems, this technology
+can automatically be disabled by the Windows kernel which results in the
+following error.
+
+    >sc start HyperPlatform
+    [SC] StartService FAILED 3224698910:
+
+    A hypervisor feature is not available to the user.
+
+This is due to Windows Defender Credential Guard being enabled by default.
+To disable Windows Defender Credential Guard and enable the virtualization
+technology for HyperPlatform, follow this instruction.
+- https://docs.microsoft.com/en-us/windows/security/identity-protection/credential-guard/credential-guard-manage
+
 For uninstallation:
 
     >sc stop HyperPlatform
     >sc delete HyperPlatform
     >bcdedit /deletevalue testsigning
 
-
-Note that the system must support the Intel VT-x and EPT technology to
-successfully install the driver.
-
 To install the driver on a virtual machine on VMware Workstation, see an "Using
 VMware Workstation" section in the HyperPlatform User Document.
-- http://tandasat.github.io/HyperPlatform/userdocument/
+- https://tandasat.github.io/HyperPlatform/userdocument/
 
 
 Output
@@ -100,27 +116,34 @@ Related Project(s)
 - SimpleVisor
  - http://ionescu007.github.io/SimpleVisor/
 
-SimpleVisor is a very (very) simple and readable Windows-specific hypervisor made
-up of only 1700 lines of code. I would recommend taking a look at the project to 
-learn VT-x if you are new to hypervisor development. It should give you a clearer 
-view of how a hypervisor is initialized and executed.
+SimpleVisor is a very (very) simple and readable Windows-specific hypervisor. I
+recommend taking a look at the project to learn VT-x if you are new to hypervisor
+development. It should give you a clearer view of how a hypervisor is initialized
+and executed.
+
+- hvpp
+ - https://github.com/wbenny/hvpp
+hvpp is a lightweight Intel x64/VT-x hypervisor written in C++. This is about the
+same size as HyperPlatform in LOC yet written in a more polished matter with focus
+on x64, making the entire code base more readable. This project also addresses
+some issues remain unresolved in HyperPlatform and comes with educational comments
+and demonstration code to learn VT-x in more depth. Unless you are allergic to C++
+or looking for x86 support, I strongly encourage you to study this project too.
 
 - ksm
  - https://github.com/asamy/ksm
 
-ksm is other simple and lightweight x64 hypervisor written in C for Windows for 
-Intel processors. It is just a half size of HyperPlatform in lines of code while
-demonstrating usage of EPT, as well as #VE and VMFUNC where HyperPlatform does
-not include.
+ksm is lightweight-ish x64 hypervisor written in C for Windows for Intel
+processors. It demonstrates some advanced VT-x features like #VE and VMFUNC where
+HyperPlatform does not include.
 
 - Bareflank Hypervisor
  - http://bareflank.github.io/hypervisor/
 
-Bareflank Hypervisor is an actively developed open source, lightweight hypervisor. 
-It comes with rich documents, tests, and comments, supports Linux on Intel 64bit, 
-and also aims to support Windows, OS X, and UEFI as well as ARM and AMD platforms.
-While a size of code is larger than that of HyperPlatform, ones look for a more 
-complihensive yet still lightweight hypervisor will find it interesting.
+Bareflank Hypervisor is an actively developed open source hypervisor. It comes
+with rich documents, tests, and comments, supports multiple platforms. The size
+of code is larger than that of HyperPlatform, but you will find it interesting if
+you are looking for more comprehensive yet still lightweight-ish hypervisors.
 
 
 License

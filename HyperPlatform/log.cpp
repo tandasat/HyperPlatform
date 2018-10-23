@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2016, tandasat. All rights reserved.
+// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -8,6 +8,9 @@
 #include "log.h"
 #define NTSTRSAFE_NO_CB_FUNCTIONS
 #include <ntstrsafe.h>
+
+// See common.h for details
+#pragma prefast(disable : 30030)
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
@@ -85,26 +88,27 @@ static DRIVER_REINITIALIZE LogpReinitializationRoutine;
 _IRQL_requires_max_(PASSIVE_LEVEL) static void LogpFinalizeBufferInfo(
     _In_ LogBufferInfo *info);
 
-static NTSTATUS LogpMakePrefix(_In_ ULONG level, _In_ const char *function_name,
-                               _In_ const char *log_message,
+static NTSTATUS LogpMakePrefix(_In_ ULONG level,
+                               _In_z_ const char *function_name,
+                               _In_z_ const char *log_message,
                                _Out_ char *log_buffer,
                                _In_ SIZE_T log_buffer_length);
 
-static const char *LogpFindBaseFunctionName(_In_ const char *function_name);
+static const char *LogpFindBaseFunctionName(_In_z_ const char *function_name);
 
-static NTSTATUS LogpPut(_In_ char *message, _In_ ULONG attribute);
+static NTSTATUS LogpPut(_In_z_ char *message, _In_ ULONG attribute);
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     LogpFlushLogBuffer(_Inout_ LogBufferInfo *info);
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
-    LogpWriteMessageToFile(_In_ const char *message,
+    LogpWriteMessageToFile(_In_z_ const char *message,
                            _In_ const LogBufferInfo &info);
 
-static NTSTATUS LogpBufferMessage(_In_ const char *message,
+static NTSTATUS LogpBufferMessage(_In_z_ const char *message,
                                   _Inout_ LogBufferInfo *info);
 
-static void LogpDoDbgPrint(_In_ char *message);
+static void LogpDoDbgPrint(_In_z_ char *message);
 
 static bool LogpIsLogFileEnabled(_In_ const LogBufferInfo &info);
 
@@ -112,14 +116,16 @@ static bool LogpIsLogFileActivated(_In_ const LogBufferInfo &info);
 
 static bool LogpIsLogNeeded(_In_ ULONG level);
 
+static bool LogpIsDbgPrintNeeded();
+
 static KSTART_ROUTINE LogpBufferFlushThreadRoutine;
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static NTSTATUS
     LogpSleep(_In_ LONG millisecond);
 
-static void LogpSetPrintedBit(_In_ char *message, _In_ bool on);
+static void LogpSetPrintedBit(_In_z_ char *message, _In_ bool on);
 
-static bool LogpIsPrinted(_In_ char *message);
+static bool LogpIsPrinted(_In_z_ char *message);
 
 static void LogpDbgBreak();
 
@@ -249,7 +255,7 @@ _Use_decl_annotations_ static NTSTATUS LogpInitializeBufferInfo(
   return status;
 }
 
-// Initializes a log file and startes a log buffer thread.
+// Initializes a log file and starts a log buffer thread.
 _Use_decl_annotations_ static NTSTATUS LogpInitializeLogFile(
     LogBufferInfo *info) {
   PAGED_CODE();
@@ -288,7 +294,7 @@ _Use_decl_annotations_ static NTSTATUS LogpInitializeLogFile(
     return status;
   }
 
-  // Wait until the thead has started
+  // Wait until the thread has started
   while (!info->buffer_flush_thread_started) {
     LogpSleep(100);
   }
@@ -311,6 +317,7 @@ _Use_decl_annotations_ VOID static LogpReinitializationRoutine(
   UNREFERENCED_PARAMETER(driver_object);
   UNREFERENCED_PARAMETER(count);
   NT_ASSERT(context);
+  _Analysis_assume_(context);
 
   auto info = reinterpret_cast<LogBufferInfo *>(context);
   auto status = LogpInitializeLogFile(info);
@@ -324,8 +331,9 @@ _Use_decl_annotations_ VOID static LogpReinitializationRoutine(
 _Use_decl_annotations_ void LogIrpShutdownHandler() {
   PAGED_CODE();
 
-  HYPERPLATFORM_LOG_DEBUG("Flushing... (Max log usage = %08x bytes)",
-                          g_logp_log_buffer_info.log_max_usage);
+  HYPERPLATFORM_LOG_DEBUG("Flushing... (Max log usage = %Iu/%lu bytes)",
+                          g_logp_log_buffer_info.log_max_usage,
+                          kLogpBufferSize);
   HYPERPLATFORM_LOG_INFO("Bye!");
   g_logp_debug_flag = kLogPutLevelDisable;
 
@@ -340,8 +348,9 @@ _Use_decl_annotations_ void LogIrpShutdownHandler() {
 _Use_decl_annotations_ void LogTermination() {
   PAGED_CODE();
 
-  HYPERPLATFORM_LOG_DEBUG("Finalizing... (Max log usage = %08x bytes)",
-                          g_logp_log_buffer_info.log_max_usage);
+  HYPERPLATFORM_LOG_DEBUG("Finalizing... (Max log usage = %Iu/%lu bytes)",
+                          g_logp_log_buffer_info.log_max_usage,
+                          kLogpBufferSize);
   HYPERPLATFORM_LOG_INFO("Bye!");
   g_logp_debug_flag = kLogPutLevelDisable;
   LogpFinalizeBufferInfo(&g_logp_log_buffer_info);
@@ -466,7 +475,7 @@ _Use_decl_annotations_ static NTSTATUS LogpMakePrefix(
     RtlTimeToTimeFields(&local_time, &time_fields);
 
     status = RtlStringCchPrintfA(time_buffer, RTL_NUMBER_OF(time_buffer),
-                                 "%02u:%02u:%02u.%03u\t", time_fields.Hour,
+                                 "%02hd:%02hd:%02hd.%03hd\t", time_fields.Hour,
                                  time_fields.Minute, time_fields.Second,
                                  time_fields.Milliseconds);
     if (!NT_SUCCESS(status)) {
@@ -553,7 +562,7 @@ _Use_decl_annotations_ static NTSTATUS LogpPut(char *message, ULONG attribute) {
       }
 #pragma warning(pop)
     } else {
-      // No, it cannot. Set the prited bit if needed, and then buffer it.
+      // No, it cannot. Set the printed bit if needed, and then buffer it.
       if (do_DbgPrint) {
         LogpSetPrintedBit(message, true);
       }
@@ -569,7 +578,7 @@ _Use_decl_annotations_ static NTSTATUS LogpPut(char *message, ULONG attribute) {
   return status;
 }
 
-// Switchs the current log buffer, saves the contents of old buffer to the log
+// Switches the current log buffer, saves the contents of old buffer to the log
 // file, and prints them out as necessary. This function does not flush the log
 // file, so code should call LogpWriteMessageToFile() or ZwFlushBuffersFile()
 // later.
@@ -588,13 +597,11 @@ _Use_decl_annotations_ static NTSTATUS LogpFlushLogBuffer(LogBufferInfo *info) {
   KLOCK_QUEUE_HANDLE lock_handle = {};
   KeAcquireInStackQueuedSpinLock(&info->spin_lock, &lock_handle);
   const auto old_log_buffer = const_cast<char *>(info->log_buffer_head);
-  if (old_log_buffer[0]) {
-    info->log_buffer_head = (old_log_buffer == info->log_buffer1)
-                                ? info->log_buffer2
-                                : info->log_buffer1;
-    info->log_buffer_head[0] = '\0';
-    info->log_buffer_tail = info->log_buffer_head;
-  }
+  info->log_buffer_head = (old_log_buffer == info->log_buffer1)
+                              ? info->log_buffer2
+                              : info->log_buffer1;
+  info->log_buffer_head[0] = '\0';
+  info->log_buffer_tail = info->log_buffer_head;
   KeReleaseInStackQueuedSpinLock(&lock_handle);
 
   // Write all log entries in old log buffer.
@@ -693,10 +700,13 @@ _Use_decl_annotations_ static NTSTATUS LogpBufferMessage(const char *message,
 
 // Calls DbgPrintEx() while converting \r\n to \n\0
 _Use_decl_annotations_ static void LogpDoDbgPrint(char *message) {
+  if (!LogpIsDbgPrintNeeded()) {
+    return;
+  }
   const auto location_of_cr = strlen(message) - 2;
   message[location_of_cr] = '\n';
   message[location_of_cr + 1] = '\0';
-  DbgPrintEx(DPFLTR_DEFAULT_ID, DPFLTR_ERROR_LEVEL, "%s", message);
+  DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "%s", message);
 }
 
 // Returns true when a log file is enabled.
@@ -731,6 +741,11 @@ _Use_decl_annotations_ static bool LogpIsLogFileActivated(
 // a set log level.
 _Use_decl_annotations_ static bool LogpIsLogNeeded(ULONG level) {
   return !!(g_logp_debug_flag & level);
+}
+
+// Returns true when DbgPrint is requested
+/*_Use_decl_annotations_*/ static bool LogpIsDbgPrintNeeded() {
+  return (g_logp_debug_flag & kLogOptDisableDbgPrint) == 0;
 }
 
 // A thread runs as long as info.buffer_flush_thread_should_be_alive is true and
@@ -793,8 +808,8 @@ _Use_decl_annotations_ static bool LogpIsPrinted(char *message) {
 // Provides an implementation of _vsnprintf as it fails to link when a include
 // directory setting is modified for using STL
 _Success_(return >= 0) _Check_return_opt_ int __cdecl __stdio_common_vsprintf(
-    _In_ unsigned __int64 _Options, _Out_writes_z_(_BufferCount) char *_Buffer,
-    _In_ size_t _BufferCount,
+    _In_ unsigned __int64 _Options,
+    _Out_writes_opt_z_(_BufferCount) char *_Buffer, _In_ size_t _BufferCount,
     _In_z_ _Printf_format_string_params_(2) char const *_Format,
     _In_opt_ _locale_t _Locale, va_list _ArgList) {
   UNREFERENCED_PARAMETER(_Options);
@@ -816,7 +831,7 @@ _Success_(return >= 0) _Check_return_opt_ int __cdecl __stdio_common_vsprintf(
 // directory setting is modified for using STL
 _Success_(return >= 0) _Check_return_opt_ int __cdecl __stdio_common_vswprintf(
     _In_ unsigned __int64 _Options,
-    _Out_writes_z_(_BufferCount) wchar_t *_Buffer, _In_ size_t _BufferCount,
+    _Out_writes_opt_z_(_BufferCount) wchar_t *_Buffer, _In_ size_t _BufferCount,
     _In_z_ _Printf_format_string_params_(2) wchar_t const *_Format,
     _In_opt_ _locale_t _Locale, va_list _ArgList) {
   UNREFERENCED_PARAMETER(_Options);

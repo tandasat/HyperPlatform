@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2016, tandasat. All rights reserved.
+// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -53,10 +53,6 @@ unsigned char __stdcall AsmVmxCall(_In_ ULONG_PTR hypercall_number,
 /// Writes to GDT
 /// @param gdtr   A value to write
 void __stdcall AsmWriteGDT(_In_ const Gdtr *gdtr);
-
-/// Reads SGDT
-/// @param gdtr   A pointer to read GDTR
-void __stdcall AsmReadGDT(_Out_ Gdtr *gdtr);
 
 /// Reads SLDT
 /// @return LDT
@@ -138,6 +134,14 @@ unsigned char __stdcall AsmInvept(
     _In_ InvEptType invept_type,
     _In_ const InvEptDescriptor *invept_descriptor);
 
+/// Invalidate translations based on VPID
+/// @param invvpid_type  A type of invalidation
+/// @param invvpid_descriptor  A description of translations to invalidate
+/// @return 0 on success, 1 w/ an error code or 2 w/o an error code on failure
+unsigned char __stdcall AsmInvvpid(
+    _In_ InvVpidType invvpid_type,
+    _In_ const InvVpidDescriptor *invvpid_descriptor);
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // variables
@@ -150,7 +154,7 @@ unsigned char __stdcall AsmInvept(
 
 /// Writes to GDT
 /// @param gdtr   A value to write
-inline void __sgdt(_Out_ void *gdtr) { AsmReadGDT(static_cast<Gdtr *>(gdtr)); }
+void _sgdt(_Out_ void *gdtr);
 
 /// Reads SGDT
 /// @param gdtr   A pointer to read GDTR

@@ -1,9 +1,9 @@
-// Copyright (c) 2015-2016, tandasat. All rights reserved.
+// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
 /// @file
-/// Declares interfaces to performance mesurement primitives.
+/// Declares interfaces to performance measurement primitives.
 ///
 /// @warning
 /// All exposed interfaces but #HYPERPLATFORM_PERFCOUNTER_MEASURE_TIME are meant
@@ -43,16 +43,16 @@
 /// @param query_time_routine   A function pointer to get an elapsed time
 /// @see HYPERPLATFORM_PERFCOUNTER_MEASURE_TIME
 ///
-/// This macro should not be used directly. Instaed use
+/// This macro should not be used directly. Instead use
 /// #HYPERPLATFORM_PERFCOUNTER_MEASURE_TIME.
 ///
 /// This macro creates an instance of PerfCounter named perf_obj_N where N is
-/// a sequencial number starting at 0. A current function name and a souce line
+/// a sequential number starting at 0. A current function name and a source line
 /// number are converted into a string literal and passed to the instance to
-/// uniequly identify a location of measurement. The instance gets "counters" in
-//  its constructor and destructor with \a query_time_routine, caluculates an
+/// uniquely identify a location of measurement. The instance gets "counters" in
+//  its constructor and destructor with \a query_time_routine, calculates an
 /// elapsed time and passes it to \a collector as well as the created string
-/// literal. In psudo code, for example:
+/// literal. In pseudo code, for example:
 ///
 /// @code{.cpp}
 /// Hello.cpp:233 | {
@@ -73,11 +73,11 @@
 /// @endcode
 ///
 /// @warning
-/// Do not use this macro in where going to be unavaialable at the time of a
+/// Do not use this macro in where going to be unavailable at the time of a
 /// call of PerfCollector::Terminate(). This causes access violation because
 /// this macro builds a string literal in a used section, and the string is
 /// referenced in the PerfCollector::Terminate(), while it is no longer
-/// accessible if the section is already destroyed. In otherwords, do not use
+/// accessible if the section is already destroyed. In other words, do not use
 /// it in any functions in the INIT section.
 #define HYPERPLATFORM_PERFCOUNTER_MEASURE_TIME(collector, query_time_routine) \
   const PerfCounter HYPERPLATFORM_PERFCOUNTER_P_JOIN(perf_obj_, __COUNTER__)( \
@@ -157,7 +157,7 @@ class PerfCollector {
     memset(data_, 0, sizeof(data_));
   }
 
-  /// Destructor; prints out accumerated performance results.
+  /// Destructor; prints out accumulated performance results.
   void Terminate() {
     if (data_[0].key) {
       initial_output_routine_(output_context_);
@@ -198,13 +198,13 @@ class PerfCollector {
   struct PerfDataEntry {
     const char* key;                //!< Identifies a subject matter location
     ULONG64 total_execution_count;  //!< How many times executed
-    ULONG64 total_elapsed_time;     //!< An accumrated elapsed time
+    ULONG64 total_elapsed_time;     //!< An accumulated elapsed time
   };
 
   /// Scoped lock
   class ScopedLock {
    public:
-    /// Accquires a lock using \a lock_routine.
+    /// Acquires a lock using \a lock_routine.
     /// @param lock_routine  A function pointer for acquiring a lock
     /// @param leave_routine A function pointer for releasing a lock
     /// @param lock_context  An arbitrary parameter for \a lock_enter_routine
@@ -247,7 +247,7 @@ class PerfCollector {
   /// room to add a new entry.
   ULONG GetPerfDataIndex(_In_ const char* key) {
     if (!key) {
-      return false;
+      return kInvalidDataIndex;
     }
 
     for (auto i = 0ul; i < kMaxNumberOfDataEntries; i++) {
@@ -278,7 +278,7 @@ class PerfCounter {
  public:
   using QueryTimeRoutine = ULONG64();
 
-  /// Gets the current timeusing \a query_time_routine.
+  /// Gets the current time using \a query_time_routine.
   /// @param collector  PerfCollector instance to store performance data
   /// @param query_time_routine  A function pointer for getting times
   /// @param location_name  A function name where being measured
@@ -302,7 +302,7 @@ class PerfCounter {
   }
 
  private:
-  /// Gets the current tiem using the RDTSC instruction
+  /// Gets the current time using the RDTSC instruction
   /// @return the current time
   static ULONG64 RdTsc() { return __rdtsc(); }
 

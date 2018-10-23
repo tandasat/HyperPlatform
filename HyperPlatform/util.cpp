@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2016, tandasat. All rights reserved.
+// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -24,7 +24,7 @@ extern "C" {
 
 // Use RtlPcToFileHeader if available. Using the API causes a broken font bug
 // on the 64 bit Windows 10 and should be avoided. This flag exist for only
-// futher investigation.
+// further investigation.
 static const auto kUtilpUseRtlPcToFileHeader = false;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -143,9 +143,9 @@ UtilInitialization(PDRIVER_OBJECT driver_object) {
   PAGED_CODE();
 
   auto status = UtilpInitializePageTableVariables();
-  HYPERPLATFORM_LOG_DEBUG("PXE at %p, PPE at %p, PDE at %p, PTE at %p",
-                          g_utilp_pxe_base, g_utilp_ppe_base, g_utilp_pde_base,
-                          g_utilp_pte_base);
+  HYPERPLATFORM_LOG_DEBUG(
+      "PXE at %016Ix, PPE at %016Ix, PDE at %016Ix, PTE at %016Ix",
+      g_utilp_pxe_base, g_utilp_ppe_base, g_utilp_pde_base, g_utilp_pte_base);
   if (!NT_SUCCESS(status)) {
     return status;
   }
@@ -194,7 +194,7 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
   // older than build 14316.
   if (!IsX64() || os_version.dwMajorVersion < 10 ||
       os_version.dwBuildNumber < 14316) {
-    if (IsX64()) {
+    if constexpr (IsX64()) {
       g_utilp_pxe_base = kUtilpPxeBase;
       g_utilp_ppe_base = kUtilpPpeBase;
       g_utilp_pxi_shift = kUtilpPxiShift;
@@ -240,7 +240,7 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
   }
 
   found += sizeof(kPatternWin10x64);
-  HYPERPLATFORM_LOG_DEBUG("Found a hard coded PTE_BASE at %p", found);
+  HYPERPLATFORM_LOG_DEBUG("Found a hard coded PTE_BASE at %016Ix", found);
 
   const auto pte_base = *reinterpret_cast<ULONG_PTR *>(found);
   const auto index = (pte_base >> kUtilpPxiShift) & kUtilpPxiMask;
@@ -258,10 +258,10 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
   g_utilp_pdi_shift = kUtilpPdiShift;
   g_utilp_pti_shift = kUtilpPtiShift;
 
-  g_utilp_pdi_mask = kUtilpPdiMask;
-  g_utilp_pti_mask = kUtilpPtiMask;
   g_utilp_pxi_mask = kUtilpPxiMask;
   g_utilp_ppi_mask = kUtilpPpiMask;
+  g_utilp_pdi_mask = kUtilpPdiMask;
+  g_utilp_pti_mask = kUtilpPtiMask;
   return status;
 }
 
@@ -291,7 +291,7 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializeRtlPcToFileHeader(
   return STATUS_SUCCESS;
 }
 
-// A fake RtlPcToFileHeader without accquireing PsLoadedModuleSpinLock. Thus, it
+// A fake RtlPcToFileHeader without acquiring PsLoadedModuleSpinLock. Thus, it
 // is unsafe and should be updated if we can locate PsLoadedModuleSpinLock.
 _Use_decl_annotations_ static PVOID NTAPI
 UtilpUnsafePcToFileHeader(PVOID pc_value, PVOID *base_of_image) {
@@ -462,6 +462,7 @@ UtilForEachProcessorDpc(PKDEFERRED_ROUTINE deferred_routine, void *context) {
       return STATUS_MEMORY_NOT_ALLOCATED;
     }
     KeInitializeDpc(dpc, deferred_routine, context);
+    KeSetImportanceDpc(dpc, HighImportance);
     status = KeSetTargetProcessorDpcEx(dpc, &processor_number);
     if (!NT_SUCCESS(status)) {
       ExFreePoolWithTag(dpc, kHyperPlatformCommonPoolTag);
@@ -472,7 +473,7 @@ UtilForEachProcessorDpc(PKDEFERRED_ROUTINE deferred_routine, void *context) {
   return STATUS_SUCCESS;
 }
 
-// Sleep the current thread's execution for Millisecond milli-seconds.
+// Sleep the current thread's execution for Millisecond milliseconds.
 _Use_decl_annotations_ NTSTATUS UtilSleep(LONG Millisecond) {
   PAGED_CODE();
 
@@ -512,14 +513,13 @@ _Use_decl_annotations_ void *UtilGetSystemProcAddress(
   return (!IsX64() && Cr4{__readcr4()}.fields.pae);
 }
 
-// Return true if the given address is accessible. It does not prevent a race
-// condition.
+// Return true if the given address is accessible.
 _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
   if (!UtilpIsCanonicalFormAddress(address)) {
     return false;
   }
 
-  if (IsX64()) {
+  if constexpr (IsX64()) {
     const auto pxe = UtilpAddressToPxe(address);
     const auto ppe = UtilpAddressToPpe(address);
     if (!pxe->valid || !ppe->valid) {
@@ -543,13 +543,15 @@ _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
 
 // Checks whether the address is the canonical address
 _Use_decl_annotations_ static bool UtilpIsCanonicalFormAddress(void *address) {
-  if (!IsX64()) {
+  if constexpr (!IsX64()) {
     return true;
+  } else {
+    return !UtilIsInBounds(0x0000800000000000ull, 0xffff7fffffffffffull,
+                           reinterpret_cast<ULONG64>(address));
   }
-  return !UtilIsInBounds(0x0000800000000000ull, 0xffff7fffffffffffull,
-                         reinterpret_cast<ULONG64>(address));
 }
 
+#if defined(_AMD64_)
 // Return an address of PXE
 _Use_decl_annotations_ static HardwarePte *UtilpAddressToPxe(
     const void *address) {
@@ -567,6 +569,7 @@ _Use_decl_annotations_ static HardwarePte *UtilpAddressToPpe(
   const auto offset = ppe_index * sizeof(HardwarePte);
   return reinterpret_cast<HardwarePte *>(g_utilp_ppe_base + offset);
 }
+#endif
 
 // Return an address of PDE
 _Use_decl_annotations_ static HardwarePte *UtilpAddressToPde(
@@ -611,7 +614,7 @@ _Use_decl_annotations_ void *UtilVaFromPa(ULONG64 pa) {
 
 // PNF -> PA
 _Use_decl_annotations_ ULONG64 UtilPaFromPfn(PFN_NUMBER pfn) {
-  return pfn << PAGE_SHIFT;
+  return static_cast<ULONG64>(pfn) << PAGE_SHIFT;
 }
 
 // PFN -> VA
@@ -648,18 +651,17 @@ _Use_decl_annotations_ void UtilFreeContiguousMemory(void *base_address) {
 // Executes VMCALL
 _Use_decl_annotations_ NTSTATUS UtilVmCall(HypercallNumber hypercall_number,
                                            void *context) {
-  EXCEPTION_POINTERS *exp_info = nullptr;
   __try {
     const auto vmx_status = static_cast<VmxStatus>(
         AsmVmxCall(static_cast<ULONG>(hypercall_number), context));
     return (vmx_status == VmxStatus::kOk) ? STATUS_SUCCESS
                                           : STATUS_UNSUCCESSFUL;
-  } __except (exp_info = GetExceptionInformation(), EXCEPTION_EXECUTE_HANDLER) {
+
+#pragma prefast(suppress : __WARNING_EXCEPTIONEXECUTEHANDLER, "Catch all.");
+  } __except (EXCEPTION_EXECUTE_HANDLER) {
     const auto status = GetExceptionCode();
     HYPERPLATFORM_COMMON_DBG_BREAK();
-    HYPERPLATFORM_LOG_WARN_SAFE("Exception %08x at %p",
-                                exp_info->ExceptionRecord->ExceptionCode,
-                                exp_info->ExceptionRecord->ExceptionAddress);
+    HYPERPLATFORM_LOG_WARN_SAFE("Exception thrown (code %08x)", status);
     return status;
   }
 }
@@ -675,12 +677,12 @@ _Use_decl_annotations_ void UtilDumpGpRegisters(const AllRegisters *all_regs,
 #if defined(_AMD64_)
   HYPERPLATFORM_LOG_DEBUG_SAFE(
       "Context at %p: "
-      "rax= %p rbx= %p rcx= %p "
-      "rdx= %p rsi= %p rdi= %p "
-      "rsp= %p rbp= %p "
-      " r8= %p  r9= %p r10= %p "
-      "r11= %p r12= %p r13= %p "
-      "r14= %p r15= %p efl= %08x",
+      "rax= %016Ix rbx= %016Ix rcx= %016Ix "
+      "rdx= %016Ix rsi= %016Ix rdi= %016Ix "
+      "rsp= %016Ix rbp= %016Ix "
+      " r8= %016Ix  r9= %016Ix r10= %016Ix "
+      "r11= %016Ix r12= %016Ix r13= %016Ix "
+      "r14= %016Ix r15= %016Ix efl= %08Ix",
       _ReturnAddress(), all_regs->gp.ax, all_regs->gp.bx, all_regs->gp.cx,
       all_regs->gp.dx, all_regs->gp.si, all_regs->gp.di, stack_pointer,
       all_regs->gp.bp, all_regs->gp.r8, all_regs->gp.r9, all_regs->gp.r10,
@@ -689,9 +691,9 @@ _Use_decl_annotations_ void UtilDumpGpRegisters(const AllRegisters *all_regs,
 #else
   HYPERPLATFORM_LOG_DEBUG_SAFE(
       "Context at %p: "
-      "eax= %p ebx= %p ecx= %p "
-      "edx= %p esi= %p edi= %p "
-      "esp= %p ebp= %p efl= %08x",
+      "eax= %08Ix ebx= %08Ix ecx= %08Ix "
+      "edx= %08Ix esi= %08Ix edi= %08Ix "
+      "esp= %08Ix ebp= %08Ix efl= %08x",
       _ReturnAddress(), all_regs->gp.ax, all_regs->gp.bx, all_regs->gp.cx,
       all_regs->gp.dx, all_regs->gp.si, all_regs->gp.di, stack_pointer,
       all_regs->gp.bp, all_regs->flags.all);
@@ -708,9 +710,9 @@ _Use_decl_annotations_ ULONG_PTR UtilVmRead(VmcsField field) {
   const auto vmx_status = static_cast<VmxStatus>(
       __vmx_vmread(static_cast<size_t>(field), &field_value));
   if (vmx_status != VmxStatus::kOk) {
-    HYPERPLATFORM_LOG_ERROR_SAFE("__vmx_vmread(0x%08x) failed with an error %d",
-                                 field, vmx_status);
-    HYPERPLATFORM_COMMON_DBG_BREAK();
+    HYPERPLATFORM_COMMON_BUG_CHECK(
+        HyperPlatformBugCheck::kCriticalVmxInstructionFailure,
+        static_cast<ULONG_PTR>(vmx_status), static_cast<ULONG_PTR>(field), 0);
   }
   return field_value;
 }
@@ -721,8 +723,10 @@ _Use_decl_annotations_ ULONG64 UtilVmRead64(VmcsField field) {
   return UtilVmRead(field);
 #else
   // Only 64bit fields should be given on x86 because it access field + 1 too.
+  // Also, the field must be even number.
   NT_ASSERT(UtilIsInBounds(field, VmcsField::kIoBitmapA,
                            VmcsField::kHostIa32PerfGlobalCtrlHigh));
+  NT_ASSERT((static_cast<ULONG>(field) % 2) == 0);
 
   ULARGE_INTEGER value64 = {};
   value64.LowPart = UtilVmRead(field);
@@ -735,14 +739,8 @@ _Use_decl_annotations_ ULONG64 UtilVmRead64(VmcsField field) {
 // Writes natural-width VMCS
 _Use_decl_annotations_ VmxStatus UtilVmWrite(VmcsField field,
                                              ULONG_PTR field_value) {
-  const auto vmx_status = static_cast<VmxStatus>(
+  return static_cast<VmxStatus>(
       __vmx_vmwrite(static_cast<size_t>(field), field_value));
-  if (vmx_status != VmxStatus::kOk) {
-    HYPERPLATFORM_LOG_ERROR_SAFE(
-        "__vmx_vmwrite(0x%08x) failed with an error %d", field, vmx_status);
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-  }
-  return vmx_status;
 }
 
 // Writes 64bit-width VMCS
@@ -752,8 +750,10 @@ _Use_decl_annotations_ VmxStatus UtilVmWrite64(VmcsField field,
   return UtilVmWrite(field, field_value);
 #else
   // Only 64bit fields should be given on x86 because it access field + 1 too.
+  // Also, the field must be even number.
   NT_ASSERT(UtilIsInBounds(field, VmcsField::kIoBitmapA,
                            VmcsField::kHostIa32PerfGlobalCtrlHigh));
+  NT_ASSERT((static_cast<ULONG>(field) % 2) == 0);
 
   ULARGE_INTEGER value64 = {};
   value64.QuadPart = field_value;
@@ -787,16 +787,44 @@ _Use_decl_annotations_ void UtilWriteMsr64(Msr msr, ULONG64 value) {
 }
 
 // Executes the INVEPT instruction and invalidates EPT entry cache
-/*_Use_decl_annotations_*/ VmxStatus UtilInveptAll() {
+/*_Use_decl_annotations_*/ VmxStatus UtilInveptGlobal() {
   InvEptDescriptor desc = {};
-  const auto vmx_status =
-      static_cast<VmxStatus>(AsmInvept(InvEptType::kGlobalInvalidation, &desc));
-  if (vmx_status != VmxStatus::kOk) {
-    HYPERPLATFORM_LOG_ERROR_SAFE(
-        "UtilInveptAll(Global) failed with an error %d", vmx_status);
-    HYPERPLATFORM_COMMON_DBG_BREAK();
-  }
-  return vmx_status;
+  return static_cast<VmxStatus>(
+      AsmInvept(InvEptType::kGlobalInvalidation, &desc));
+}
+
+// Executes the INVVPID instruction (type 0)
+_Use_decl_annotations_ VmxStatus UtilInvvpidIndividualAddress(USHORT vpid,
+                                                              void *address) {
+  InvVpidDescriptor desc = {};
+  desc.vpid = vpid;
+  desc.linear_address = reinterpret_cast<ULONG64>(address);
+  return static_cast<VmxStatus>(
+      AsmInvvpid(InvVpidType::kIndividualAddressInvalidation, &desc));
+}
+
+// Executes the INVVPID instruction (type 1)
+_Use_decl_annotations_ VmxStatus UtilInvvpidSingleContext(USHORT vpid) {
+  InvVpidDescriptor desc = {};
+  desc.vpid = vpid;
+  return static_cast<VmxStatus>(
+      AsmInvvpid(InvVpidType::kSingleContextInvalidation, &desc));
+}
+
+// Executes the INVVPID instruction (type 2)
+/*_Use_decl_annotations_*/ VmxStatus UtilInvvpidAllContext() {
+  InvVpidDescriptor desc = {};
+  return static_cast<VmxStatus>(
+      AsmInvvpid(InvVpidType::kAllContextInvalidation, &desc));
+}
+
+// Executes the INVVPID instruction (type 3)
+_Use_decl_annotations_ VmxStatus
+UtilInvvpidSingleContextExceptGlobal(USHORT vpid) {
+  InvVpidDescriptor desc = {};
+  desc.vpid = vpid;
+  return static_cast<VmxStatus>(
+      AsmInvvpid(InvVpidType::kSingleContextInvalidationExceptGlobal, &desc));
 }
 
 // Loads the PDPTE registers from CR3 to VMCS
@@ -806,7 +834,7 @@ _Use_decl_annotations_ void UtilLoadPdptes(ULONG_PTR cr3_value) {
   // Have to load cr3 to make UtilPfnFromVa() work properly.
   __writecr3(cr3_value);
 
-  // Gets PDPTEs fomr CR3
+  // Gets PDPTEs form CR3
   PdptrRegister pd_pointers[4] = {};
   for (auto i = 0ul; i < 4; ++i) {
     const auto pd_addr = g_utilp_pde_base + i * PAGE_SIZE;

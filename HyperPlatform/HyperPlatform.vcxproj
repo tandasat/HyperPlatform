@@ -18,9 +18,6 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <Inf Include="HyperPlatform.inf" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{4C048BB2-7E8D-43BF-B29D-942461275023}</ProjectGuid>
     <TemplateGuid>{497e31cb-056b-4f31-abb8-447fd55ee5a5}</TemplateGuid>
@@ -73,21 +70,33 @@
   <PropertyGroup />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <CodeAnalysisRuleSet>HyperPlatform.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <CodeAnalysisRuleSet>HyperPlatform.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <CodeAnalysisRuleSet>HyperPlatform.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <CodeAnalysisRuleSet>HyperPlatform.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WppRecorderEnabled>true</WppRecorderEnabled>
       <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
       <WppKernelMode>true</WppKernelMode>
+      <SupportJustMyCode>false</SupportJustMyCode>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>5040;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link />
   </ItemDefinitionGroup>
@@ -96,6 +105,9 @@
       <WppRecorderEnabled>true</WppRecorderEnabled>
       <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
       <WppKernelMode>true</WppKernelMode>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>5040;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link />
   </ItemDefinitionGroup>
@@ -104,6 +116,10 @@
       <WppRecorderEnabled>true</WppRecorderEnabled>
       <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
       <WppKernelMode>true</WppKernelMode>
+      <SupportJustMyCode>false</SupportJustMyCode>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>5040;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link />
   </ItemDefinitionGroup>
@@ -112,6 +128,9 @@
       <WppRecorderEnabled>true</WppRecorderEnabled>
       <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
       <WppKernelMode>true</WppKernelMode>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>5040;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link />
   </ItemDefinitionGroup>
@@ -121,10 +140,12 @@
   <ItemGroup>
     <ClCompile Include="driver.cpp" />
     <ClCompile Include="ept.cpp" />
+    <ClCompile Include="global_object.cpp" />
+    <ClCompile Include="hotplug_callback.cpp" />
     <ClCompile Include="kernel_stl.cpp" />
     <ClCompile Include="log.cpp" />
     <ClCompile Include="performance.cpp" />
-    <ClCompile Include="powercallback.cpp" />
+    <ClCompile Include="power_callback.cpp" />
     <ClCompile Include="util.cpp" />
     <ClCompile Include="vm.cpp" />
     <ClCompile Include="vmm.cpp" />
@@ -134,12 +155,13 @@
     <ClInclude Include="common.h" />
     <ClInclude Include="driver.h" />
     <ClInclude Include="ept.h" />
+    <ClInclude Include="global_object.h" />
+    <ClInclude Include="hotplug_callback.h" />
     <ClInclude Include="ia32_type.h" />
-    <ClInclude Include="kernel_stl.h" />
     <ClInclude Include="log.h" />
     <ClInclude Include="performance.h" />
     <ClInclude Include="perf_counter.h" />
-    <ClInclude Include="powercallback.h" />
+    <ClInclude Include="power_callback.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="util_page_constants.h" />
     <ClInclude Include="vm.h" />
@@ -156,6 +178,12 @@
       <UseSafeExceptionHandlers Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</UseSafeExceptionHandlers>
       <UseSafeExceptionHandlers Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</UseSafeExceptionHandlers>
     </MASM>
+  </ItemGroup>
+  <ItemGroup>
+    <Inf Include="HyperPlatform.inf" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="HyperPlatform.ruleset" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

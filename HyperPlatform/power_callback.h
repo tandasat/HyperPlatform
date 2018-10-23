@@ -1,12 +1,12 @@
-// Copyright (c) 2015-2016, tandasat. All rights reserved.
+// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
 /// @file
 /// @brief Declares interfaces to power functions.
 
-#ifndef HYPERPLATFORM_POWERCALLBACK_H_
-#define HYPERPLATFORM_POWERCALLBACK_H_
+#ifndef HYPERPLATFORM_POWER_CALLBACK_H_
+#define HYPERPLATFORM_POWER_CALLBACK_H_
 
 #include <fltKernel.h>
 
@@ -47,4 +47,4 @@ _IRQL_requires_max_(PASSIVE_LEVEL) void PowerCallbackTermination();
 
 }  // extern "C"
 
-#endif  // HYPERPLATFORM_POWERCALLBACK_H_
+#endif  // HYPERPLATFORM_POWER_CALLBACK_H_
