@@ -112,6 +112,34 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void __cdecl operator delete(
   }
 }
 
+// overload new[] and delete[] operator
+_IRQL_requires_max_(DISPATCH_LEVEL) void *__cdecl operator new[](
+  _In_ size_t size) {
+  if (size == 0) {
+    size = 1;
+  }
+
+  const auto p = ExAllocatePoolWithTag(NonPagedPool, size, kKstlpPoolTag);
+  if (!p) {
+    KernelStlpRaiseException(MUST_SUCCEED_POOL_EMPTY);
+  }
+  return p;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL) void __cdecl operator delete[](_In_ void *p) {
+  if (p) {
+    ExFreePoolWithTag(p, kKstlpPoolTag);
+  }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL) void __cdecl operator delete[](
+  _In_ void *p, _In_ size_t size) {
+  UNREFERENCED_PARAMETER(size);
+  if (p) {
+    ExFreePoolWithTag(p, kKstlpPoolTag);
+  }
+}
+
 // An alternative implementation of __stdio_common_vsprintf_s
 _Success_(return >= 0) EXTERN_C inline int __cdecl __stdio_common_vsprintf_s(
     _In_ unsigned __int64 _Options, _Out_writes_z_(_BufferCount) char *_Buffer,
