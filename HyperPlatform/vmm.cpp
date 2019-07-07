@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -591,9 +591,6 @@ _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
         instruction_info.fields.index_register, guest_context);
     index_value = *register_used;
     switch (static_cast<Scaling>(instruction_info.fields.scalling)) {
-      case Scaling::kNoScaling:
-        index_value = index_value;
-        break;
       case Scaling::kScaleBy2:
         index_value = index_value * 2;
         break;
@@ -736,9 +733,6 @@ _Use_decl_annotations_ static void VmmpHandleLdtrOrTrAccess(
           instruction_info.fields.index_register, guest_context);
       index_value = *register_used;
       switch (static_cast<Scaling>(instruction_info.fields.scalling)) {
-        case Scaling::kNoScaling:
-          index_value = index_value;
-          break;
         case Scaling::kScaleBy2:
           index_value = index_value * 2;
           break;
