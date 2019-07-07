@@ -220,7 +220,7 @@ _Use_decl_annotations_ bool __stdcall VmmVmExitHandler(VmmInitialStack *stack) {
   }
 
   // Apply possibly updated CR8 by the handler
-  if constexpr (IsX64()) {
+  if (IsX64()) {
     __writecr8(guest_context.cr8);
   }
   return guest_context.vm_continue;
@@ -1494,7 +1494,7 @@ _Use_decl_annotations_ static void VmmpInjectInterruption(
 /*_Use_decl_annotations_*/ static ULONG_PTR VmmpGetKernelCr3() {
   ULONG_PTR guest_cr3 = 0;
   static const long kDirectoryTableBaseOffset = IsX64() ? 0x28 : 0x18;
-  if constexpr (IsX64()) {
+  if (IsX64()) {
     // On x64, assume it is an user-mode CR3 when the lowest bit is set. If so,
     // get CR3 from _KPROCESS::DirectoryTableBase.
     guest_cr3 = UtilVmRead(VmcsField::kGuestCr3);

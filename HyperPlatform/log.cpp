@@ -5,6 +5,7 @@
 /// @file
 /// Implements logging functions.
 
+#include <ntifs.h>
 #include "log.h"
 #define NTSTRSAFE_NO_CB_FUNCTIONS
 #include <ntstrsafe.h>

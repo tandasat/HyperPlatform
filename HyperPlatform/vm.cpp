@@ -450,7 +450,7 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   // fields (Eip and HardwareEsp on x86, or Rip and Rsp on x64) is properly
   // initialized (in VmmVmExitHandler) and used by Windbg. On VM-exit this space
   // is just skipped by subtracting the stack pointer.
-  if constexpr (!IsReleaseBuild()) {
+  if (!IsReleaseBuild()) {
     const auto vmm_stack_frame =
         reinterpret_cast<void *>(vmm_stack_data - sizeof(KtrapFrame));
     RtlFillMemory(vmm_stack_frame, sizeof(KtrapFrame), 0xff);

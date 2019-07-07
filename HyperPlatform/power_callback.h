@@ -8,7 +8,7 @@
 #ifndef HYPERPLATFORM_POWER_CALLBACK_H_
 #define HYPERPLATFORM_POWER_CALLBACK_H_
 
-#include <fltKernel.h>
+#include <ntddk.h>
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////

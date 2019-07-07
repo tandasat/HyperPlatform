@@ -194,7 +194,7 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
   // older than build 14316.
   if (!IsX64() || os_version.dwMajorVersion < 10 ||
       os_version.dwBuildNumber < 14316) {
-    if constexpr (IsX64()) {
+    if (IsX64()) {
       g_utilp_pxe_base = kUtilpPxeBase;
       g_utilp_ppe_base = kUtilpPpeBase;
       g_utilp_pxi_shift = kUtilpPxiShift;
@@ -519,7 +519,7 @@ _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
     return false;
   }
 
-  if constexpr (IsX64()) {
+  if (IsX64()) {
     const auto pxe = UtilpAddressToPxe(address);
     const auto ppe = UtilpAddressToPpe(address);
     if (!pxe->valid || !ppe->valid) {
@@ -543,7 +543,7 @@ _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
 
 // Checks whether the address is the canonical address
 _Use_decl_annotations_ static bool UtilpIsCanonicalFormAddress(void *address) {
-  if constexpr (!IsX64()) {
+  if (!IsX64()) {
     return true;
   } else {
     return !UtilIsInBounds(0x0000800000000000ull, 0xffff7fffffffffffull,
