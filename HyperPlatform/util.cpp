@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -161,7 +161,7 @@ UtilInitialization(PDRIVER_OBJECT driver_object) {
   }
 
   g_utilp_MmAllocateContiguousNodeMemory =
-      reinterpret_cast<MmAllocateContiguousNodeMemoryType *>(
+      static_cast<MmAllocateContiguousNodeMemoryType *>(
           UtilGetSystemProcAddress(L"MmAllocateContiguousNodeMemory"));
   return status;
 }
@@ -275,15 +275,14 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializeRtlPcToFileHeader(
         UtilGetSystemProcAddress(L"RtlPcToFileHeader");
     if (p_RtlPcToFileHeader) {
       g_utilp_RtlPcToFileHeader =
-          reinterpret_cast<RtlPcToFileHeaderType *>(p_RtlPcToFileHeader);
+          static_cast<RtlPcToFileHeaderType *>(p_RtlPcToFileHeader);
       return STATUS_SUCCESS;
     }
   }
 
 #pragma warning(push)
 #pragma warning(disable : 28175)
-  auto module =
-      reinterpret_cast<LdrDataTableEntry *>(driver_object->DriverSection);
+  auto module = static_cast<LdrDataTableEntry *>(driver_object->DriverSection);
 #pragma warning(pop)
 
   g_utilp_PsLoadedModuleList = module->in_load_order_links.Flink;
@@ -374,7 +373,7 @@ UtilpBuildPhysicalMemoryRanges() {
       sizeof(PhysicalMemoryDescriptor) +
       sizeof(PhysicalMemoryRun) * (number_of_runs - 1);
   const auto pm_block =
-      reinterpret_cast<PhysicalMemoryDescriptor *>(ExAllocatePoolWithTag(
+      static_cast<PhysicalMemoryDescriptor *>(ExAllocatePoolWithTag(
           NonPagedPool, memory_block_size, kHyperPlatformCommonPoolTag));
   if (!pm_block) {
     ExFreePoolWithTag(pm_ranges, 'hPmM');
@@ -456,7 +455,7 @@ UtilForEachProcessorDpc(PKDEFERRED_ROUTINE deferred_routine, void *context) {
       return status;
     }
 
-    const auto dpc = reinterpret_cast<PRKDPC>(ExAllocatePoolWithTag(
+    const auto dpc = static_cast<PRKDPC>(ExAllocatePoolWithTag(
         NonPagedPool, sizeof(KDPC), kHyperPlatformCommonPoolTag));
     if (!dpc) {
       return STATUS_MEMORY_NOT_ALLOCATED;

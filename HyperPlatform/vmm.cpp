@@ -1037,32 +1037,32 @@ _Use_decl_annotations_ static void VmmpIoWrapper(bool to_memory, bool is_string,
     if (is_string) {
       // INS
       switch (size_of_access) {
-      case 1: __inbytestring(port, reinterpret_cast<UCHAR*>(address), count); break;
-      case 2: __inwordstring(port, reinterpret_cast<USHORT*>(address), count); break;
-      case 4: __indwordstring(port, reinterpret_cast<ULONG*>(address), count); break;
+      case 1: __inbytestring(port, static_cast<UCHAR*>(address), count); break;
+      case 2: __inwordstring(port, static_cast<USHORT*>(address), count); break;
+      case 4: __indwordstring(port, static_cast<ULONG*>(address), count); break;
       }
     } else {
       // IN
       switch (size_of_access) {
-      case 1: *reinterpret_cast<UCHAR*>(address) = __inbyte(port); break;
-      case 2: *reinterpret_cast<USHORT*>(address) = __inword(port); break;
-      case 4: *reinterpret_cast<ULONG*>(address) = __indword(port); break;
+      case 1: *static_cast<UCHAR*>(address) = __inbyte(port); break;
+      case 2: *static_cast<USHORT*>(address) = __inword(port); break;
+      case 4: *static_cast<ULONG*>(address) = __indword(port); break;
       }
     }
   } else {
     if (is_string) {
       // OUTS
       switch (size_of_access) {
-      case 1: __outbytestring(port, reinterpret_cast<UCHAR*>(address), count); break;
-      case 2: __outwordstring(port, reinterpret_cast<USHORT*>(address), count); break;
-      case 4: __outdwordstring(port, reinterpret_cast<ULONG*>(address), count); break;
+      case 1: __outbytestring(port, static_cast<UCHAR*>(address), count); break;
+      case 2: __outwordstring(port, static_cast<USHORT*>(address), count); break;
+      case 4: __outdwordstring(port, static_cast<ULONG*>(address), count); break;
       }
     } else {
       // OUT
       switch (size_of_access) {
-      case 1: __outbyte(port, *reinterpret_cast<UCHAR*>(address)); break;
-      case 2: __outword(port, *reinterpret_cast<USHORT*>(address)); break;
-      case 4: __outdword(port, *reinterpret_cast<ULONG*>(address)); break;
+      case 1: __outbyte(port, *static_cast<UCHAR*>(address)); break;
+      case 2: __outword(port, *static_cast<USHORT*>(address)); break;
+      case 4: __outdword(port, *static_cast<ULONG*>(address)); break;
       }
     }
   }
@@ -1225,7 +1225,7 @@ _Use_decl_annotations_ static void VmmpHandleVmCall(
       VmmpIndicateSuccessfulVmcall(guest_context);
       break;
     case HypercallNumber::kGetSharedProcessorData:
-      *reinterpret_cast<void **>(context) =
+      *static_cast<void **>(context) =
           guest_context->stack->processor_data->shared_data;
       VmmpIndicateSuccessfulVmcall(guest_context);
       break;
@@ -1436,7 +1436,7 @@ _Use_decl_annotations_ static void VmmpHandleVmCallTermination(
   __lidt(&idtr);
 
   // Store an address of the management structure to the context parameter
-  const auto result_ptr = reinterpret_cast<ProcessorData **>(context);
+  const auto result_ptr = static_cast<ProcessorData **>(context);
   *result_ptr = guest_context->stack->processor_data;
   HYPERPLATFORM_LOG_DEBUG_SAFE("Context at %p %p", context,
                                guest_context->stack->processor_data);
