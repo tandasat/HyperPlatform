@@ -84,7 +84,7 @@ static_assert(sizeof(MtrrData) == 24, "Size check");
 
 // EPT related data stored in ProcessorData
 struct EptData {
-  EptPointer *ept_pointer;
+  EptPointer ept_pointer;
   EptCommonEntry *ept_pml4;
 
   EptCommonEntry **preallocated_entries;  // An array of pre-allocated entries
@@ -186,7 +186,7 @@ _Use_decl_annotations_ bool EptIsEptAvailable() {
 
 // Returns an EPT pointer from ept_data
 _Use_decl_annotations_ ULONG64 EptGetEptPointer(EptData *ept_data) {
-  return ept_data->ept_pointer->all;
+  return ept_data->ept_pointer.all;
 }
 
 // Reads and stores all MTRRs to set a correct memory type for EPT
@@ -409,28 +409,19 @@ _Use_decl_annotations_ EptData *EptInitialization() {
   }
   RtlZeroMemory(ept_data, sizeof(EptData));
 
-  // Allocate EptPointer
-  const auto ept_poiner = static_cast<EptPointer *>(ExAllocatePoolWithTag(
-      NonPagedPool, PAGE_SIZE, kHyperPlatformCommonPoolTag));
-  if (!ept_poiner) {
-    ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
-    return nullptr;
-  }
-  RtlZeroMemory(ept_poiner, PAGE_SIZE);
-
   // Allocate EPT_PML4 and initialize EptPointer
   const auto ept_pml4 = static_cast<EptCommonEntry *>(ExAllocatePoolWithTag(
       NonPagedPool, PAGE_SIZE, kHyperPlatformCommonPoolTag));
   if (!ept_pml4) {
-    ExFreePoolWithTag(ept_poiner, kHyperPlatformCommonPoolTag);
     ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
     return nullptr;
   }
   RtlZeroMemory(ept_pml4, PAGE_SIZE);
-  ept_poiner->fields.memory_type =
+  ept_data->ept_pointer.all = 0;
+  ept_data->ept_pointer.fields.memory_type =
       static_cast<ULONG64>(EptpGetMemoryType(UtilPaFromVa(ept_pml4)));
-  ept_poiner->fields.page_walk_length = kEptPageWalkLevel - 1;
-  ept_poiner->fields.pml4_address = UtilPfnFromPa(UtilPaFromVa(ept_pml4));
+  ept_data->ept_pointer.fields.page_walk_length = kEptPageWalkLevel - 1;
+  ept_data->ept_pointer.fields.pml4_address = UtilPfnFromPa(UtilPaFromVa(ept_pml4));
 
   // Initialize all EPT entries for all physical memory pages
   const auto pm_ranges = UtilGetPhysicalMemoryRanges();
@@ -444,7 +435,6 @@ _Use_decl_annotations_ EptData *EptInitialization() {
           EptpConstructTables(ept_pml4, 4, indexed_addr, nullptr);
       if (!ept_pt_entry) {
         EptpDestructTables(ept_pml4, 4);
-        ExFreePoolWithTag(ept_poiner, kHyperPlatformCommonPoolTag);
         ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
         return nullptr;
       }
@@ -457,7 +447,6 @@ _Use_decl_annotations_ EptData *EptInitialization() {
   if (!EptpConstructTables(ept_pml4, 4, apic_msr.fields.apic_base * PAGE_SIZE,
                            nullptr)) {
     EptpDestructTables(ept_pml4, 4);
-    ExFreePoolWithTag(ept_poiner, kHyperPlatformCommonPoolTag);
     ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
     return nullptr;
   }
@@ -470,7 +459,6 @@ _Use_decl_annotations_ EptData *EptInitialization() {
                             kHyperPlatformCommonPoolTag));
   if (!preallocated_entries) {
     EptpDestructTables(ept_pml4, 4);
-    ExFreePoolWithTag(ept_poiner, kHyperPlatformCommonPoolTag);
     ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
     return nullptr;
   }
@@ -482,7 +470,6 @@ _Use_decl_annotations_ EptData *EptInitialization() {
     if (!ept_entry) {
       EptpFreeUnusedPreAllocatedEntries(preallocated_entries, 0);
       EptpDestructTables(ept_pml4, 4);
-      ExFreePoolWithTag(ept_poiner, kHyperPlatformCommonPoolTag);
       ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
       return nullptr;
     }
@@ -490,7 +477,6 @@ _Use_decl_annotations_ EptData *EptInitialization() {
   }
 
   // Initialization completed
-  ept_data->ept_pointer = ept_poiner;
   ept_data->ept_pml4 = ept_pml4;
   ept_data->preallocated_entries = preallocated_entries;
   ept_data->preallocated_entries_count = 0;
@@ -764,7 +750,6 @@ _Use_decl_annotations_ void EptTermination(EptData *ept_data) {
   EptpFreeUnusedPreAllocatedEntries(ept_data->preallocated_entries,
                                     ept_data->preallocated_entries_count);
   EptpDestructTables(ept_data->ept_pml4, 4);
-  ExFreePoolWithTag(ept_data->ept_pointer, kHyperPlatformCommonPoolTag);
   ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
 }
 
