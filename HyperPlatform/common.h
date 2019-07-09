@@ -35,10 +35,6 @@
 #ifndef HYPERPLATFORM_COMMON_H_
 #define HYPERPLATFORM_COMMON_H_
 
-#if (_MSC_VER >= 1915)
-#define no_init_all deprecated
-#endif
-
 #include <ntddk.h>
 
 // C30030: Calling a memory allocating function and passing a parameter that

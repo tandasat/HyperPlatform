@@ -519,6 +519,8 @@ _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
     return false;
   }
 
+// UtilpAddressToPxe, UtilpAddressToPpe defined for x64
+#if defined(_AMD64_)
   if (IsX64()) {
     const auto pxe = UtilpAddressToPxe(address);
     const auto ppe = UtilpAddressToPpe(address);
@@ -526,6 +528,7 @@ _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
       return false;
     }
   }
+#endif
 
   const auto pde = UtilpAddressToPde(address);
   const auto pte = UtilpAddressToPte(address);
