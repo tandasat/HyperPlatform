@@ -66,7 +66,6 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
     <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
@@ -192,14 +191,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <FileType>Document</FileType>
-      <AssembledCodeListingFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </AssembledCodeListingFile>
-      <ListAllAvailableInformation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </ListAllAvailableInformation>
-      <EnableAssemblyGeneratedCodeListing Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </EnableAssemblyGeneratedCodeListing>
-      <PerformSyntaxCheckOnly Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PerformSyntaxCheckOnly>
     </MASM>
     <MASM Include="Arch\x86\x86.asm">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
