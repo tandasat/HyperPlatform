@@ -4,7 +4,8 @@
 
 /// @file
 /// Implements primitive utility functions.
-
+#include <ntddk.h>
+#include <ntimage.h>
 #include "util.h"
 #include <intrin.h>
 #include "asm.h"
@@ -49,16 +50,30 @@ _Must_inspect_result_ _IRQL_requires_max_(DISPATCH_LEVEL) NTKERNELAPI
 using MmAllocateContiguousNodeMemoryType =
     decltype(MmAllocateContiguousNodeMemory);
 
-// dt nt!_LDR_DATA_TABLE_ENTRY
-struct LdrDataTableEntry {
+// from Windows Research Kernel v1.2
+// stable fields for Win 7+
+struct KLdrDataTableEntry {
   LIST_ENTRY in_load_order_links;
-  LIST_ENTRY in_memory_order_links;
-  LIST_ENTRY in_initialization_order_links;
-  void *dll_base;
-  void *entry_point;
+  PVOID exception_table;
+  ULONG exception_table_size;
+  // ULONG padding on IA64
+  PVOID gp_value;
+  // ntimage.h
+  PNON_PAGED_DEBUG_INFO non_paged_debug_info;
+  PVOID dll_base;
+  PVOID entry_point;
   ULONG size_of_image;
   UNICODE_STRING full_dll_name;
-  // ...
+  UNICODE_STRING base_dll_name;
+  ULONG flags;
+  USHORT load_count;
+  USHORT __Unused5;
+  PVOID section_pointer;
+  ULONG checksum;
+  // ULONG padding on IA64
+  PVOID loaded_imports;
+  PVOID patch_information;
+  // Expanded in Windows 10
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -283,7 +298,7 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializeRtlPcToFileHeader(
 #pragma warning(push)
 #pragma warning(disable : 28175)
   auto module =
-      reinterpret_cast<LdrDataTableEntry *>(driver_object->DriverSection);
+      reinterpret_cast<KLdrDataTableEntry *>(driver_object->DriverSection);
 #pragma warning(pop)
 
   g_utilp_PsLoadedModuleList = module->in_load_order_links.Flink;
@@ -302,7 +317,7 @@ UtilpUnsafePcToFileHeader(PVOID pc_value, PVOID *base_of_image) {
   const auto head = g_utilp_PsLoadedModuleList;
   for (auto current = head->Flink; current != head; current = current->Flink) {
     const auto module =
-        CONTAINING_RECORD(current, LdrDataTableEntry, in_load_order_links);
+        CONTAINING_RECORD(current, KLdrDataTableEntry, in_load_order_links);
     const auto driver_end = reinterpret_cast<void *>(
         reinterpret_cast<ULONG_PTR>(module->dll_base) + module->size_of_image);
     if (UtilIsInBounds(pc_value, module->dll_base, driver_end)) {
