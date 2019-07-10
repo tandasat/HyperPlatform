@@ -50,9 +50,9 @@ struct KtrapFrameX86 {
   ULONG sp;  //!< Called HardwareEsp in _KTRAP_FRAME
   ULONG reserved3[5];
 };
-static_assert(sizeof(KtrapFrameX86) == 0x8c, "");
-static_assert(FIELD_OFFSET(KtrapFrameX86, ip) == 0x68, "");
-static_assert(FIELD_OFFSET(KtrapFrameX86, sp) == 0x74, "");
+static_assert(sizeof(KtrapFrameX86) == 0x8c, "structure size mismatch");
+static_assert(FIELD_OFFSET(KtrapFrameX86, ip) == 0x68, "structure size mismatch");
+static_assert(FIELD_OFFSET(KtrapFrameX86, sp) == 0x74, "structure size mismatch");
 
 /// nt!_KTRAP_FRAME on x64
 struct KtrapFrameX64 {
@@ -62,9 +62,9 @@ struct KtrapFrameX64 {
   ULONG64 sp;  //!< Called Rsp in _KTRAP_FRAME
   ULONG64 reserved3;
 };
-static_assert(sizeof(KtrapFrameX64) == 0x190, "");
-static_assert(FIELD_OFFSET(KtrapFrameX64, ip) == 0x168, "");
-static_assert(FIELD_OFFSET(KtrapFrameX64, sp) == 0x180, "");
+static_assert(sizeof(KtrapFrameX64) == 0x190, "structure size mismatch");
+static_assert(FIELD_OFFSET(KtrapFrameX64, ip) == 0x168, "structure size mismatch");
+static_assert(FIELD_OFFSET(KtrapFrameX64, sp) == 0x180, "structure size mismatch");
 
 /// See: Stack Usage on Transfers to Interrupt and Exception-Handling Routines
 struct MachineFrame {
