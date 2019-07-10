@@ -521,12 +521,10 @@ _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
 
 // UtilpAddressToPxe, UtilpAddressToPpe defined for x64
 #if defined(_AMD64_)
-  if (IsX64()) {
-    const auto pxe = UtilpAddressToPxe(address);
-    const auto ppe = UtilpAddressToPpe(address);
-    if (!pxe->valid || !ppe->valid) {
-      return false;
-    }
+  const auto pxe = UtilpAddressToPxe(address);
+  const auto ppe = UtilpAddressToPpe(address);
+  if (!pxe->valid || !ppe->valid) {
+    return false;
   }
 #endif
 
