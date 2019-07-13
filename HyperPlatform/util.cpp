@@ -50,31 +50,42 @@ _Must_inspect_result_ _IRQL_requires_max_(DISPATCH_LEVEL) NTKERNELAPI
 using MmAllocateContiguousNodeMemoryType =
     decltype(MmAllocateContiguousNodeMemory);
 
-// from Windows Research Kernel v1.2
-// stable fields for Win 7+
+//
+// DRIVER_OBJECT.DriverSection type
+// see Reverse Engineering site:
+// https://revers.engineering/author/daax/
+//
 struct KLdrDataTableEntry {
-  LIST_ENTRY in_load_order_links;
-  PVOID exception_table;
-  ULONG exception_table_size;
-  // ULONG padding on IA64
-  PVOID gp_value;
-  // ntimage.h
-  PNON_PAGED_DEBUG_INFO non_paged_debug_info;
-  PVOID dll_base;
-  PVOID entry_point;
-  ULONG size_of_image;
-  UNICODE_STRING full_dll_name;
-  UNICODE_STRING base_dll_name;
-  ULONG flags;
-  USHORT load_count;
-  USHORT __Unused5;
-  PVOID section_pointer;
-  ULONG checksum;
-  // ULONG padding on IA64
-  PVOID loaded_imports;
-  PVOID patch_information;
-  // Expanded in Windows 10
-};
+    LIST_ENTRY in_load_order_links;
+    PVOID exception_table;
+    UINT32 exception_table_size;
+    // ULONG padding on IA64
+    PVOID gp_value;
+    PNON_PAGED_DEBUG_INFO non_paged_debug_info;
+    PVOID dll_base;
+    PVOID entry_point;
+    UINT32 size_of_image;
+    UNICODE_STRING full_dll_name;
+    UNICODE_STRING base_dll_name;
+    UINT32 flags;
+    UINT16 load_count;
+
+    union {
+      UINT16 signature_level : 4;
+      UINT16 signature_type : 3;
+      UINT16 unused : 9;
+      UINT16 entire_field;
+    } u;
+
+    PVOID section_pointer;
+    UINT32 checksum;
+    UINT32 coverage_section_size;
+    PVOID coverage_section;
+    PVOID loaded_imports;
+    PVOID spare;
+    UINT32 size_of_image_not_rouned;
+    UINT32 time_date_stamp;
+ };
 
 ////////////////////////////////////////////////////////////////////////////////
 //
