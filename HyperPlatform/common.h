@@ -35,7 +35,7 @@
 #ifndef HYPERPLATFORM_COMMON_H_
 #define HYPERPLATFORM_COMMON_H_
 
-#include <fltKernel.h>
+#include <ntddk.h>
 
 // C30030: Calling a memory allocating function and passing a parameter that
 // indicates executable memory

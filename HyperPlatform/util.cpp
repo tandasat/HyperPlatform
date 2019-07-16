@@ -4,7 +4,8 @@
 
 /// @file
 /// Implements primitive utility functions.
-
+#include <ntddk.h>
+#include <ntimage.h>
 #include "util.h"
 #include <intrin.h>
 #include "asm.h"
@@ -49,17 +50,42 @@ _Must_inspect_result_ _IRQL_requires_max_(DISPATCH_LEVEL) NTKERNELAPI
 using MmAllocateContiguousNodeMemoryType =
     decltype(MmAllocateContiguousNodeMemory);
 
-// dt nt!_LDR_DATA_TABLE_ENTRY
-struct LdrDataTableEntry {
-  LIST_ENTRY in_load_order_links;
-  LIST_ENTRY in_memory_order_links;
-  LIST_ENTRY in_initialization_order_links;
-  void *dll_base;
-  void *entry_point;
-  ULONG size_of_image;
-  UNICODE_STRING full_dll_name;
-  // ...
-};
+//
+// DRIVER_OBJECT.DriverSection type
+// see Reverse Engineering site:
+// https://revers.engineering/author/daax/
+//
+struct KLdrDataTableEntry {
+    LIST_ENTRY in_load_order_links;
+    PVOID exception_table;
+    UINT32 exception_table_size;
+    // ULONG padding on IA64
+    PVOID gp_value;
+    PNON_PAGED_DEBUG_INFO non_paged_debug_info;
+    PVOID dll_base;
+    PVOID entry_point;
+    UINT32 size_of_image;
+    UNICODE_STRING full_dll_name;
+    UNICODE_STRING base_dll_name;
+    UINT32 flags;
+    UINT16 load_count;
+
+    union {
+      UINT16 signature_level : 4;
+      UINT16 signature_type : 3;
+      UINT16 unused : 9;
+      UINT16 entire_field;
+    } u;
+
+    PVOID section_pointer;
+    UINT32 checksum;
+    UINT32 coverage_section_size;
+    PVOID coverage_section;
+    PVOID loaded_imports;
+    PVOID spare;
+    UINT32 size_of_image_not_rouned;
+    UINT32 time_date_stamp;
+ };
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -194,7 +220,7 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
   // older than build 14316.
   if (!IsX64() || os_version.dwMajorVersion < 10 ||
       os_version.dwBuildNumber < 14316) {
-    if constexpr (IsX64()) {
+    if (IsX64()) {
       g_utilp_pxe_base = kUtilpPxeBase;
       g_utilp_ppe_base = kUtilpPpeBase;
       g_utilp_pxi_shift = kUtilpPxiShift;
@@ -282,7 +308,7 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializeRtlPcToFileHeader(
 
 #pragma warning(push)
 #pragma warning(disable : 28175)
-  auto module = static_cast<LdrDataTableEntry *>(driver_object->DriverSection);
+  auto module = static_cast<KLdrDataTableEntry *>(driver_object->DriverSection);
 #pragma warning(pop)
 
   g_utilp_PsLoadedModuleList = module->in_load_order_links.Flink;
@@ -301,7 +327,7 @@ UtilpUnsafePcToFileHeader(PVOID pc_value, PVOID *base_of_image) {
   const auto head = g_utilp_PsLoadedModuleList;
   for (auto current = head->Flink; current != head; current = current->Flink) {
     const auto module =
-        CONTAINING_RECORD(current, LdrDataTableEntry, in_load_order_links);
+        CONTAINING_RECORD(current, KLdrDataTableEntry, in_load_order_links);
     const auto driver_end = reinterpret_cast<void *>(
         reinterpret_cast<ULONG_PTR>(module->dll_base) + module->size_of_image);
     if (UtilIsInBounds(pc_value, module->dll_base, driver_end)) {
@@ -518,13 +544,14 @@ _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
     return false;
   }
 
-  if constexpr (IsX64()) {
-    const auto pxe = UtilpAddressToPxe(address);
-    const auto ppe = UtilpAddressToPpe(address);
-    if (!pxe->valid || !ppe->valid) {
-      return false;
-    }
+// UtilpAddressToPxe, UtilpAddressToPpe defined for x64
+#if defined(_AMD64_)
+  const auto pxe = UtilpAddressToPxe(address);
+  const auto ppe = UtilpAddressToPpe(address);
+  if (!pxe->valid || !ppe->valid) {
+    return false;
   }
+#endif
 
   const auto pde = UtilpAddressToPde(address);
   const auto pte = UtilpAddressToPte(address);
@@ -542,7 +569,7 @@ _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
 
 // Checks whether the address is the canonical address
 _Use_decl_annotations_ static bool UtilpIsCanonicalFormAddress(void *address) {
-  if constexpr (!IsX64()) {
+  if (!IsX64()) {
     return true;
   } else {
     return !UtilIsInBounds(0x0000800000000000ull, 0xffff7fffffffffffull,

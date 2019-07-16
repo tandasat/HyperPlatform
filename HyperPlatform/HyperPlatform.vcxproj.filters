@@ -51,10 +51,10 @@
     <ClCompile Include="global_object.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="hotplug_callback.cpp">
+    <ClCompile Include="power_callback.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="power_callback.cpp">
+    <ClCompile Include="hotplug_callback.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

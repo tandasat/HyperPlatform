@@ -8,7 +8,7 @@
 #ifndef HYPERPLATFORM_IA32_TYPE_H_
 #define HYPERPLATFORM_IA32_TYPE_H_
 
-#include <fltKernel.h>
+#include <ntddk.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 //
