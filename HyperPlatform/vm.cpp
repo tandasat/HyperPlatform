@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -237,7 +237,7 @@ _Use_decl_annotations_ static NTSTATUS VmpSetLockBitCallback(void *context) {
 _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
   PAGED_CODE();
 
-  const auto shared_data = reinterpret_cast<SharedProcessorData *>(
+  const auto shared_data = static_cast<SharedProcessorData *>(
       ExAllocatePoolWithTag(NonPagedPool, sizeof(SharedProcessorData),
                             kHyperPlatformCommonPoolTag));
   if (!shared_data) {
@@ -277,7 +277,7 @@ _Use_decl_annotations_ static void *VmpBuildMsrBitmap() {
   RtlZeroMemory(msr_bitmap, PAGE_SIZE);
 
   // Activate VM-exit for RDMSR against all MSRs
-  const auto bitmap_read_low = reinterpret_cast<UCHAR *>(msr_bitmap);
+  const auto bitmap_read_low = static_cast<UCHAR *>(msr_bitmap);
   const auto bitmap_read_high = bitmap_read_low + 1024;
   RtlFillMemory(bitmap_read_low, 1024, 0xff);   // read        0 -     1fff
   RtlFillMemory(bitmap_read_high, 1024, 0xff);  // read c0000000 - c0001fff
@@ -314,7 +314,7 @@ _Use_decl_annotations_ static UCHAR *VmpBuildIoBitmaps() {
   PAGED_CODE();
 
   // Allocate two IO bitmaps as one contiguous 4K+4K page
-  const auto io_bitmaps = reinterpret_cast<UCHAR *>(ExAllocatePoolWithTag(
+  const auto io_bitmaps = static_cast<UCHAR *>(ExAllocatePoolWithTag(
       NonPagedPool, PAGE_SIZE * 2, kHyperPlatformCommonPoolTag));
   if (!io_bitmaps) {
     return nullptr;
@@ -360,14 +360,14 @@ _Use_decl_annotations_ static void VmpInitializeVm(
     void *context) {
   PAGED_CODE();
 
-  const auto shared_data = reinterpret_cast<SharedProcessorData *>(context);
+  const auto shared_data = static_cast<SharedProcessorData *>(context);
   if (!shared_data) {
     return;
   }
 
   // Allocate related structures
   const auto processor_data =
-      reinterpret_cast<ProcessorData *>(ExAllocatePoolWithTag(
+      static_cast<ProcessorData *>(ExAllocatePoolWithTag(
           NonPagedPool, sizeof(ProcessorData), kHyperPlatformCommonPoolTag));
   if (!processor_data) {
     return;
@@ -393,7 +393,7 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   RtlZeroMemory(processor_data->vmm_stack_limit, KERNEL_STACK_SIZE);
 
   processor_data->vmcs_region =
-      reinterpret_cast<VmControlStructure *>(ExAllocatePoolWithTag(
+      static_cast<VmControlStructure *>(ExAllocatePoolWithTag(
           NonPagedPool, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
   if (!processor_data->vmcs_region) {
     VmpFreeProcessorData(processor_data);
@@ -402,7 +402,7 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   RtlZeroMemory(processor_data->vmcs_region, kVmxMaxVmcsSize);
 
   processor_data->vmxon_region =
-      reinterpret_cast<VmControlStructure *>(ExAllocatePoolWithTag(
+      static_cast<VmControlStructure *>(ExAllocatePoolWithTag(
           NonPagedPool, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
   if (!processor_data->vmxon_region) {
     VmpFreeProcessorData(processor_data);
