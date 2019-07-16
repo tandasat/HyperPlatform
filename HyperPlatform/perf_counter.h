@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -14,7 +14,7 @@
 #ifndef HYPERPLATFORM_PERF_COUNTER_H_
 #define HYPERPLATFORM_PERF_COUNTER_H_
 
-#include <fltKernel.h>
+#include <ntddk.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -247,7 +247,7 @@ class PerfCollector {
   /// room to add a new entry.
   ULONG GetPerfDataIndex(_In_ const char* key) {
     if (!key) {
-      return false;
+      return kInvalidDataIndex;
     }
 
     for (auto i = 0ul; i < kMaxNumberOfDataEntries; i++) {

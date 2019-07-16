@@ -41,14 +41,14 @@ especially those who are familiar with Windows. For instance:
   a relaxed license.
 
 For more details, see the HyperPlatform User Document and Programmer's Reference.
-- http://tandasat.github.io/HyperPlatform/userdocument/
-- http://tandasat.github.io/HyperPlatform/doxygen/
+- https://tandasat.github.io/HyperPlatform/userdocument/
+- https://tandasat.github.io/HyperPlatform/doxygen/
 
 
 Build
 ------
 To build HyperPlatform, the following are required.
-- Visual Studio Community 2015 (Update 3 or later) or 2017 (15.5 or later)
+- Visual Studio Community 2017 (15.5 or later)
  - https://www.visualstudio.com/downloads/
 - Windows Software Development Kit (SDK) for Windows 10 (10.0.10586.0 or later)
  - https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk
@@ -97,7 +97,7 @@ For uninstallation:
 
 To install the driver on a virtual machine on VMware Workstation, see an "Using
 VMware Workstation" section in the HyperPlatform User Document.
-- http://tandasat.github.io/HyperPlatform/userdocument/
+- https://tandasat.github.io/HyperPlatform/userdocument/
 
 
 Output
@@ -116,27 +116,34 @@ Related Project(s)
 - SimpleVisor
  - http://ionescu007.github.io/SimpleVisor/
 
-SimpleVisor is a very (very) simple and readable Windows-specific hypervisor made
-up of only 1700 lines of code. I would recommend taking a look at the project to
-learn VT-x if you are new to hypervisor development. It should give you a clearer
-view of how a hypervisor is initialized and executed.
+SimpleVisor is a very (very) simple and readable Windows-specific hypervisor. I
+recommend taking a look at the project to learn VT-x if you are new to hypervisor
+development. It should give you a clearer view of how a hypervisor is initialized
+and executed.
+
+- hvpp
+ - https://github.com/wbenny/hvpp
+hvpp is a lightweight Intel x64/VT-x hypervisor written in C++. This is about the
+same size as HyperPlatform in LOC yet written in a more polished matter with focus
+on x64, making the entire code base more readable. This project also addresses
+some issues remain unresolved in HyperPlatform and comes with educational comments
+and demonstration code to learn VT-x in more depth. Unless you are allergic to C++
+or looking for x86 support, I strongly encourage you to study this project too.
 
 - ksm
  - https://github.com/asamy/ksm
 
-ksm is other simple and lightweight x64 hypervisor written in C for Windows for
-Intel processors. It is just a half size of HyperPlatform in lines of code while
-demonstrating usage of EPT, as well as #VE and VMFUNC where HyperPlatform does
-not include.
+ksm is lightweight-ish x64 hypervisor written in C for Windows for Intel
+processors. It demonstrates some advanced VT-x features like #VE and VMFUNC where
+HyperPlatform does not include.
 
 - Bareflank Hypervisor
  - http://bareflank.github.io/hypervisor/
 
-Bareflank Hypervisor is an actively developed open source, lightweight hypervisor.
-It comes with rich documents, tests, and comments, supports Linux on Intel 64bit,
-and also aims to support Windows, OS X, and UEFI as well as ARM and AMD platforms.
-While a size of code is larger than that of HyperPlatform, ones look for a more
-comprehensive yet still lightweight hypervisor will find it interesting.
+Bareflank Hypervisor is an actively developed open source hypervisor. It comes
+with rich documents, tests, and comments, supports multiple platforms. The size
+of code is larger than that of HyperPlatform, but you will find it interesting if
+you are looking for more comprehensive yet still lightweight-ish hypervisors.
 
 
 License

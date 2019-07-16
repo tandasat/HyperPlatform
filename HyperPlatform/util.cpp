@@ -1,10 +1,11 @@
-// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
 /// @file
 /// Implements primitive utility functions.
-
+#include <ntddk.h>
+#include <ntimage.h>
 #include "util.h"
 #include <intrin.h>
 #include "asm.h"
@@ -49,17 +50,42 @@ _Must_inspect_result_ _IRQL_requires_max_(DISPATCH_LEVEL) NTKERNELAPI
 using MmAllocateContiguousNodeMemoryType =
     decltype(MmAllocateContiguousNodeMemory);
 
-// dt nt!_LDR_DATA_TABLE_ENTRY
-struct LdrDataTableEntry {
-  LIST_ENTRY in_load_order_links;
-  LIST_ENTRY in_memory_order_links;
-  LIST_ENTRY in_initialization_order_links;
-  void *dll_base;
-  void *entry_point;
-  ULONG size_of_image;
-  UNICODE_STRING full_dll_name;
-  // ...
-};
+//
+// DRIVER_OBJECT.DriverSection type
+// see Reverse Engineering site:
+// https://revers.engineering/author/daax/
+//
+struct KLdrDataTableEntry {
+    LIST_ENTRY in_load_order_links;
+    PVOID exception_table;
+    UINT32 exception_table_size;
+    // ULONG padding on IA64
+    PVOID gp_value;
+    PNON_PAGED_DEBUG_INFO non_paged_debug_info;
+    PVOID dll_base;
+    PVOID entry_point;
+    UINT32 size_of_image;
+    UNICODE_STRING full_dll_name;
+    UNICODE_STRING base_dll_name;
+    UINT32 flags;
+    UINT16 load_count;
+
+    union {
+      UINT16 signature_level : 4;
+      UINT16 signature_type : 3;
+      UINT16 unused : 9;
+      UINT16 entire_field;
+    } u;
+
+    PVOID section_pointer;
+    UINT32 checksum;
+    UINT32 coverage_section_size;
+    PVOID coverage_section;
+    PVOID loaded_imports;
+    PVOID spare;
+    UINT32 size_of_image_not_rouned;
+    UINT32 time_date_stamp;
+ };
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -143,9 +169,9 @@ UtilInitialization(PDRIVER_OBJECT driver_object) {
   PAGED_CODE();
 
   auto status = UtilpInitializePageTableVariables();
-  HYPERPLATFORM_LOG_DEBUG("PXE at %016Ix, PPE at %016Ix, PDE at %016Ix, PTE at %016Ix",
-                          g_utilp_pxe_base, g_utilp_ppe_base, g_utilp_pde_base,
-                          g_utilp_pte_base);
+  HYPERPLATFORM_LOG_DEBUG(
+      "PXE at %016Ix, PPE at %016Ix, PDE at %016Ix, PTE at %016Ix",
+      g_utilp_pxe_base, g_utilp_ppe_base, g_utilp_pde_base, g_utilp_pte_base);
   if (!NT_SUCCESS(status)) {
     return status;
   }
@@ -161,7 +187,7 @@ UtilInitialization(PDRIVER_OBJECT driver_object) {
   }
 
   g_utilp_MmAllocateContiguousNodeMemory =
-      reinterpret_cast<MmAllocateContiguousNodeMemoryType *>(
+      static_cast<MmAllocateContiguousNodeMemoryType *>(
           UtilGetSystemProcAddress(L"MmAllocateContiguousNodeMemory"));
   return status;
 }
@@ -275,15 +301,14 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializeRtlPcToFileHeader(
         UtilGetSystemProcAddress(L"RtlPcToFileHeader");
     if (p_RtlPcToFileHeader) {
       g_utilp_RtlPcToFileHeader =
-          reinterpret_cast<RtlPcToFileHeaderType *>(p_RtlPcToFileHeader);
+          static_cast<RtlPcToFileHeaderType *>(p_RtlPcToFileHeader);
       return STATUS_SUCCESS;
     }
   }
 
 #pragma warning(push)
 #pragma warning(disable : 28175)
-  auto module =
-      reinterpret_cast<LdrDataTableEntry *>(driver_object->DriverSection);
+  auto module = static_cast<KLdrDataTableEntry *>(driver_object->DriverSection);
 #pragma warning(pop)
 
   g_utilp_PsLoadedModuleList = module->in_load_order_links.Flink;
@@ -302,7 +327,7 @@ UtilpUnsafePcToFileHeader(PVOID pc_value, PVOID *base_of_image) {
   const auto head = g_utilp_PsLoadedModuleList;
   for (auto current = head->Flink; current != head; current = current->Flink) {
     const auto module =
-        CONTAINING_RECORD(current, LdrDataTableEntry, in_load_order_links);
+        CONTAINING_RECORD(current, KLdrDataTableEntry, in_load_order_links);
     const auto driver_end = reinterpret_cast<void *>(
         reinterpret_cast<ULONG_PTR>(module->dll_base) + module->size_of_image);
     if (UtilIsInBounds(pc_value, module->dll_base, driver_end)) {
@@ -374,7 +399,7 @@ UtilpBuildPhysicalMemoryRanges() {
       sizeof(PhysicalMemoryDescriptor) +
       sizeof(PhysicalMemoryRun) * (number_of_runs - 1);
   const auto pm_block =
-      reinterpret_cast<PhysicalMemoryDescriptor *>(ExAllocatePoolWithTag(
+      static_cast<PhysicalMemoryDescriptor *>(ExAllocatePoolWithTag(
           NonPagedPool, memory_block_size, kHyperPlatformCommonPoolTag));
   if (!pm_block) {
     ExFreePoolWithTag(pm_ranges, 'hPmM');
@@ -456,7 +481,7 @@ UtilForEachProcessorDpc(PKDEFERRED_ROUTINE deferred_routine, void *context) {
       return status;
     }
 
-    const auto dpc = reinterpret_cast<PRKDPC>(ExAllocatePoolWithTag(
+    const auto dpc = static_cast<PRKDPC>(ExAllocatePoolWithTag(
         NonPagedPool, sizeof(KDPC), kHyperPlatformCommonPoolTag));
     if (!dpc) {
       return STATUS_MEMORY_NOT_ALLOCATED;
@@ -519,13 +544,14 @@ _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
     return false;
   }
 
-  if (IsX64()) {
-    const auto pxe = UtilpAddressToPxe(address);
-    const auto ppe = UtilpAddressToPpe(address);
-    if (!pxe->valid || !ppe->valid) {
-      return false;
-    }
+// UtilpAddressToPxe, UtilpAddressToPpe defined for x64
+#if defined(_AMD64_)
+  const auto pxe = UtilpAddressToPxe(address);
+  const auto ppe = UtilpAddressToPpe(address);
+  if (!pxe->valid || !ppe->valid) {
+    return false;
   }
+#endif
 
   const auto pde = UtilpAddressToPde(address);
   const auto pte = UtilpAddressToPte(address);
@@ -545,11 +571,13 @@ _Use_decl_annotations_ bool UtilIsAccessibleAddress(void *address) {
 _Use_decl_annotations_ static bool UtilpIsCanonicalFormAddress(void *address) {
   if (!IsX64()) {
     return true;
+  } else {
+    return !UtilIsInBounds(0x0000800000000000ull, 0xffff7fffffffffffull,
+                           reinterpret_cast<ULONG64>(address));
   }
-  return !UtilIsInBounds(0x0000800000000000ull, 0xffff7fffffffffffull,
-                         reinterpret_cast<ULONG64>(address));
 }
 
+#if defined(_AMD64_)
 // Return an address of PXE
 _Use_decl_annotations_ static HardwarePte *UtilpAddressToPxe(
     const void *address) {
@@ -567,6 +595,7 @@ _Use_decl_annotations_ static HardwarePte *UtilpAddressToPpe(
   const auto offset = ppe_index * sizeof(HardwarePte);
   return reinterpret_cast<HardwarePte *>(g_utilp_ppe_base + offset);
 }
+#endif
 
 // Return an address of PDE
 _Use_decl_annotations_ static HardwarePte *UtilpAddressToPde(
@@ -654,7 +683,7 @@ _Use_decl_annotations_ NTSTATUS UtilVmCall(HypercallNumber hypercall_number,
     return (vmx_status == VmxStatus::kOk) ? STATUS_SUCCESS
                                           : STATUS_UNSUCCESSFUL;
 
-#pragma prefast(suppress: __WARNING_EXCEPTIONEXECUTEHANDLER, "Catch all.");
+#pragma prefast(suppress : __WARNING_EXCEPTIONEXECUTEHANDLER, "Catch all.");
   } __except (EXCEPTION_EXECUTE_HANDLER) {
     const auto status = GetExceptionCode();
     HYPERPLATFORM_COMMON_DBG_BREAK();

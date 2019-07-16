@@ -8,7 +8,7 @@
 #ifndef HYPERPLATFORM_GLOBAL_OBJECT_H_
 #define HYPERPLATFORM_GLOBAL_OBJECT_H_
 
-#include <fltKernel.h>
+#include <ntddk.h>
 
 extern "C" {
 ////////////////////////////////////////////////////////////////////////////////

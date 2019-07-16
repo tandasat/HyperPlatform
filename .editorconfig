@@ -1,0 +1,17 @@
+# To learn more about .editorconfig see https://aka.ms/editorconfigdocs
+
+root = true
+
+# All C++ files
+[*.{cpp,hpp}]
+charset = utf-8
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+# All MASM files
+[*.asm]
+charset = utf-8
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
