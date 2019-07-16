@@ -1,10 +1,11 @@
-// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
 /// @file
 /// Implements logging functions.
 
+#include <ntifs.h>
 #include "log.h"
 #define NTSTRSAFE_NO_CB_FUNCTIONS
 #include <ntstrsafe.h>
@@ -217,14 +218,14 @@ _Use_decl_annotations_ static NTSTATUS LogpInitializeBufferInfo(
   info->resource_initialized = true;
 
   // Allocate two log buffers on NonPagedPool.
-  info->log_buffer1 = reinterpret_cast<char *>(
+  info->log_buffer1 = static_cast<char *>(
       ExAllocatePoolWithTag(NonPagedPool, kLogpBufferSize, kLogpPoolTag));
   if (!info->log_buffer1) {
     LogpFinalizeBufferInfo(info);
     return STATUS_INSUFFICIENT_RESOURCES;
   }
 
-  info->log_buffer2 = reinterpret_cast<char *>(
+  info->log_buffer2 = static_cast<char *>(
       ExAllocatePoolWithTag(NonPagedPool, kLogpBufferSize, kLogpPoolTag));
   if (!info->log_buffer2) {
     LogpFinalizeBufferInfo(info);
@@ -319,7 +320,7 @@ _Use_decl_annotations_ VOID static LogpReinitializationRoutine(
   NT_ASSERT(context);
   _Analysis_assume_(context);
 
-  auto info = reinterpret_cast<LogBufferInfo *>(context);
+  auto info = static_cast<LogBufferInfo *>(context);
   auto status = LogpInitializeLogFile(info);
   NT_ASSERT(NT_SUCCESS(status));
   if (NT_SUCCESS(status)) {
@@ -754,7 +755,7 @@ _Use_decl_annotations_ static VOID LogpBufferFlushThreadRoutine(
     void *start_context) {
   PAGED_CODE();
   auto status = STATUS_SUCCESS;
-  auto info = reinterpret_cast<LogBufferInfo *>(start_context);
+  auto info = static_cast<LogBufferInfo *>(start_context);
   info->buffer_flush_thread_started = true;
   HYPERPLATFORM_LOG_DEBUG("Log thread started (TID= %p).",
                           PsGetCurrentThreadId());
@@ -821,8 +822,8 @@ _Success_(return >= 0) _Check_return_opt_ int __cdecl __stdio_common_vsprintf(
   if (!local__vsnprintf) {
     UNICODE_STRING proc_name_U = {};
     RtlInitUnicodeString(&proc_name_U, L"_vsnprintf");
-    local__vsnprintf = reinterpret_cast<_vsnprintf_type *>(
-        MmGetSystemRoutineAddress(&proc_name_U));
+    local__vsnprintf =
+        static_cast<_vsnprintf_type *>(MmGetSystemRoutineAddress(&proc_name_U));
   }
   return local__vsnprintf(_Buffer, _BufferCount, _Format, _ArgList);
 }
@@ -844,7 +845,7 @@ _Success_(return >= 0) _Check_return_opt_ int __cdecl __stdio_common_vswprintf(
   if (!local__vsnwprintf) {
     UNICODE_STRING proc_name_U = {};
     RtlInitUnicodeString(&proc_name_U, L"_vsnwprintf");
-    local__vsnwprintf = reinterpret_cast<_vsnwprintf_type *>(
+    local__vsnwprintf = static_cast<_vsnwprintf_type *>(
         MmGetSystemRoutineAddress(&proc_name_U));
   }
 

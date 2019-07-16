@@ -8,7 +8,7 @@
 #ifndef HYPERPLATFORM_IA32_TYPE_H_
 #define HYPERPLATFORM_IA32_TYPE_H_
 
-#include <fltKernel.h>
+#include <ntddk.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -224,6 +224,12 @@ struct Idtr {
   unsigned short limit;
   ULONG_PTR base;
 };
+
+struct Idtr32 {
+  unsigned short limit;
+  ULONG32 base;
+};
+static_assert(sizeof(Idtr32) == 6, "Size check");
 
 /// @copydoc Idtr
 using Gdtr = Idtr;

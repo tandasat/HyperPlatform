@@ -28,7 +28,6 @@ HKR,,Icon,,-5
 
 [SourceDisksFiles]
 HyperPlatform.sys  = 1,,
-WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with SourceDisksNames
 
 ;*****************************************
 ; Install Section
@@ -57,25 +56,6 @@ ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
 StartType      = 3               ; SERVICE_DEMAND_START
 ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
 ServiceBinary  = %12%\HyperPlatform.sys
-
-;
-;--- HyperPlatform_Device Coinstaller installation ------
-;
-
-[HyperPlatform_Device.NT.CoInstallers]
-AddReg=HyperPlatform_Device_CoInstaller_AddReg
-CopyFiles=HyperPlatform_Device_CoInstaller_CopyFiles
-
-[HyperPlatform_Device_CoInstaller_AddReg]
-HKR,,CoInstallers32,0x00010000, "WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll,WdfCoInstaller"
-
-[HyperPlatform_Device_CoInstaller_CopyFiles]
-WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll
-
-[HyperPlatform_Device.NT.Wdf]
-KmdfService =  HyperPlatform, HyperPlatform_wdfsect
-[HyperPlatform_wdfsect]
-KmdfLibraryVersion = $KMDFVERSION$
 
 [Strings]
 SPSVCINST_ASSOCSERVICE= 0x00000002

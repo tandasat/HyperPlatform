@@ -19,15 +19,13 @@
 ### Specifications
 - Commit (eg, 2099af7): (Please fill in)
 
-- OS version (ie, outout of the "ver" command, or N/A): (Please fill in)
+- OS version (ie, output of the "ver" command, or N/A): (Please fill in)
 
 - Architecture: (Please choose: x86, x64, Both, or N/A)
 
-- Hardware (eg, Physical, VMware 11, Bochs, or N/A): (Please fill in)
+- Hardware (eg, Physical, VMware 14, Bochs, or N/A): (Please fill in)
 
-- Details:
-
-(Please describe)
+- Details: (Please describe)
 
 --
 NOTE: The Details section may include related log files, crash dump files,
@@ -47,3 +45,4 @@ any free file hosting services, however. Here are some of those services:
 - DropBox
 - GoogleDrive
 - Sendspace
+- Mega.nz

@@ -1,11 +1,11 @@
-// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
 /// @file
 /// Implements code to use STL in a driver project
 
-#include <fltKernel.h>
+#include <ntddk.h>
 #undef _HAS_EXCEPTIONS
 #define _HAS_EXCEPTIONS 0
 
@@ -112,6 +112,35 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void __cdecl operator delete(
   }
 }
 
+// overload new[] and delete[] operator
+_IRQL_requires_max_(DISPATCH_LEVEL) void *__cdecl operator new[](
+    _In_ size_t size) {
+  if (size == 0) {
+    size = 1;
+  }
+
+  const auto p = ExAllocatePoolWithTag(NonPagedPool, size, kKstlpPoolTag);
+  if (!p) {
+    KernelStlpRaiseException(MUST_SUCCEED_POOL_EMPTY);
+  }
+  return p;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL) void __cdecl operator delete[](
+    _In_ void *p) {
+  if (p) {
+    ExFreePoolWithTag(p, kKstlpPoolTag);
+  }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL) void __cdecl operator delete[](
+    _In_ void *p, _In_ size_t size) {
+  UNREFERENCED_PARAMETER(size);
+  if (p) {
+    ExFreePoolWithTag(p, kKstlpPoolTag);
+  }
+}
+
 // An alternative implementation of __stdio_common_vsprintf_s
 _Success_(return >= 0) EXTERN_C inline int __cdecl __stdio_common_vsprintf_s(
     _In_ unsigned __int64 _Options, _Out_writes_z_(_BufferCount) char *_Buffer,
@@ -127,8 +156,8 @@ _Success_(return >= 0) EXTERN_C inline int __cdecl __stdio_common_vsprintf_s(
   if (!local__vsnprintf) {
     UNICODE_STRING proc_name_U = {};
     RtlInitUnicodeString(&proc_name_U, L"_vsnprintf");
-    local__vsnprintf = reinterpret_cast<_vsnprintf_type *>(
-        MmGetSystemRoutineAddress(&proc_name_U));
+    local__vsnprintf =
+        static_cast<_vsnprintf_type *>(MmGetSystemRoutineAddress(&proc_name_U));
   }
 
   return local__vsnprintf(_Buffer, _BufferCount, _Format, _ArgList);
@@ -151,7 +180,7 @@ _Success_(return >= 0) _Check_return_opt_ EXTERN_C
   if (!local__vsnwprintf) {
     UNICODE_STRING proc_name_U = {};
     RtlInitUnicodeString(&proc_name_U, L"_vsnwprintf");
-    local__vsnwprintf = reinterpret_cast<_vsnwprintf_type *>(
+    local__vsnwprintf = static_cast<_vsnwprintf_type *>(
         MmGetSystemRoutineAddress(&proc_name_U));
   }
 

@@ -1,0 +1,14 @@
+<!-- 
+    Workaround to MSB8040:
+    Spectre-mitigated libraries are required for this project. Install them from the Visual Studio installer (Individual components tab) for any toolsets and architectures being used. 
+	
+	Learn more: https://aka.ms/Ofhn4c
+	C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets	
+	425	
+-->
+
+<Project>
+  <PropertyGroup Label="Configuration">
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+</Project>

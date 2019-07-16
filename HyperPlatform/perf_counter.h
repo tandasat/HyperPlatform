@@ -14,7 +14,7 @@
 #ifndef HYPERPLATFORM_PERF_COUNTER_H_
 #define HYPERPLATFORM_PERF_COUNTER_H_
 
-#include <fltKernel.h>
+#include <ntddk.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 //

@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -42,7 +42,7 @@ static const long kVmmpNumberOfProcessors = 2;
 // Represents raw structure of stack of VMM when VmmVmExitHandler() is called
 struct VmmInitialStack {
   GpRegisters gp_regs;
-  ULONG_PTR reserved;
+  KtrapFrame trap_frame;
   ProcessorData *processor_data;
 };
 
@@ -186,7 +186,6 @@ _Use_decl_annotations_ bool __stdcall VmmVmExitHandler(VmmInitialStack *stack) {
   if (guest_irql < DISPATCH_LEVEL) {
     KeRaiseIrqlToDpcLevel();
   }
-  NT_ASSERT(stack->reserved == MAXULONG_PTR);
 
   // Capture the current guest state
   GuestContext guest_context = {stack,
@@ -196,6 +195,14 @@ _Use_decl_annotations_ bool __stdcall VmmVmExitHandler(VmmInitialStack *stack) {
                                 guest_irql,
                                 true};
   guest_context.gp_regs->sp = UtilVmRead(VmcsField::kGuestRsp);
+
+  // Update the trap frame so that Windbg can construct the stack trace of the
+  // guest. The rest of trap frame fields are entirely unused. Note that until
+  // this code is executed, Windbg will display incorrect stack trace based off
+  // the stale, old values.
+  stack->trap_frame.sp = guest_context.gp_regs->sp;
+  stack->trap_frame.ip =
+      guest_context.ip + UtilVmRead(VmcsField::kVmExitInstructionLen);
 
   // Dispatch the current VM-exit event
   VmmpHandleVmExit(&guest_context);
@@ -305,6 +312,8 @@ _Use_decl_annotations_ static void VmmpHandleVmExit(
     case VmxExitReason::kVmwrite:
     case VmxExitReason::kVmoff:
     case VmxExitReason::kVmon:
+    case VmxExitReason::kInvept:
+    case VmxExitReason::kInvvpid:
       VmmpHandleVmx(guest_context);
       break;
     case VmxExitReason::kRdtscp:
@@ -391,7 +400,9 @@ _Use_decl_annotations_ static void VmmpHandleException(
       // #BP
       VmmpInjectInterruption(interruption_type, vector, false, 0);
       HYPERPLATFORM_LOG_INFO_SAFE("GuestIp= %016Ix, #BP ", guest_context->ip);
-      UtilVmWrite(VmcsField::kVmEntryInstructionLen, 1);
+      const auto exit_inst_length =
+          UtilVmRead(VmcsField::kVmExitInstructionLen);
+      UtilVmWrite(VmcsField::kVmEntryInstructionLen, exit_inst_length);
 
     } else {
       HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kUnspecified, 0, 0,
@@ -580,9 +591,6 @@ _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
         instruction_info.fields.index_register, guest_context);
     index_value = *register_used;
     switch (static_cast<Scaling>(instruction_info.fields.scalling)) {
-      case Scaling::kNoScaling:
-        index_value = index_value;
-        break;
       case Scaling::kScaleBy2:
         index_value = index_value * 2;
         break;
@@ -627,16 +635,58 @@ _Use_decl_annotations_ static void VmmpHandleGdtrOrIdtrAccess(
   auto descriptor_table_reg = reinterpret_cast<Idtr *>(operation_address);
   switch (static_cast<GdtrOrIdtrInstructionIdentity>(
       instruction_info.fields.instruction_identity)) {
-    case GdtrOrIdtrInstructionIdentity::kSgdt:
-      descriptor_table_reg->base = UtilVmRead(VmcsField::kGuestGdtrBase);
-      descriptor_table_reg->limit =
+    case GdtrOrIdtrInstructionIdentity::kSgdt: {
+      // On 64bit system, SIDT and SGDT can be executed from a 32bit process
+      // where runs with the 32bit operand size. The following checks the
+      // current guest's operand size and writes either full 10 bytes (for the
+      // 64bit more) or 6 bytes or IDTR or GDTR as the processor does. See:
+      // Operand Size and Address Size in 64-Bit Mode See: SGDT-Store Global
+      // Descriptor Table Register See: SIDT-Store Interrupt Descriptor Table
+      // Register
+      const auto gdt_base = UtilVmRead(VmcsField::kGuestGdtrBase);
+      const auto gdt_limit =
           static_cast<unsigned short>(UtilVmRead(VmcsField::kGuestGdtrLimit));
+
+      const SegmentSelector ss = {
+          static_cast<USHORT>(UtilVmRead(VmcsField::kGuestCsSelector))};
+      const auto segment_descriptor = reinterpret_cast<SegmentDescriptor *>(
+          gdt_base + ss.fields.index * sizeof(SegmentDescriptor));
+      if (segment_descriptor->fields.l) {
+        // 64bit
+        descriptor_table_reg->base = gdt_base;
+        descriptor_table_reg->limit = gdt_limit;
+      } else {
+        // 32bit
+        const auto descriptor_table_reg32 =
+            reinterpret_cast<Idtr32 *>(descriptor_table_reg);
+        descriptor_table_reg32->base = static_cast<ULONG32>(gdt_base);
+        descriptor_table_reg32->limit = gdt_limit;
+      }
       break;
-    case GdtrOrIdtrInstructionIdentity::kSidt:
-      descriptor_table_reg->base = UtilVmRead(VmcsField::kGuestIdtrBase);
-      descriptor_table_reg->limit =
+    }
+    case GdtrOrIdtrInstructionIdentity::kSidt: {
+      const auto idt_base = UtilVmRead(VmcsField::kGuestIdtrBase);
+      const auto idt_limit =
           static_cast<unsigned short>(UtilVmRead(VmcsField::kGuestIdtrLimit));
+
+      const auto gdt_base = UtilVmRead(VmcsField::kGuestGdtrBase);
+      const SegmentSelector ss = {
+          static_cast<USHORT>(UtilVmRead(VmcsField::kGuestCsSelector))};
+      const auto segment_descriptor = reinterpret_cast<SegmentDescriptor *>(
+          gdt_base + ss.fields.index * sizeof(SegmentDescriptor));
+      if (segment_descriptor->fields.l) {
+        // 64bit
+        descriptor_table_reg->base = idt_base;
+        descriptor_table_reg->limit = idt_limit;
+      } else {
+        // 32bit
+        const auto descriptor_table_reg32 =
+            reinterpret_cast<Idtr32 *>(descriptor_table_reg);
+        descriptor_table_reg32->base = static_cast<ULONG32>(idt_base);
+        descriptor_table_reg32->limit = idt_limit;
+      }
       break;
+    }
     case GdtrOrIdtrInstructionIdentity::kLgdt:
       UtilVmWrite(VmcsField::kGuestGdtrBase, descriptor_table_reg->base);
       UtilVmWrite(VmcsField::kGuestGdtrLimit, descriptor_table_reg->limit);
@@ -683,9 +733,6 @@ _Use_decl_annotations_ static void VmmpHandleLdtrOrTrAccess(
           instruction_info.fields.index_register, guest_context);
       index_value = *register_used;
       switch (static_cast<Scaling>(instruction_info.fields.scalling)) {
-        case Scaling::kNoScaling:
-          index_value = index_value;
-          break;
         case Scaling::kScaleBy2:
           index_value = index_value * 2;
           break;
@@ -984,32 +1031,32 @@ _Use_decl_annotations_ static void VmmpIoWrapper(bool to_memory, bool is_string,
     if (is_string) {
       // INS
       switch (size_of_access) {
-      case 1: __inbytestring(port, reinterpret_cast<UCHAR*>(address), count); break;
-      case 2: __inwordstring(port, reinterpret_cast<USHORT*>(address), count); break;
-      case 4: __indwordstring(port, reinterpret_cast<ULONG*>(address), count); break;
+      case 1: __inbytestring(port, static_cast<UCHAR*>(address), count); break;
+      case 2: __inwordstring(port, static_cast<USHORT*>(address), count); break;
+      case 4: __indwordstring(port, static_cast<ULONG*>(address), count); break;
       }
     } else {
       // IN
       switch (size_of_access) {
-      case 1: *reinterpret_cast<UCHAR*>(address) = __inbyte(port); break;
-      case 2: *reinterpret_cast<USHORT*>(address) = __inword(port); break;
-      case 4: *reinterpret_cast<ULONG*>(address) = __indword(port); break;
+      case 1: *static_cast<UCHAR*>(address) = __inbyte(port); break;
+      case 2: *static_cast<USHORT*>(address) = __inword(port); break;
+      case 4: *static_cast<ULONG*>(address) = __indword(port); break;
       }
     }
   } else {
     if (is_string) {
       // OUTS
       switch (size_of_access) {
-      case 1: __outbytestring(port, reinterpret_cast<UCHAR*>(address), count); break;
-      case 2: __outwordstring(port, reinterpret_cast<USHORT*>(address), count); break;
-      case 4: __outdwordstring(port, reinterpret_cast<ULONG*>(address), count); break;
+      case 1: __outbytestring(port, static_cast<UCHAR*>(address), count); break;
+      case 2: __outwordstring(port, static_cast<USHORT*>(address), count); break;
+      case 4: __outdwordstring(port, static_cast<ULONG*>(address), count); break;
       }
     } else {
       // OUT
       switch (size_of_access) {
-      case 1: __outbyte(port, *reinterpret_cast<UCHAR*>(address)); break;
-      case 2: __outword(port, *reinterpret_cast<USHORT*>(address)); break;
-      case 4: __outdword(port, *reinterpret_cast<ULONG*>(address)); break;
+      case 1: __outbyte(port, *static_cast<UCHAR*>(address)); break;
+      case 2: __outword(port, *static_cast<USHORT*>(address)); break;
+      case 4: __outdword(port, *static_cast<ULONG*>(address)); break;
       }
     }
   }
@@ -1051,7 +1098,7 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
         case 3: {
           HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
           if (UtilIsX86Pae()) {
-            UtilLoadPdptes(*register_used);
+            UtilLoadPdptes(VmmpGetKernelCr3());
           }
           // Under some circumstances MOV to CR3 is not *required* to flush TLB
           // entries, but also NOT prohibited to do so. Therefore, we flush it
@@ -1172,7 +1219,7 @@ _Use_decl_annotations_ static void VmmpHandleVmCall(
       VmmpIndicateSuccessfulVmcall(guest_context);
       break;
     case HypercallNumber::kGetSharedProcessorData:
-      *reinterpret_cast<void **>(context) =
+      *static_cast<void **>(context) =
           guest_context->stack->processor_data->shared_data;
       VmmpIndicateSuccessfulVmcall(guest_context);
       break;
@@ -1196,7 +1243,6 @@ _Use_decl_annotations_ static void VmmpHandleInvalidateTlbEntry(
   HYPERPLATFORM_PERFORMANCE_MEASURE_THIS_SCOPE();
   const auto invalidate_address =
       reinterpret_cast<void *>(UtilVmRead(VmcsField::kExitQualification));
-  __invlpg(invalidate_address);
   UtilInvvpidIndividualAddress(
       static_cast<USHORT>(KeGetCurrentProcessorNumberEx(nullptr) + 1),
       invalidate_address);
@@ -1362,7 +1408,8 @@ _Use_decl_annotations_ static void VmmpIndicateUnsuccessfulVmcall(
 
   VmmpInjectInterruption(InterruptionType::kHardwareException,
                          InterruptionVector::kInvalidOpcodeException, false, 0);
-  UtilVmWrite(VmcsField::kVmEntryInstructionLen, 3);  // VMCALL is 3 bytes
+  const auto exit_inst_length = UtilVmRead(VmcsField::kVmExitInstructionLen);
+  UtilVmWrite(VmcsField::kVmEntryInstructionLen, exit_inst_length);
 }
 
 // Handles an unloading request
@@ -1383,7 +1430,7 @@ _Use_decl_annotations_ static void VmmpHandleVmCallTermination(
   __lidt(&idtr);
 
   // Store an address of the management structure to the context parameter
-  const auto result_ptr = reinterpret_cast<ProcessorData **>(context);
+  const auto result_ptr = static_cast<ProcessorData **>(context);
   *result_ptr = guest_context->stack->processor_data;
   HYPERPLATFORM_LOG_DEBUG_SAFE("Context at %p %p", context,
                                guest_context->stack->processor_data);
@@ -1439,20 +1486,24 @@ _Use_decl_annotations_ static void VmmpInjectInterruption(
 
 // Returns a kernel CR3 value of the current process;
 /*_Use_decl_annotations_*/ static ULONG_PTR VmmpGetKernelCr3() {
-  auto guest_cr3 = UtilVmRead(VmcsField::kGuestCr3);
-  // Assume it is an user-mode CR3 when the lowest bit is set. If so, get CR3
-  // from _KPROCESS::DirectoryTableBase.
-  if (guest_cr3 & 1) {
-    static const long kDirectoryTableBaseOffsetX64 = 0x28;
-    static const long kDirectoryTableBaseOffsetX86 = 0x18;
-    auto process = reinterpret_cast<PUCHAR>(PsGetCurrentProcess());
-    if (IsX64()) {
+  ULONG_PTR guest_cr3 = 0;
+  static const long kDirectoryTableBaseOffset = IsX64() ? 0x28 : 0x18;
+  if (IsX64()) {
+    // On x64, assume it is an user-mode CR3 when the lowest bit is set. If so,
+    // get CR3 from _KPROCESS::DirectoryTableBase.
+    guest_cr3 = UtilVmRead(VmcsField::kGuestCr3);
+    if (guest_cr3 & 1) {
+      const auto process = reinterpret_cast<PUCHAR>(PsGetCurrentProcess());
       guest_cr3 =
-          *reinterpret_cast<PULONG_PTR>(process + kDirectoryTableBaseOffsetX64);
-    } else {
-      guest_cr3 =
-          *reinterpret_cast<PULONG_PTR>(process + kDirectoryTableBaseOffsetX86);
+          *reinterpret_cast<PULONG_PTR>(process + kDirectoryTableBaseOffset);
     }
+  } else {
+    // On x86, there is no easy way to tell whether the CR3 taken from VMCS is
+    // a user-mode CR3 or kernel-mode CR3 by only looking at the value.
+    // Therefore, we simply use _KPROCESS::DirectoryTableBase always.
+    const auto process = reinterpret_cast<PUCHAR>(PsGetCurrentProcess());
+    guest_cr3 =
+        *reinterpret_cast<PULONG_PTR>(process + kDirectoryTableBaseOffset);
   }
   return guest_cr3;
 }

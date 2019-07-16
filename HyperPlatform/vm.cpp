@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -6,8 +6,8 @@
 /// Implements VMM initialization functions.
 
 #include "vm.h"
-#include <limits.h>
 #include <intrin.h>
+#include <limits.h>  // for CHAR_BIT
 #include "asm.h"
 #include "common.h"
 #include "ept.h"
@@ -237,7 +237,7 @@ _Use_decl_annotations_ static NTSTATUS VmpSetLockBitCallback(void *context) {
 _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
   PAGED_CODE();
 
-  const auto shared_data = reinterpret_cast<SharedProcessorData *>(
+  const auto shared_data = static_cast<SharedProcessorData *>(
       ExAllocatePoolWithTag(NonPagedPool, sizeof(SharedProcessorData),
                             kHyperPlatformCommonPoolTag));
   if (!shared_data) {
@@ -277,7 +277,7 @@ _Use_decl_annotations_ static void *VmpBuildMsrBitmap() {
   RtlZeroMemory(msr_bitmap, PAGE_SIZE);
 
   // Activate VM-exit for RDMSR against all MSRs
-  const auto bitmap_read_low = reinterpret_cast<UCHAR *>(msr_bitmap);
+  const auto bitmap_read_low = static_cast<UCHAR *>(msr_bitmap);
   const auto bitmap_read_high = bitmap_read_low + 1024;
   RtlFillMemory(bitmap_read_low, 1024, 0xff);   // read        0 -     1fff
   RtlFillMemory(bitmap_read_high, 1024, 0xff);  // read c0000000 - c0001fff
@@ -293,7 +293,7 @@ _Use_decl_annotations_ static void *VmpBuildMsrBitmap() {
     __try {
       UtilReadMsr(static_cast<Msr>(msr));
 
-#pragma prefast(suppress: __WARNING_EXCEPTIONEXECUTEHANDLER, "Catch all.");
+#pragma prefast(suppress : __WARNING_EXCEPTIONEXECUTEHANDLER, "Catch all.");
     } __except (EXCEPTION_EXECUTE_HANDLER) {
       RtlClearBits(&bitmap_read_low_header, msr, 1);
     }
@@ -314,7 +314,7 @@ _Use_decl_annotations_ static UCHAR *VmpBuildIoBitmaps() {
   PAGED_CODE();
 
   // Allocate two IO bitmaps as one contiguous 4K+4K page
-  const auto io_bitmaps = reinterpret_cast<UCHAR *>(ExAllocatePoolWithTag(
+  const auto io_bitmaps = static_cast<UCHAR *>(ExAllocatePoolWithTag(
       NonPagedPool, PAGE_SIZE * 2, kHyperPlatformCommonPoolTag));
   if (!io_bitmaps) {
     return nullptr;
@@ -360,14 +360,14 @@ _Use_decl_annotations_ static void VmpInitializeVm(
     void *context) {
   PAGED_CODE();
 
-  const auto shared_data = reinterpret_cast<SharedProcessorData *>(context);
+  const auto shared_data = static_cast<SharedProcessorData *>(context);
   if (!shared_data) {
     return;
   }
 
   // Allocate related structures
   const auto processor_data =
-      reinterpret_cast<ProcessorData *>(ExAllocatePoolWithTag(
+      static_cast<ProcessorData *>(ExAllocatePoolWithTag(
           NonPagedPool, sizeof(ProcessorData), kHyperPlatformCommonPoolTag));
   if (!processor_data) {
     return;
@@ -379,76 +379,123 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   // Set up EPT
   processor_data->ept_data = EptInitialization();
   if (!processor_data->ept_data) {
-    goto ReturnFalse;
+    VmpFreeProcessorData(processor_data);
+    return;
   }
 
   // Allocate other processor data fields
   processor_data->vmm_stack_limit =
       UtilAllocateContiguousMemory(KERNEL_STACK_SIZE);
   if (!processor_data->vmm_stack_limit) {
-    goto ReturnFalse;
+    VmpFreeProcessorData(processor_data);
+    return;
   }
   RtlZeroMemory(processor_data->vmm_stack_limit, KERNEL_STACK_SIZE);
 
   processor_data->vmcs_region =
-      reinterpret_cast<VmControlStructure *>(ExAllocatePoolWithTag(
+      static_cast<VmControlStructure *>(ExAllocatePoolWithTag(
           NonPagedPool, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
   if (!processor_data->vmcs_region) {
-    goto ReturnFalse;
+    VmpFreeProcessorData(processor_data);
+    return;
   }
   RtlZeroMemory(processor_data->vmcs_region, kVmxMaxVmcsSize);
 
   processor_data->vmxon_region =
-      reinterpret_cast<VmControlStructure *>(ExAllocatePoolWithTag(
+      static_cast<VmControlStructure *>(ExAllocatePoolWithTag(
           NonPagedPool, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
   if (!processor_data->vmxon_region) {
-    goto ReturnFalse;
+    VmpFreeProcessorData(processor_data);
+    return;
   }
   RtlZeroMemory(processor_data->vmxon_region, kVmxMaxVmcsSize);
 
-  // Initialize stack memory for VMM like this:
+  // Initialize stack memory for VMM looks like this:
   //
-  // (High)
-  // +------------------+  <- vmm_stack_region_base      (eg, AED37000)
-  // | processor_data   |  <- vmm_stack_data             (eg, AED36FFC)
-  // +------------------+
-  // | MAXULONG_PTR     |  <- vmm_stack_base (initial SP)(eg, AED36FF8)
-  // +------------------+    v
-  // |                  |    v
-  // | (VMM Stack)      |    v (grow)
-  // |                  |    v
-  // +------------------+  <- vmm_stack_limit            (eg, AED34000)
-  // (Low)
+  //                   +  <- vmm_stack_region_base  (eg, ffffe300`412bd000)
+  // (High)            |
+  // +-----------------+  <- vmm_stack_data         (eg, ffffe300`412bcff8)
+  // | processor_data  |
+  // +-----------------+
+  // | vmm_stack_frame |
+  // +-               -+  <- vmm_stack_base         (eg, ffffe300`412bcfd0)
+  // | ff ff ff ff ff  |    v
+  // +-               -+    v (skipped by VMM with sub esp/rsp)
+  // | ff ff ff ff ff  |    v
+  // +-----------------+  <- vmm_stack_frame
+  // |                 |    v
+  // |                 |    v (used by VMM to store any stack-based data)
+  // |                 |    v
+  // |                 |    v
+  // |                 |    v
+  // |                 |    v
+  // |                 |    v
+  // |                 |    v
+  // |                 |    v
+  // |                 |    v
+  // +-----------------+  <- vmm_stack_limit        (eg, ffffe300`412b7000)
+  // (Low)             |
+
   const auto vmm_stack_region_base =
       reinterpret_cast<ULONG_PTR>(processor_data->vmm_stack_limit) +
       KERNEL_STACK_SIZE;
+
+  // Save the processor data on the VMM stack region.
   const auto vmm_stack_data = vmm_stack_region_base - sizeof(void *);
-  const auto vmm_stack_base = vmm_stack_data - sizeof(void *);
+  *reinterpret_cast<ProcessorData **>(vmm_stack_data) = processor_data;
+
+  // Fill space for the trap frame with 0xff for ease of identifying the region
+  // on Debug build. This trap frame space is used only for Windbg to construct
+  // the stack trace during VM-exit is being handled, and only a couple of
+  // fields (Eip and HardwareEsp on x86, or Rip and Rsp on x64) is properly
+  // initialized (in VmmVmExitHandler) and used by Windbg. On VM-exit this space
+  // is just skipped by subtracting the stack pointer.
+  if (!IsReleaseBuild()) {
+    const auto vmm_stack_frame =
+        reinterpret_cast<void *>(vmm_stack_data - sizeof(KtrapFrame));
+    RtlFillMemory(vmm_stack_frame, sizeof(KtrapFrame), 0xff);
+  }
+
+  // Compute the initial stack pointer of the VMM, that is, the base address
+  // minus the pointer size (for ProcessorData*) and the MachineFrame size.
+  // This MachineFrame space is used to emulate the processor's behavior on
+  // exception. That is, when exception occurs and execution switches from
+  // user-mode to kernel-mode, the processor pushes e/rip, cs, eflags, e/rsp,
+  // and ss into the top of stack prior to execution of an interrupt handler
+  // (see: Exception- or Interrupt-Handler Procedures). Those five values are
+  // referred to as the machine frame collectively. This code emulates this by
+  // setting the VMM stack pointer right after space corresponds to the machine
+  // frame.
+  const auto vmm_stack_base =
+      vmm_stack_region_base - sizeof(void *) - sizeof(MachineFrame);
+
   HYPERPLATFORM_LOG_DEBUG("vmm_stack_limit       = %p",
                           processor_data->vmm_stack_limit);
-  HYPERPLATFORM_LOG_DEBUG("vmm_stack_region_base = %016Ix",
-                          vmm_stack_region_base);
-  HYPERPLATFORM_LOG_DEBUG("vmm_stack_data        = %016Ix", vmm_stack_data);
-  HYPERPLATFORM_LOG_DEBUG("vmm_stack_base        = %016Ix", vmm_stack_base);
-  HYPERPLATFORM_LOG_DEBUG("processor_data        = %p stored at %016Ix",
-                          processor_data, vmm_stack_data);
-  HYPERPLATFORM_LOG_DEBUG("guest_stack_pointer   = %016Ix",
-                          guest_stack_pointer);
-  HYPERPLATFORM_LOG_DEBUG("guest_inst_pointer    = %016Ix",
-                          guest_instruction_pointer);
-  *reinterpret_cast<ULONG_PTR *>(vmm_stack_base) = MAXULONG_PTR;
-  *reinterpret_cast<ProcessorData **>(vmm_stack_data) = processor_data;
+  HYPERPLATFORM_LOG_DEBUG("vmm_stack_region_base = %p",
+                          reinterpret_cast<void *>(vmm_stack_region_base));
+  HYPERPLATFORM_LOG_DEBUG("vmm_stack_data        = %p",
+                          reinterpret_cast<void *>(vmm_stack_data));
+  HYPERPLATFORM_LOG_DEBUG("vmm_stack_base        = %p",
+                          reinterpret_cast<void *>(vmm_stack_base));
+  HYPERPLATFORM_LOG_DEBUG("processor_data        = %p stored at %p",
+                          processor_data,
+                          reinterpret_cast<void *>(vmm_stack_data));
+  HYPERPLATFORM_LOG_DEBUG("guest_stack_pointer   = %p",
+                          reinterpret_cast<void *>(guest_stack_pointer));
+  HYPERPLATFORM_LOG_DEBUG("guest_inst_pointer    = %p",
+                          reinterpret_cast<void *>(guest_instruction_pointer));
 
   // Set up VMCS
   if (!VmpEnterVmxMode(processor_data)) {
-    goto ReturnFalse;
+    VmpFreeProcessorData(processor_data);
+    return;
   }
   if (!VmpInitializeVmcs(processor_data)) {
-    goto ReturnFalseWithVmxOff;
+    goto Exit;
   }
   if (!VmpSetupVmcs(processor_data, guest_stack_pointer,
                     guest_instruction_pointer, vmm_stack_base)) {
-    goto ReturnFalseWithVmxOff;
+    goto Exit;
   }
 
   // Do virtualize the processor
@@ -457,10 +504,8 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   // Here is not be executed with successful vmlaunch. Instead, the context
   // jumps to an address specified by guest_instruction_pointer.
 
-ReturnFalseWithVmxOff:;
+Exit:;
   __vmx_off();
-
-ReturnFalse:;
   VmpFreeProcessorData(processor_data);
 }
 
@@ -549,7 +594,7 @@ _Use_decl_annotations_ static bool VmpSetupVmcs(
   PAGED_CODE();
 
   Gdtr gdtr = {};
-  __sgdt(&gdtr);
+  _sgdt(&gdtr);
 
   Idtr idtr = {};
   __sidt(&idtr);
