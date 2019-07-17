@@ -552,6 +552,9 @@ _Use_decl_annotations_ static void VmmpHandleMsrAccess(
       } else {
         msr_value.QuadPart = UtilVmRead(vmcs_field);
       }
+    //modified by simpower91
+    } else if (int(msr) == 0x400000F0) {
+
     } else {
       msr_value.QuadPart = UtilReadMsr64(msr);
     }
