@@ -176,7 +176,7 @@ _Use_decl_annotations_ static bool VmpIsVmxAvailable() {
   // If CPUID.1:ECX.VMX[bit 5]=1, then VMX operation is supported.
   int cpu_info[4] = {};
   __cpuid(cpu_info, 1);
-  const CpuFeaturesEcx cpu_features = {static_cast<ULONG_PTR>(cpu_info[2])};
+  const CpuFeaturesEcx cpu_features = {static_cast<ULONG32>(cpu_info[2])};
   if (!cpu_features.fields.vmx) {
     HYPERPLATFORM_LOG_ERROR("VMX features are not supported.");
     return false;
@@ -1028,7 +1028,7 @@ _Use_decl_annotations_ static bool VmpIsHyperPlatformInstalled() {
 
   int cpu_info[4] = {};
   __cpuid(cpu_info, 1);
-  const CpuFeaturesEcx cpu_features = {static_cast<ULONG_PTR>(cpu_info[2])};
+  const CpuFeaturesEcx cpu_features = {static_cast<ULONG32>(cpu_info[2])};
   if (!cpu_features.fields.not_used) {
     return false;
   }

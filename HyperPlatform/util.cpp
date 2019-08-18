@@ -209,7 +209,8 @@ _Use_decl_annotations_ static NTSTATUS UtilpInitializePageTableVariables() {
 #include "util_page_constants.h"  // Include platform dependent constants
 
   // Check OS version to know if page table base addresses need to be relocated
-  RTL_OSVERSIONINFOW os_version = {sizeof(os_version)};
+  RTL_OSVERSIONINFOW os_version;
+  os_version.dwOSVersionInfoSize = sizeof(os_version);
   auto status = RtlGetVersion(&os_version);
   if (!NT_SUCCESS(status)) {
     return status;
