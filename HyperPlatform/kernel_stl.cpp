@@ -7,7 +7,12 @@
 
 #include <ntddk.h>
 #undef _HAS_EXCEPTIONS
+
+// This enables use of STL in kernel-mode.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-macros"
 #define _HAS_EXCEPTIONS 0
+#pragma clang diagnostic pop
 
 // See common.h for details
 #pragma prefast(disable : 30030)
@@ -54,6 +59,9 @@ DECLSPEC_NORETURN static void KernelStlpRaiseException(
   KeBugCheck(bug_check_code);
 #pragma warning(pop)
 }
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
 
 DECLSPEC_NORETURN void __cdecl _invalid_parameter_noinfo_noreturn() {
   KernelStlpRaiseException(KMODE_EXCEPTION_NOT_HANDLED);
@@ -141,48 +149,4 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void __cdecl operator delete[](
   }
 }
 
-// An alternative implementation of __stdio_common_vsprintf_s
-_Success_(return >= 0) EXTERN_C inline int __cdecl __stdio_common_vsprintf_s(
-    _In_ unsigned __int64 _Options, _Out_writes_z_(_BufferCount) char *_Buffer,
-    _In_ size_t _BufferCount,
-    _In_z_ _Printf_format_string_params_(2) char const *_Format,
-    _In_opt_ _locale_t _Locale, va_list _ArgList) {
-  UNREFERENCED_PARAMETER(_Options);
-  UNREFERENCED_PARAMETER(_Locale);
-
-  // Calls _vsnprintf exported by ntoskrnl
-  using _vsnprintf_type = int __cdecl(char *, size_t, const char *, va_list);
-  static _vsnprintf_type *local__vsnprintf = nullptr;
-  if (!local__vsnprintf) {
-    UNICODE_STRING proc_name_U = {};
-    RtlInitUnicodeString(&proc_name_U, L"_vsnprintf");
-    local__vsnprintf =
-        static_cast<_vsnprintf_type *>(MmGetSystemRoutineAddress(&proc_name_U));
-  }
-
-  return local__vsnprintf(_Buffer, _BufferCount, _Format, _ArgList);
-}
-
-// An alternative implementation of __stdio_common_vswprintf_s
-_Success_(return >= 0) _Check_return_opt_ EXTERN_C
-    inline int __cdecl __stdio_common_vswprintf_s(
-        _In_ unsigned __int64 _Options,
-        _Out_writes_z_(_BufferCount) wchar_t *_Buffer, _In_ size_t _BufferCount,
-        _In_z_ _Printf_format_string_params_(2) wchar_t const *_Format,
-        _In_opt_ _locale_t _Locale, va_list _ArgList) {
-  UNREFERENCED_PARAMETER(_Options);
-  UNREFERENCED_PARAMETER(_Locale);
-
-  // Calls _vsnwprintf exported by ntoskrnl
-  using _vsnwprintf_type =
-      int __cdecl(wchar_t *, size_t, const wchar_t *, va_list);
-  static _vsnwprintf_type *local__vsnwprintf = nullptr;
-  if (!local__vsnwprintf) {
-    UNICODE_STRING proc_name_U = {};
-    RtlInitUnicodeString(&proc_name_U, L"_vsnwprintf");
-    local__vsnwprintf = static_cast<_vsnwprintf_type *>(
-        MmGetSystemRoutineAddress(&proc_name_U));
-  }
-
-  return local__vsnwprintf(_Buffer, _BufferCount, _Format, _ArgList);
-}
+#pragma clang diagnostic pop

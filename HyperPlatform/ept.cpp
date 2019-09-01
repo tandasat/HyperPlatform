@@ -71,13 +71,13 @@ static const auto kEptpMtrrEntriesSize =
 
 #include <pshpack1.h>
 struct MtrrData {
-  bool enabled;        //<! Whether this entry is valid
-  bool fixedMtrr;      //<! Whether this entry manages a fixed range MTRR
-  UCHAR type;          //<! Memory Type (such as WB, UC)
-  bool reserverd1;     //<! Padding
-  ULONG reserverd2;    //<! Padding
-  ULONG64 range_base;  //<! A base address of a range managed by this entry
-  ULONG64 range_end;   //<! An end address of a range managed by this entry
+  bool enabled;        //!< Whether this entry is valid
+  bool fixedMtrr;      //!< Whether this entry manages a fixed range MTRR
+  UCHAR type;          //!< Memory Type (such as WB, UC)
+  bool reserverd1;     //!< Padding
+  ULONG reserverd2;    //!< Padding
+  ULONG64 range_base;  //!< A base address of a range managed by this entry
+  ULONG64 range_end;   //!< An end address of a range managed by this entry
 };
 #include <poppack.h>
 static_assert(sizeof(MtrrData) == 24, "Size check");
@@ -161,7 +161,7 @@ static UCHAR g_eptp_mtrr_default_type;
 
 // Checks if the system supports EPT technology sufficient enough
 _Use_decl_annotations_ bool EptIsEptAvailable() {
-  PAGED_CODE();
+  PAGED_CODE()
 
   // Check the followings:
   // - page walk length is 4 steps
@@ -191,7 +191,7 @@ _Use_decl_annotations_ ULONG64 EptGetEptPointer(EptData *ept_data) {
 
 // Reads and stores all MTRRs to set a correct memory type for EPT
 _Use_decl_annotations_ void EptInitializeMtrrEntries() {
-  PAGED_CODE();
+  PAGED_CODE()
 
   int index = 0;
   MtrrData *mtrr_entries = g_eptp_mtrr_entries;
@@ -397,7 +397,7 @@ _Use_decl_annotations_ static memory_type EptpGetMemoryType(
 
 // Builds EPT, allocates pre-allocated entires, initializes and returns EptData
 _Use_decl_annotations_ EptData *EptInitialization() {
-  PAGED_CODE();
+  PAGED_CODE()
 
   static const auto kEptPageWalkLevel = 4ul;
 

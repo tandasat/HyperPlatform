@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -160,8 +160,8 @@ void _sgdt(_Out_ void *gdtr);
 /// @param gdtr   A pointer to read GDTR
 inline void __lgdt(_In_ void *gdtr) { AsmWriteGDT(static_cast<Gdtr *>(gdtr)); }
 
-// Followings are oringal implementations of Microsoft VMX intrinsic functions
-// which are not avaiable on x86.
+// Followings are original implementations of Microsoft VMX intrinsic functions
+// which are not available on x86.
 #if defined(_X86_)
 
 /// Activates virtual machine extensions (VMX) operation in the processor

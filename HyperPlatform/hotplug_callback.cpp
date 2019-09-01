@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -53,7 +53,7 @@ static PVOID g_hpp_callback_handle = nullptr;
 
 // Registers power callback
 _Use_decl_annotations_ NTSTATUS HotplugCallbackInitialization() {
-  PAGED_CODE();
+  PAGED_CODE()
 
   auto callback_handle = KeRegisterProcessorChangeCallback(
       HotplugCallbackpCallbackRoutine, nullptr, 0);
@@ -67,7 +67,7 @@ _Use_decl_annotations_ NTSTATUS HotplugCallbackInitialization() {
 
 // Unregister power callback
 _Use_decl_annotations_ void HotplugCallbackTermination() {
-  PAGED_CODE();
+  PAGED_CODE()
 
   if (g_hpp_callback_handle) {
     KeDeregisterProcessorChangeCallback(g_hpp_callback_handle);
@@ -77,7 +77,7 @@ _Use_decl_annotations_ void HotplugCallbackTermination() {
 _Use_decl_annotations_ static void HotplugCallbackpCallbackRoutine(
     PVOID callback_context, PKE_PROCESSOR_CHANGE_NOTIFY_CONTEXT change_context,
     PNTSTATUS operation_status) {
-  PAGED_CODE();
+  PAGED_CODE()
   UNREFERENCED_PARAMETER(callback_context);
   UNREFERENCED_PARAMETER(operation_status);
 

@@ -5,8 +5,8 @@
 /// @file
 /// Implements performance measurement functions.
 
-#include "performance.h"
 #include "common.h"
+#include "performance.h"
 #include "log.h"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -51,7 +51,7 @@ PerfCollector* g_performance_collector;
 //
 
 _Use_decl_annotations_ NTSTATUS PerfInitialization() {
-  PAGED_CODE();
+  PAGED_CODE()
   auto status = STATUS_SUCCESS;
 
   const auto perf_collector = static_cast<PerfCollector*>(ExAllocatePoolWithTag(
@@ -70,7 +70,7 @@ _Use_decl_annotations_ NTSTATUS PerfInitialization() {
 }
 
 _Use_decl_annotations_ void PerfTermination() {
-  PAGED_CODE();
+  PAGED_CODE()
 
   if (g_performance_collector) {
     g_performance_collector->Terminate();

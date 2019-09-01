@@ -23,7 +23,7 @@
 
 - Architecture: (Please choose: x86, x64, Both, or N/A)
 
-- Hardware (eg, Physical, VMware 14, Bochs, or N/A): (Please fill in)
+- Hardware (eg, Physical, VMware 15, Bochs, or N/A): (Please fill in)
 
 - Details: (Please describe)
 

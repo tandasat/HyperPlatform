@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2017, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -54,7 +54,7 @@ static PVOID g_pcp_registration = nullptr;
 
 // Registers power callback
 _Use_decl_annotations_ NTSTATUS PowerCallbackInitialization() {
-  PAGED_CODE();
+  PAGED_CODE()
 
   UNICODE_STRING name = RTL_CONSTANT_STRING(L"\\Callback\\PowerState");
   OBJECT_ATTRIBUTES oa =
@@ -77,7 +77,7 @@ _Use_decl_annotations_ NTSTATUS PowerCallbackInitialization() {
 
 // Unregister power callback
 _Use_decl_annotations_ void PowerCallbackTermination() {
-  PAGED_CODE();
+  PAGED_CODE()
 
   if (g_pcp_registration) {
     ExUnregisterCallback(g_pcp_registration);
@@ -91,7 +91,7 @@ _Use_decl_annotations_ void PowerCallbackTermination() {
 _Use_decl_annotations_ static void PowerCallbackpCallbackRoutine(
     PVOID callback_context, PVOID argument1, PVOID argument2) {
   UNREFERENCED_PARAMETER(callback_context);
-  PAGED_CODE();
+  PAGED_CODE()
 
   HYPERPLATFORM_LOG_DEBUG("PowerCallback %p:%p", argument1, argument2);
 

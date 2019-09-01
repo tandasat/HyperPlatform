@@ -1,4 +1,4 @@
-; Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
+; Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
 ; Use of this source code is governed by a MIT-style license that can be
 ; found in the LICENSE file.
 
@@ -382,8 +382,7 @@ AsmWriteCR2 ENDP
 AsmInvept PROC invept_type, invept_descriptor
     mov ecx, invept_type
     mov edx, invept_descriptor
-    ; invept  ecx, oword ptr [edx]
-    db  66h, 0fh, 38h, 80h, 0ah
+    invept ecx, oword ptr [edx]
     jz errorWithCode        ; if (ZF) jmp
     jc errorWithoutCode     ; if (CF) jmp
     xor eax, eax            ; return VMX_OK
@@ -404,8 +403,7 @@ AsmInvept ENDP
 AsmInvvpid PROC invvpid_type, invvpid_descriptor
     mov ecx, invvpid_type
     mov edx, invvpid_descriptor
-    ; invvpid  ecx, oword ptr [rdx]
-    db  66h, 0fh, 38h, 81h, 0ah
+    invvpid ecx, oword ptr [edx]
     jz errorWithCode        ; if (ZF) jmp
     jc errorWithoutCode     ; if (CF) jmp
     xor eax, eax            ; return VMX_OK

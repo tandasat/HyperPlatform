@@ -91,7 +91,8 @@ DECLSPEC_NORETURN static void VmmpHandleTripleFault(
 DECLSPEC_NORETURN static void VmmpHandleUnexpectedExit(
     _Inout_ GuestContext *guest_context);
 
-static void VmmpHandleMonitorTrap(_Inout_ GuestContext *guest_context);
+DECLSPEC_NORETURN static void VmmpHandleMonitorTrap(
+    _Inout_ GuestContext *guest_context);
 
 static void VmmpHandleException(_Inout_ GuestContext *guest_context);
 
@@ -131,7 +132,8 @@ static void VmmpHandleInvalidateTlbEntry(_Inout_ GuestContext *guest_context);
 
 static void VmmpHandleEptViolation(_Inout_ GuestContext *guest_context);
 
-static void VmmpHandleEptMisconfig(_Inout_ GuestContext *guest_context);
+DECLSPEC_NORETURN static void VmmpHandleEptMisconfig(
+    _Inout_ GuestContext *guest_context);
 
 static ULONG_PTR *VmmpSelectRegister(_In_ ULONG index,
                                      _In_ GuestContext *guest_context);
@@ -257,7 +259,7 @@ _Use_decl_annotations_ static void VmmpHandleVmExit(
       break;
     case VmxExitReason::kTripleFault:
       VmmpHandleTripleFault(guest_context);
-      break;
+      /* UNREACHABLE */
     case VmxExitReason::kCpuid:
       VmmpHandleCpuid(guest_context);
       break;
@@ -287,7 +289,7 @@ _Use_decl_annotations_ static void VmmpHandleVmExit(
       break;
     case VmxExitReason::kMonitorTrapFlag:
       VmmpHandleMonitorTrap(guest_context);
-      break;
+      /* UNREACHABLE */
     case VmxExitReason::kGdtrOrIdtrAccess:
       VmmpHandleGdtrOrIdtrAccess(guest_context);
       break;
@@ -299,7 +301,7 @@ _Use_decl_annotations_ static void VmmpHandleVmExit(
       break;
     case VmxExitReason::kEptMisconfig:
       VmmpHandleEptMisconfig(guest_context);
-      break;
+      /* UNREACHABLE */
     case VmxExitReason::kVmcall:
       VmmpHandleVmCall(guest_context);
       break;
@@ -324,7 +326,7 @@ _Use_decl_annotations_ static void VmmpHandleVmExit(
       break;
     default:
       VmmpHandleUnexpectedExit(guest_context);
-      break;
+      /* UNREACHABLE */
   }
 }
 
@@ -939,10 +941,6 @@ _Use_decl_annotations_ static void VmmpHandleDrAccess(
       }
       // clang-format on
       break;
-    default:
-      HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kUnspecified, 0, 0,
-                                     0);
-      break;
   }
 
   VmmpAdjustGuestInstructionPointer(guest_context);
@@ -1141,7 +1139,7 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
         default:
           HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kUnspecified, 0,
                                          0, 0);
-          break;
+          /* UNREACHABLE */
       }
       break;
 
@@ -1164,14 +1162,13 @@ _Use_decl_annotations_ static void VmmpHandleCrAccess(
         default:
           HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kUnspecified, 0,
                                          0, 0);
-          break;
+          /* UNREACHABLE */
       }
       break;
 
     // Unimplemented
     case MovCrAccessType::kClts:
     case MovCrAccessType::kLmsw:
-    default:
       HYPERPLATFORM_COMMON_DBG_BREAK();
       break;
   }
@@ -1204,6 +1201,13 @@ _Use_decl_annotations_ static void VmmpHandleVmCall(
       static_cast<HypercallNumber>(guest_context->gp_regs->cx);
   const auto context = reinterpret_cast<void *>(guest_context->gp_regs->dx);
 
+  if (!UtilIsInBounds(hypercall_number,
+                      HypercallNumber::kMinimumHypercallNumber,
+                      HypercallNumber::kMaximumHypercallNumber)) {
+    // Unsupported hypercall
+    VmmpIndicateUnsuccessfulVmcall(guest_context);
+  }
+
   switch (hypercall_number) {
     case HypercallNumber::kTerminateVmm:
       // Unloading requested. This VMCALL is allowed to execute only from CPL=0
@@ -1223,9 +1227,6 @@ _Use_decl_annotations_ static void VmmpHandleVmCall(
           guest_context->stack->processor_data->shared_data;
       VmmpIndicateSuccessfulVmcall(guest_context);
       break;
-    default:
-      // Unsupported hypercall
-      VmmpIndicateUnsuccessfulVmcall(guest_context);
   }
 }
 

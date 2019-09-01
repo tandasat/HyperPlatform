@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -25,7 +25,7 @@
 #define HYPERPLATFORM_PERFCOUNTER_P_JOIN1(x, y) \
   HYPERPLATFORM_PERFCOUNTER_P_JOIN2(x, y)
 
-/// Concatinates two tokens
+/// Concatenates two tokens
 /// @param x  1st token
 /// @param y  2nd token
 #define HYPERPLATFORM_PERFCOUNTER_P_JOIN(x, y) \

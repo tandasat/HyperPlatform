@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -9,6 +9,11 @@
 #define HYPERPLATFORM_IA32_TYPE_H_
 
 #include <ntddk.h>
+
+// clang does not know about the @copydoc command.
+// https://bugs.llvm.org/show_bug.cgi?id=17437
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdocumentation-unknown-command"
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -510,11 +515,11 @@ union Cpuid80000008Eax {
 union Ia32MtrrCapabilitiesMsr {
   ULONG64 all;
   struct {
-    ULONG64 variable_range_count : 8;   //<! [0:7]
-    ULONG64 fixed_range_supported : 1;  //<! [8]
-    ULONG64 reserved : 1;               //<! [9]
-    ULONG64 write_combining : 1;        //<! [10]
-    ULONG64 smrr : 1;                   //<! [11]
+    ULONG64 variable_range_count : 8;   //!< [0:7]
+    ULONG64 fixed_range_supported : 1;  //!< [8]
+    ULONG64 reserved : 1;               //!< [9]
+    ULONG64 write_combining : 1;        //!< [10]
+    ULONG64 smrr : 1;                   //!< [11]
   } fields;
 };
 static_assert(sizeof(Ia32MtrrCapabilitiesMsr) == 8, "Size check");
@@ -523,10 +528,10 @@ static_assert(sizeof(Ia32MtrrCapabilitiesMsr) == 8, "Size check");
 union Ia32MtrrDefaultTypeMsr {
   ULONG64 all;
   struct {
-    ULONG64 default_mtemory_type : 8;  //<! [0:7]
-    ULONG64 reserved : 2;              //<! [8:9]
-    ULONG64 fixed_mtrrs_enabled : 1;   //<! [10]
-    ULONG64 mtrrs_enabled : 1;         //<! [11]
+    ULONG64 default_mtemory_type : 8;  //!< [0:7]
+    ULONG64 reserved : 2;              //!< [8:9]
+    ULONG64 fixed_mtrrs_enabled : 1;   //!< [10]
+    ULONG64 mtrrs_enabled : 1;         //!< [11]
   } fields;
 };
 static_assert(sizeof(Ia32MtrrDefaultTypeMsr) == 8, "Size check");
@@ -1690,5 +1695,7 @@ constexpr unsigned int operator<<(_In_ unsigned int lhs,
                                   _In_ InterruptionVector rhs) {
   return (lhs << static_cast<unsigned int>(rhs));
 }
+
+#pragma clang diagnostic pop
 
 #endif  // HYPERPLATFORM_IA32_TYPE_H_

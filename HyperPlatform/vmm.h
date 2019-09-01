@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2018, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -51,8 +51,10 @@ struct KtrapFrameX86 {
   ULONG reserved3[5];
 };
 static_assert(sizeof(KtrapFrameX86) == 0x8c, "structure size mismatch");
+#if !defined(__clang__)
 static_assert(FIELD_OFFSET(KtrapFrameX86, ip) == 0x68, "structure size mismatch");
 static_assert(FIELD_OFFSET(KtrapFrameX86, sp) == 0x74, "structure size mismatch");
+#endif
 
 /// nt!_KTRAP_FRAME on x64
 struct KtrapFrameX64 {
@@ -63,8 +65,10 @@ struct KtrapFrameX64 {
   ULONG64 reserved3;
 };
 static_assert(sizeof(KtrapFrameX64) == 0x190, "structure size mismatch");
+#if !defined(__clang__)
 static_assert(FIELD_OFFSET(KtrapFrameX64, ip) == 0x168, "structure size mismatch");
 static_assert(FIELD_OFFSET(KtrapFrameX64, sp) == 0x180, "structure size mismatch");
+#endif
 
 /// See: Stack Usage on Transfers to Interrupt and Exception-Handling Routines
 struct MachineFrame {
