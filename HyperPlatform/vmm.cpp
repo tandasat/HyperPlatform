@@ -554,7 +554,12 @@ _Use_decl_annotations_ static void VmmpHandleMsrAccess(
       }
     //modified by simpower91
     } else if (int(msr) == 0x400000F0) {
-
+      //返回值需要在guest_context->gp_regs->ax和dx中，根据调试结果，这里需要为0，而后面其实是msr_value给他们赋值，即msr_value为0
+      //由于需要msr_value为0，所以这里什么都不用做，它本身就是0，
+      /*即：
+      guest_context->gp_regs->ax = 0;
+      guest_context->gp_regs->dx = 0; 
+      */
     } else {
       msr_value.QuadPart = UtilReadMsr64(msr);
     }
