@@ -375,7 +375,7 @@ AsmWriteCR2 ENDP
 ;     _In_ InvEptType invept_type,
 ;     _In_ const InvEptDescriptor *invept_descriptor);
 AsmInvept PROC
-    invept ecx, oword ptr [rdx]
+    invept rcx, oword ptr [rdx]
     jz errorWithCode        ; if (ZF) jmp
     jc errorWithoutCode     ; if (CF) jmp
     xor rax, rax            ; return VMX_OK
@@ -394,7 +394,7 @@ AsmInvept ENDP
 ;     _In_ InvVpidType invvpid_type,
 ;     _In_ const InvVpidDescriptor *invvpid_descriptor);
 AsmInvvpid PROC
-    invvpid ecx, oword ptr [rdx]
+    invvpid rcx, oword ptr [rdx]
     jz errorWithCode        ; if (ZF) jmp
     jc errorWithoutCode     ; if (CF) jmp
     xor rax, rax            ; return VMX_OK
