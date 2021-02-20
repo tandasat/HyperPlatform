@@ -1032,6 +1032,8 @@ _Use_decl_annotations_ static void VmmpIoWrapper(bool to_memory, bool is_string,
       case 1: __inbytestring(port, static_cast<UCHAR*>(address), count); break;
       case 2: __inwordstring(port, static_cast<USHORT*>(address), count); break;
       case 4: __indwordstring(port, static_cast<ULONG*>(address), count); break;
+      default: HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kUnspecified, 0, 0, 0);
+      /* UNREACHABLE */
       }
     } else {
       // IN
@@ -1039,6 +1041,8 @@ _Use_decl_annotations_ static void VmmpIoWrapper(bool to_memory, bool is_string,
       case 1: *static_cast<UCHAR*>(address) = __inbyte(port); break;
       case 2: *static_cast<USHORT*>(address) = __inword(port); break;
       case 4: *static_cast<ULONG*>(address) = __indword(port); break;
+      default: HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kUnspecified, 0, 0, 0);
+      /* UNREACHABLE */
       }
     }
   } else {
@@ -1048,6 +1052,8 @@ _Use_decl_annotations_ static void VmmpIoWrapper(bool to_memory, bool is_string,
       case 1: __outbytestring(port, static_cast<UCHAR*>(address), count); break;
       case 2: __outwordstring(port, static_cast<USHORT*>(address), count); break;
       case 4: __outdwordstring(port, static_cast<ULONG*>(address), count); break;
+      default: HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kUnspecified, 0, 0, 0);
+      /* UNREACHABLE */
       }
     } else {
       // OUT
@@ -1055,6 +1061,8 @@ _Use_decl_annotations_ static void VmmpIoWrapper(bool to_memory, bool is_string,
       case 1: __outbyte(port, *static_cast<UCHAR*>(address)); break;
       case 2: __outword(port, *static_cast<USHORT*>(address)); break;
       case 4: __outdword(port, *static_cast<ULONG*>(address)); break;
+      default: HYPERPLATFORM_COMMON_BUG_CHECK(HyperPlatformBugCheck::kUnspecified, 0, 0, 0);
+      /* UNREACHABLE */
       }
     }
   }

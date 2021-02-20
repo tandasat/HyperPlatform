@@ -344,7 +344,7 @@ _Use_decl_annotations_ static memory_type EptpGetMemoryType(
   UCHAR result_type = MAXUCHAR;
 
   // Looks for MTRR that includes the specified physical_address
-  for (const auto mtrr_entry : g_eptp_mtrr_entries) {
+  for (const auto& mtrr_entry : g_eptp_mtrr_entries) {
     if (!mtrr_entry.enabled) {
       // Reached out the end of stored MTRRs
       break;

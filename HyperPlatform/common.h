@@ -90,7 +90,7 @@
 #define HYPERPLATFORM_PERFORMANCE_ENABLE_PERFCOUNTER 0
 
 /// A pool tag
-static const ULONG kHyperPlatformCommonPoolTag = 'PpyH';
+static constexpr ULONG kHyperPlatformCommonPoolTag = 'PpyH';
 
 ////////////////////////////////////////////////////////////////////////////////
 //

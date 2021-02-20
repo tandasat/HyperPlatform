@@ -28,7 +28,7 @@
 //
 
 /// A pool tag for this module
-static const ULONG kKstlpPoolTag = 'LTSK';
+static constexpr ULONG kKstlpPoolTag = 'LTSK';
 
 ////////////////////////////////////////////////////////////////////////////////
 //
