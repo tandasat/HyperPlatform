@@ -1,4 +1,4 @@
-; Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
+; Copyright (c) 2015-2021, Satoshi Tanda. All rights reserved.
 ; Use of this source code is governed by a MIT-style license that can be
 ; found in the LICENSE file.
 
@@ -136,11 +136,6 @@ AsmVmmEntryPoint PROC
     ;     of them points to far away from the current and started to search a
     ;     correct-looking value from nearby memory by assuming that the stack
     ;     was corrupt.
-    ;
-    ; Finally, this directive always emits the below warning and, it is reported
-    ; as an issue of Visual Studio:
-    ;   warning A5000: @@: label defined but not referenced
-    ; https://developercommunity.visualstudio.com/content/problem/349442/the-fpo-directive-always-emits-false-warning-a5000.html
     .FPO(0, 0, 0, 0, 0, FRAME_TRAP)
 
     ; "Push" the KTRAP_FRAME structure. The values are uninitilized but unused
