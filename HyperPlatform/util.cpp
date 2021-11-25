@@ -573,8 +573,8 @@ _Use_decl_annotations_ static bool UtilpIsCanonicalFormAddress(void *address) {
   if (!IsX64()) {
     return true;
   } else {
-    return !UtilIsInBounds(0x0000800000000000ull, 0xffff7fffffffffffull,
-                           reinterpret_cast<ULONG64>(address));
+    return !UtilIsInBounds(reinterpret_cast<ULONG64>(address),
+                           0x0000800000000000ull, 0xffff7fffffffffffull);
   }
 }
 
