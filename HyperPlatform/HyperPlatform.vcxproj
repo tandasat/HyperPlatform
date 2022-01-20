@@ -58,6 +58,9 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <DisableSpecificWarnings>5040;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
+    <DriverSign>
+      <FileDigestAlgorithm>SHA256</FileDigestAlgorithm>
+    </DriverSign>
   </ItemDefinitionGroup>
   <ItemGroup>
     <FilesToPackage Include="$(TargetPath)" />
@@ -101,9 +104,6 @@
       <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
       <UseSafeExceptionHandlers Condition="'$(Platform)'=='Win32'">true</UseSafeExceptionHandlers>
     </MASM>
-  </ItemGroup>
-  <ItemGroup>
-    <Inf Include="HyperPlatform.inf" />
   </ItemGroup>
   <ItemGroup>
     <None Include="HyperPlatform.ruleset" />
