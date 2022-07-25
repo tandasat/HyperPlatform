@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2022, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -97,7 +97,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void *__cdecl operator new(
     size = 1;
   }
 
-  const auto p = ExAllocatePoolWithTag(NonPagedPool, size, kKstlpPoolTag);
+  const auto p = ExAllocatePoolZero(NonPagedPool, size, kKstlpPoolTag);
   if (!p) {
     KernelStlpRaiseException(MUST_SUCCEED_POOL_EMPTY);
   }
@@ -127,7 +127,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL) void *__cdecl operator new[](
     size = 1;
   }
 
-  const auto p = ExAllocatePoolWithTag(NonPagedPool, size, kKstlpPoolTag);
+  const auto p = ExAllocatePoolZero(NonPagedPool, size, kKstlpPoolTag);
   if (!p) {
     KernelStlpRaiseException(MUST_SUCCEED_POOL_EMPTY);
   }

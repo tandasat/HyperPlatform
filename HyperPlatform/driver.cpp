@@ -1,13 +1,10 @@
-// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2022, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
 /// @file
 /// Implements an entry point of the driver.
 
-#ifndef POOL_NX_OPTIN
-#define POOL_NX_OPTIN 1
-#endif
 #include "driver.h"
 #include "common.h"
 #include "global_object.h"

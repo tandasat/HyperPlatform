@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2022, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -238,8 +238,8 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
   PAGED_CODE()
 
   const auto shared_data = static_cast<SharedProcessorData *>(
-      ExAllocatePoolWithTag(NonPagedPool, sizeof(SharedProcessorData),
-                            kHyperPlatformCommonPoolTag));
+      ExAllocatePoolZero(NonPagedPool, sizeof(SharedProcessorData),
+                         kHyperPlatformCommonPoolTag));
   if (!shared_data) {
     return nullptr;
   }
@@ -269,8 +269,8 @@ _Use_decl_annotations_ static SharedProcessorData *VmpInitializeSharedData() {
 _Use_decl_annotations_ static void *VmpBuildMsrBitmap() {
   PAGED_CODE()
 
-  const auto msr_bitmap = ExAllocatePoolWithTag(NonPagedPool, PAGE_SIZE,
-                                                kHyperPlatformCommonPoolTag);
+  const auto msr_bitmap =
+      ExAllocatePoolZero(NonPagedPool, PAGE_SIZE, kHyperPlatformCommonPoolTag);
   if (!msr_bitmap) {
     return nullptr;
   }
@@ -314,7 +314,7 @@ _Use_decl_annotations_ static UCHAR *VmpBuildIoBitmaps() {
   PAGED_CODE()
 
   // Allocate two IO bitmaps as one contiguous 4K+4K page
-  const auto io_bitmaps = static_cast<UCHAR *>(ExAllocatePoolWithTag(
+  const auto io_bitmaps = static_cast<UCHAR *>(ExAllocatePoolZero(
       NonPagedPool, PAGE_SIZE * 2, kHyperPlatformCommonPoolTag));
   if (!io_bitmaps) {
     return nullptr;
@@ -366,9 +366,8 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   }
 
   // Allocate related structures
-  const auto processor_data =
-      static_cast<ProcessorData *>(ExAllocatePoolWithTag(
-          NonPagedPool, sizeof(ProcessorData), kHyperPlatformCommonPoolTag));
+  const auto processor_data = static_cast<ProcessorData *>(ExAllocatePoolZero(
+      NonPagedPool, sizeof(ProcessorData), kHyperPlatformCommonPoolTag));
   if (!processor_data) {
     return;
   }
@@ -393,7 +392,7 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   RtlZeroMemory(processor_data->vmm_stack_limit, KERNEL_STACK_SIZE);
 
   processor_data->vmcs_region =
-      static_cast<VmControlStructure *>(ExAllocatePoolWithTag(
+      static_cast<VmControlStructure *>(ExAllocatePoolZero(
           NonPagedPool, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
   if (!processor_data->vmcs_region) {
     VmpFreeProcessorData(processor_data);
@@ -402,7 +401,7 @@ _Use_decl_annotations_ static void VmpInitializeVm(
   RtlZeroMemory(processor_data->vmcs_region, kVmxMaxVmcsSize);
 
   processor_data->vmxon_region =
-      static_cast<VmControlStructure *>(ExAllocatePoolWithTag(
+      static_cast<VmControlStructure *>(ExAllocatePoolZero(
           NonPagedPool, kVmxMaxVmcsSize, kHyperPlatformCommonPoolTag));
   if (!processor_data->vmxon_region) {
     VmpFreeProcessorData(processor_data);

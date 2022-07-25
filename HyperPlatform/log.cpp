@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2022, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -227,14 +227,14 @@ _Use_decl_annotations_ static NTSTATUS LogpInitializeBufferInfo(
 
   // Allocate two log buffers on NonPagedPool.
   info->log_buffer1 = static_cast<char *>(
-      ExAllocatePoolWithTag(NonPagedPool, kLogpBufferSize, kLogpPoolTag));
+      ExAllocatePoolZero(NonPagedPool, kLogpBufferSize, kLogpPoolTag));
   if (!info->log_buffer1) {
     LogpFinalizeBufferInfo(info);
     return STATUS_INSUFFICIENT_RESOURCES;
   }
 
   info->log_buffer2 = static_cast<char *>(
-      ExAllocatePoolWithTag(NonPagedPool, kLogpBufferSize, kLogpPoolTag));
+      ExAllocatePoolZero(NonPagedPool, kLogpBufferSize, kLogpPoolTag));
   if (!info->log_buffer2) {
     LogpFinalizeBufferInfo(info);
     return STATUS_INSUFFICIENT_RESOURCES;
@@ -282,7 +282,7 @@ _Use_decl_annotations_ static NTSTATUS LogpInitializeLogFile(
                              OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE, nullptr,
                              nullptr)
 
-  IO_STATUS_BLOCK io_status = {};
+      IO_STATUS_BLOCK io_status = {};
   auto status = ZwCreateFile(
       &info->log_file_handle, FILE_APPEND_DATA | SYNCHRONIZE, &oa, &io_status,
       nullptr, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, FILE_OPEN_IF,

@@ -47,13 +47,15 @@ For more details, see the HyperPlatform User Document and Programmer's Reference
 
 Build
 ------
-To build HyperPlatform, the following are required.
-- Visual Studio Community 2017 (15.5 or later)
- - https://www.visualstudio.com/downloads/
-- Windows Software Development Kit (SDK) for Windows 10 (10.0.10586.0 or later)
- - https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk
-- Windows Driver Kit (WDK) 10 (10.0.10586.0 or later)
- - https://developer.microsoft.com/en-us/windows/hardware/windows-driver-kit
+To build HyperPlatform for x64 Windows 10 and later, the following are required.
+- Visual Studio Community 2022
+- Windows Software Development Kit (SDK) for Windows 10 (10.0.22621 or later)
+- Windows Driver Kit (WDK) 10 (10.0.22621 or later)
+
+To build HyperPlatform for x86 and Windows 7 and 8.1, the following are required.
+- Visual Studio Community 2019
+- Windows Software Development Kit (SDK) for Windows 10 (10.0.22000)
+- Windows Driver Kit (WDK) 10 (10.0.22000)
 
 
 Installation and Uninstallation

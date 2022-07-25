@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2022, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -102,9 +102,8 @@ _Use_decl_annotations_ void GlobalObjectTermination() {
 _IRQL_requires_max_(PASSIVE_LEVEL) int __cdecl atexit(_In_ Destructor dtor) {
   PAGED_CODE()
 
-  const auto element =
-      reinterpret_cast<DestructorEntry *>(ExAllocatePoolWithTag(
-          PagedPool, sizeof(DestructorEntry), kGlobalObjectpPoolTag));
+  const auto element = reinterpret_cast<DestructorEntry *>(ExAllocatePoolZero(
+      PagedPool, sizeof(DestructorEntry), kGlobalObjectpPoolTag));
   if (!element) {
     return 1;
   }

@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2022, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -56,36 +56,36 @@ using MmAllocateContiguousNodeMemoryType =
 // https://revers.engineering/author/daax/
 //
 struct KLdrDataTableEntry {
-    LIST_ENTRY in_load_order_links;
-    PVOID exception_table;
-    UINT32 exception_table_size;
-    // ULONG padding on IA64
-    PVOID gp_value;
-    PNON_PAGED_DEBUG_INFO non_paged_debug_info;
-    PVOID dll_base;
-    PVOID entry_point;
-    UINT32 size_of_image;
-    UNICODE_STRING full_dll_name;
-    UNICODE_STRING base_dll_name;
-    UINT32 flags;
-    UINT16 load_count;
+  LIST_ENTRY in_load_order_links;
+  PVOID exception_table;
+  UINT32 exception_table_size;
+  // ULONG padding on IA64
+  PVOID gp_value;
+  PNON_PAGED_DEBUG_INFO non_paged_debug_info;
+  PVOID dll_base;
+  PVOID entry_point;
+  UINT32 size_of_image;
+  UNICODE_STRING full_dll_name;
+  UNICODE_STRING base_dll_name;
+  UINT32 flags;
+  UINT16 load_count;
 
-    union {
-      UINT16 signature_level : 4;
-      UINT16 signature_type : 3;
-      UINT16 unused : 9;
-      UINT16 entire_field;
-    } u;
+  union {
+    UINT16 signature_level : 4;
+    UINT16 signature_type : 3;
+    UINT16 unused : 9;
+    UINT16 entire_field;
+  } u;
 
-    PVOID section_pointer;
-    UINT32 checksum;
-    UINT32 coverage_section_size;
-    PVOID coverage_section;
-    PVOID loaded_imports;
-    PVOID spare;
-    UINT32 size_of_image_not_rouned;
-    UINT32 time_date_stamp;
- };
+  PVOID section_pointer;
+  UINT32 checksum;
+  UINT32 coverage_section_size;
+  PVOID coverage_section;
+  PVOID loaded_imports;
+  PVOID spare;
+  UINT32 size_of_image_not_rouned;
+  UINT32 time_date_stamp;
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -400,7 +400,7 @@ UtilpBuildPhysicalMemoryRanges() {
       sizeof(PhysicalMemoryDescriptor) +
       sizeof(PhysicalMemoryRun) * (number_of_runs - 1);
   const auto pm_block =
-      static_cast<PhysicalMemoryDescriptor *>(ExAllocatePoolWithTag(
+      static_cast<PhysicalMemoryDescriptor *>(ExAllocatePoolZero(
           NonPagedPool, memory_block_size, kHyperPlatformCommonPoolTag));
   if (!pm_block) {
     ExFreePoolWithTag(pm_ranges, 'hPmM');
@@ -482,7 +482,7 @@ UtilForEachProcessorDpc(PKDEFERRED_ROUTINE deferred_routine, void *context) {
       return status;
     }
 
-    const auto dpc = static_cast<PRKDPC>(ExAllocatePoolWithTag(
+    const auto dpc = static_cast<PRKDPC>(ExAllocatePoolZero(
         NonPagedPool, sizeof(KDPC), kHyperPlatformCommonPoolTag));
     if (!dpc) {
       return STATUS_MEMORY_NOT_ALLOCATED;

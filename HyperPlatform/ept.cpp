@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2019, Satoshi Tanda. All rights reserved.
+// Copyright (c) 2015-2022, Satoshi Tanda. All rights reserved.
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
@@ -344,7 +344,7 @@ _Use_decl_annotations_ static memory_type EptpGetMemoryType(
   UCHAR result_type = MAXUCHAR;
 
   // Looks for MTRR that includes the specified physical_address
-  for (const auto& mtrr_entry : g_eptp_mtrr_entries) {
+  for (const auto &mtrr_entry : g_eptp_mtrr_entries) {
     if (!mtrr_entry.enabled) {
       // Reached out the end of stored MTRRs
       break;
@@ -402,7 +402,7 @@ _Use_decl_annotations_ EptData *EptInitialization() {
   static const auto kEptPageWalkLevel = 4ul;
 
   // Allocate ept_data
-  const auto ept_data = static_cast<EptData *>(ExAllocatePoolWithTag(
+  const auto ept_data = static_cast<EptData *>(ExAllocatePoolZero(
       NonPagedPool, sizeof(EptData), kHyperPlatformCommonPoolTag));
   if (!ept_data) {
     return nullptr;
@@ -410,8 +410,8 @@ _Use_decl_annotations_ EptData *EptInitialization() {
   RtlZeroMemory(ept_data, sizeof(EptData));
 
   // Allocate EPT_PML4 and initialize EptPointer
-  const auto ept_pml4 = static_cast<EptCommonEntry *>(ExAllocatePoolWithTag(
-      NonPagedPool, PAGE_SIZE, kHyperPlatformCommonPoolTag));
+  const auto ept_pml4 = static_cast<EptCommonEntry *>(
+      ExAllocatePoolZero(NonPagedPool, PAGE_SIZE, kHyperPlatformCommonPoolTag));
   if (!ept_pml4) {
     ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
     return nullptr;
@@ -421,7 +421,8 @@ _Use_decl_annotations_ EptData *EptInitialization() {
   ept_data->ept_pointer.fields.memory_type =
       static_cast<ULONG64>(EptpGetMemoryType(UtilPaFromVa(ept_pml4)));
   ept_data->ept_pointer.fields.page_walk_length = kEptPageWalkLevel - 1;
-  ept_data->ept_pointer.fields.pml4_address = UtilPfnFromPa(UtilPaFromVa(ept_pml4));
+  ept_data->ept_pointer.fields.pml4_address =
+      UtilPfnFromPa(UtilPaFromVa(ept_pml4));
 
   // Initialize all EPT entries for all physical memory pages
   const auto pm_ranges = UtilGetPhysicalMemoryRanges();
@@ -455,8 +456,8 @@ _Use_decl_annotations_ EptData *EptInitialization() {
   const auto preallocated_entries_size =
       sizeof(EptCommonEntry *) * kEptpNumberOfPreallocatedEntries;
   const auto preallocated_entries = static_cast<EptCommonEntry **>(
-      ExAllocatePoolWithTag(NonPagedPool, preallocated_entries_size,
-                            kHyperPlatformCommonPoolTag));
+      ExAllocatePoolZero(NonPagedPool, preallocated_entries_size,
+                         kHyperPlatformCommonPoolTag));
   if (!preallocated_entries) {
     EptpDestructTables(ept_pml4, 4);
     ExFreePoolWithTag(ept_data, kHyperPlatformCommonPoolTag);
@@ -578,7 +579,7 @@ _Use_decl_annotations_ static EptCommonEntry *EptpAllocateEptEntryFromPool() {
   static const auto kAllocSize = 512 * sizeof(EptCommonEntry);
   static_assert(kAllocSize == PAGE_SIZE, "Size check");
 
-  const auto entry = static_cast<EptCommonEntry *>(ExAllocatePoolWithTag(
+  const auto entry = static_cast<EptCommonEntry *>(ExAllocatePoolZero(
       NonPagedPool, kAllocSize, kHyperPlatformCommonPoolTag));
   if (!entry) {
     return entry;
