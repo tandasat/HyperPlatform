@@ -309,7 +309,7 @@ _Use_decl_annotations_ void EptInitializeMtrrEntries() {
   }
 
   // Read all variable range MTRRs
-  for (auto i = 0; i < mtrr_capabilities.fields.variable_range_count; i++) {
+  for (ULONG64 i = 0; i < mtrr_capabilities.fields.variable_range_count; i++) {
     // Read MTRR mask and check if it is in use
     const auto phy_mask = static_cast<ULONG>(Msr::kIa32MtrrPhysMaskN) + i * 2;
     Ia32MtrrPhysMaskMsr mtrr_mask = {UtilReadMsr64(static_cast<Msr>(phy_mask))};
