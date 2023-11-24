@@ -500,8 +500,7 @@ _Use_decl_annotations_ static EptCommonEntry *EptpConstructTables(
         }
         EptpInitTableEntry(ept_pml4_entry, table_level, UtilPaFromVa(ept_pdpt));
       }
-      return EptpConstructTables(
-          reinterpret_cast<EptCommonEntry *>(
+      return EptpConstructTables(static_cast<EptCommonEntry *>(
               UtilVaFromPfn(ept_pml4_entry->fields.physial_address)),
           table_level - 1, physical_address, ept_data);
     }
@@ -516,8 +515,7 @@ _Use_decl_annotations_ static EptCommonEntry *EptpConstructTables(
         }
         EptpInitTableEntry(ept_pdpt_entry, table_level, UtilPaFromVa(ept_pdt));
       }
-      return EptpConstructTables(
-          reinterpret_cast<EptCommonEntry *>(
+      return EptpConstructTables(static_cast<EptCommonEntry *>(
               UtilVaFromPfn(ept_pdpt_entry->fields.physial_address)),
           table_level - 1, physical_address, ept_data);
     }
@@ -532,8 +530,7 @@ _Use_decl_annotations_ static EptCommonEntry *EptpConstructTables(
         }
         EptpInitTableEntry(ept_pdt_entry, table_level, UtilPaFromVa(ept_pt));
       }
-      return EptpConstructTables(
-          reinterpret_cast<EptCommonEntry *>(
+      return EptpConstructTables(static_cast<EptCommonEntry *>(
               UtilVaFromPfn(ept_pdt_entry->fields.physial_address)),
           table_level - 1, physical_address, ept_data);
     }
